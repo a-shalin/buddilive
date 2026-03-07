@@ -1,0 +1,417 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ca.digitalcave</groupId>
+    <artifactId>buddilive</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>war</packaging>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <restlet.version>2.4.3</restlet.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>maven-restlet</id>
+            <name>Restlet repository</name>
+            <url>https://maven.restlet.talend.com</url>
+        </repository>
+    </repositories>
+
+    <profiles>
+        <profile>
+            <id>server</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <war.name>buddilive</war.name>
+                <config.dir>conf/server</config.dir>
+            </properties>
+        </profile>
+        <profile>
+            <id>test</id>
+            <properties>
+                <war.name>buddilive-test</war.name>
+                <config.dir>conf/test</config.dir>
+            </properties>
+        </profile>
+        <profile>
+            <id>standalone</id>
+            <properties>
+                <war.name>buddilive</war.name>
+                <config.dir>conf/standalone</config.dir>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-server</artifactId>
+                    <version>7.3.0.v20110203</version>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-webapp</artifactId>
+                    <version>7.3.0.v20110203</version>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.derby</groupId>
+                    <artifactId>derby</artifactId>
+                    <version>10.9.1.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
+                    <version>2.5</version>
+                    <scope>compile</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+    <dependencies>
+        <!-- Database -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.6.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>3.5.4</version>
+        </dependency>
+        <dependency>
+            <groupId>ognl</groupId>
+            <artifactId>ognl</artifactId>
+            <version>3.3.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.mchange</groupId>
+            <artifactId>c3p0</artifactId>
+            <version>0.9.5.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.liquibase</groupId>
+            <artifactId>liquibase-core</artifactId>
+            <version>4.20.0</version>
+        </dependency>
+
+        <!-- JSON / Templating -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.14.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <version>2.3.32</version>
+        </dependency>
+
+        <!-- Apache Commons -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.15</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.10.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-email</artifactId>
+            <version>1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>1.4</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+        </dependency>
+
+        <!-- Mail -->
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>javax.activation</artifactId>
+            <version>1.2.0</version>
+        </dependency>
+
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>2.0.7</version>
+        </dependency>
+
+        <!-- 2FA / QR -->
+        <dependency>
+            <groupId>dev.samstevens.totp</groupId>
+            <artifactId>totp</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.1</version>
+        </dependency>
+
+        <!-- Servlet API (provided by container) -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>2.5</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Jetty (provided scope for compilation; standalone profile overrides to runtime) -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>7.3.0.v20110203</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-webapp</artifactId>
+            <version>7.3.0.v20110203</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Restlet (from Restlet Maven repo) -->
+        <dependency>
+            <groupId>org.restlet.jse</groupId>
+            <artifactId>org.restlet</artifactId>
+            <version>${restlet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.restlet.jse</groupId>
+            <artifactId>org.restlet.ext.fileupload</artifactId>
+            <version>${restlet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.restlet.jse</groupId>
+            <artifactId>org.restlet.ext.freemarker</artifactId>
+            <version>${restlet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.restlet.jse</groupId>
+            <artifactId>org.restlet.ext.javamail</artifactId>
+            <version>${restlet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.restlet.jse</groupId>
+            <artifactId>org.restlet.ext.json</artifactId>
+            <version>${restlet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.restlet.jse</groupId>
+            <artifactId>org.restlet.ext.xml</artifactId>
+            <version>${restlet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.restlet.jee</groupId>
+            <artifactId>org.restlet.ext.servlet</artifactId>
+            <version>${restlet.version}</version>
+        </dependency>
+
+        <!-- JSON (from Restlet Maven repo) -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>org.json</artifactId>
+            <version>2.0</version>
+        </dependency>
+
+        <!-- Moss libraries (local install) -->
+        <dependency>
+            <groupId>ca.digitalcave.moss</groupId>
+            <artifactId>moss-common</artifactId>
+            <version>1.0-1-g9ef29ef</version>
+        </dependency>
+        <dependency>
+            <groupId>ca.digitalcave.moss</groupId>
+            <artifactId>moss-crypto</artifactId>
+            <version>1.0-22-gb0bf44e</version>
+        </dependency>
+        <dependency>
+            <groupId>ca.digitalcave.moss</groupId>
+            <artifactId>moss-restlet</artifactId>
+            <version>1.0-136-g75f01f6</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${war.name}</finalName>
+
+        <plugins>
+            <!-- Java 1.8 compiler -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+
+            <!-- Generate version/config/changelog via Ant tasks at initialize phase -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-build-resources</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <!-- Get git describe -->
+                                <exec outputproperty="git" executable="git" failonerror="false">
+                                    <arg value="describe"/>
+                                    <arg value="--long"/>
+                                    <arg value="--tags"/>
+                                </exec>
+
+                                <!-- Get git log for changelog -->
+                                <exec outputproperty="changelog" executable="git" failonerror="false">
+                                    <arg value="log"/>
+                                    <arg value="--date=short"/>
+                                    <arg value="--pretty=format:&lt;h2>%ad (%h)&lt;/h2>&lt;p>%s&lt;br/>%b&lt;/p>"/>
+                                </exec>
+
+                                <!-- Timestamp -->
+                                <tstamp>
+                                    <format property="timestamp" pattern="yyyy-MM-dd HH:mm"/>
+                                </tstamp>
+
+                                <!-- Set up token filtering -->
+                                <filter token="git" value="${git}"/>
+                                <filter token="environment" value="${war.name}"/>
+                                <filter token="changelog" value="${changelog}"/>
+
+                                <!-- Copy config.properties (no tokens to filter) -->
+                                <copy file="${config.dir}/config.properties"
+                                      tofile="${project.build.directory}/generated-resources/config.properties"
+                                      overwrite="true"/>
+
+                                <!-- Copy config into webapp classes for standalone Jetty -->
+                                <copy file="${config.dir}/config.properties"
+                                      tofile="src/main/webapp/WEB-INF/classes/config.properties"
+                                      overwrite="true"/>
+
+                                <!-- Copy and filter logging.properties -->
+                                <copy filtering="true"
+                                      file="conf/logging.properties"
+                                      tofile="${project.build.directory}/generated-resources/logging.properties"
+                                      overwrite="true"/>
+
+                                <!-- Generate version.properties -->
+                                <echo append="false"
+                                      file="${project.build.directory}/generated-resources/version.properties">BUILD_DATE=${timestamp}${line.separator}VERSION=${git}</echo>
+
+                                <!-- Copy and filter changelog.html -->
+                                <copy filtering="true"
+                                      file="src/main/webapp/doc/changelog.html"
+                                      tofile="${project.build.directory}/generated-webapp/doc/changelog.html"
+                                      overwrite="true"/>
+
+                                <!-- Copy and filter web.xml -->
+                                <copy filtering="true"
+                                      file="src/main/webapp/WEB-INF/web.xml"
+                                      tofile="${project.build.directory}/generated-webapp/WEB-INF/web.xml"
+                                      overwrite="true"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Add generated resources to classpath -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.4.0</version>
+                <executions>
+                    <execution>
+                        <id>add-resource</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>add-resource</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/generated-resources</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- WAR packaging -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.3.2</version>
+                <configuration>
+                    <webXml>${project.build.directory}/generated-webapp/WEB-INF/web.xml</webXml>
+                    <webResources>
+                        <!-- Overlay filtered changelog -->
+                        <resource>
+                            <directory>${project.build.directory}/generated-webapp</directory>
+                            <includes>
+                                <include>doc/changelog.html</include>
+                            </includes>
+                        </resource>
+                    </webResources>
+                    <packagingExcludes>extjs/**,touch/**</packagingExcludes>
+                </configuration>
+            </plugin>
+
+            <!-- Standalone runner -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>ca.digitalcave.buddi.live.BuddiLiveStandalone</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,8 +1,9 @@
 .DS_Store
 /build/
+/target/
 /db/
 /derby.log
-/conf/server-config.properties
-/conf/test-config.properties
-/WebContent/WEB-INF/classes/config.properties
-
+/conf/server/config.properties
+/conf/test/config.properties
+/src/main/webapp/WEB-INF/classes/
+/.env
