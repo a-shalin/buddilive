@@ -187,8 +187,19 @@
 			</if>
 	</select>
 
-	<select id="selectSource" resultType="ca.digitalcave.buddi.live.model.Source">
-		SELECT * FROM sources 
+	<resultMap id="sourceRaw" type="ca.digitalcave.buddi.live.model.Source" autoMapping="false">
+		<id column="id" property="id" />
+		<result column="user_id" property="userId"/>
+		<result column="uuid" property="uuid"/>
+		<result column="name" property="name"/>
+		<result column="deleted" property="deleted" typeHandler="ca.digitalcave.buddi.live.db.handler.BooleanHandler"/>
+		<result column="type" property="type"/>
+		<result column="created" property="created"/>
+		<result column="modified" property="modified"/>
+	</resultMap>
+
+	<select id="selectSource" resultMap="sourceRaw">
+		SELECT * FROM sources
 		WHERE user_id = #{user.id}
 			<if test="_parameter.containsKey('id')">
 				AND id = #{id}

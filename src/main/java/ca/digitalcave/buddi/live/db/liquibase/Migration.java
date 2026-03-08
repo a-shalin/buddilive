@@ -31,15 +31,13 @@ public class Migration {
 		final SqlSession sqlSession = sqlSessionFactory.openSession();
 		try {
 			final Connection conn = sqlSession.getConnection();
-			final Liquibase liquibase = new Liquibase("liquibase/master.xml", new ContextResourceAccessor(context), new JdbcConnection(conn));
+			final JdbcConnection jdbcConn = new JdbcConnection(conn);
+			final Liquibase liquibase = new Liquibase("liquibase/master.xml", new ContextResourceAccessor(context), jdbcConn);
 			try {
 				liquibase.update(new Contexts(), new LabelExpression());
 			}
 			catch (ValidationFailedException e) {
 				Logger.getLogger(Migration.class.getName()).log(Level.INFO, "Validation Failed", e);
-			}
-			finally {
-				liquibase.close();
 			}
 		}
 		finally {
