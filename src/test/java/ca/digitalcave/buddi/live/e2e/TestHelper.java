@@ -159,11 +159,18 @@ public class TestHelper {
 	}
 
 	public int createCategory(OkHttpClient client, String name, String type, String periodType) throws IOException {
+		return createCategory(client, name, type, periodType, -1);
+	}
+
+	public int createCategory(OkHttpClient client, String name, String type, String periodType, int parentId) throws IOException {
 		JSONObject json = new JSONObject();
 		json.put("action", "insert");
 		json.put("name", name);
 		json.put("type", type);
 		json.put("periodType", periodType);
+		if (parentId > 0) {
+			json.put("parent", parentId);
+		}
 
 		String responseBody = postJson(client, "/data/categories", json);
 		JSONObject result = new JSONObject(responseBody);

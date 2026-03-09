@@ -33,7 +33,7 @@ public class ConstraintsChecker {
 			if (parent.isAccount()){
 				throw new DatabaseException("The parent of a category cannot be an account");
 			}
-			if (parent.getUserId() != category.getUserId()){
+			if (parent.getUserId() != user.getId()){
 				throw new DatabaseException("The userId of a parent category must match the userId of the child category");
 			}
 			//Check for loops / non matching types in the parentage

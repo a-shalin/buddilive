@@ -55,6 +55,16 @@ public class CategoriesIT extends BaseIT {
 
 	@Test
 	@Order(3)
+	void testCreateChildCategory() throws Exception {
+		int childId = helper.createCategory(client, "Fruit", "E", "MONTH", expenseCategoryId);
+		assertThat(childId).isGreaterThan(0);
+
+		JSONObject categories = helper.getCategories(client, "MONTH");
+		assertThat(findCategoryInTree(categories, "Fruit")).isTrue();
+	}
+
+	@Test
+	@Order(4)
 	void testSetBudgetEntry() throws Exception {
 		JSONObject json = new JSONObject();
 		json.put("action", "set");
