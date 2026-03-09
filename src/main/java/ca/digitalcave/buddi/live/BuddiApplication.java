@@ -5,9 +5,12 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
@@ -98,6 +101,7 @@ public class BuddiApplication extends Application{
 		try {
 			configProperties.load(new ClientResource(getContext(), "war:///WEB-INF/classes/config.properties").get().getStream());
 			configProperties.setProperty("mail.subject", "BuddiLive Account Activation");
+			resolveEnvVars(configProperties);
 		}
 		catch (Exception e){
 			getLogger().severe("There was an error loading the config file from WEB-INF/classes/config.properties.  Please ensure that this file exists and is readable.");
@@ -430,5 +434,24 @@ public class BuddiApplication extends Application{
 		}
 		
 		return htmlEmail;
+	}
+
+	private static final Pattern ENV_VAR_PATTERN = Pattern.compile("\\$\\{([^}]+)}");
+
+	private void resolveEnvVars(Properties props) {
+		final Map<String, String> env = System.getenv();
+		for (String key : props.stringPropertyNames()) {
+			String value = props.getProperty(key);
+			Matcher m = ENV_VAR_PATTERN.matcher(value);
+			if (m.find()) {
+				StringBuffer sb = new StringBuffer();
+				do {
+					String envValue = env.get(m.group(1));
+					m.appendReplacement(sb, Matcher.quoteReplacement(envValue != null ? envValue : m.group(0)));
+				} while (m.find());
+				m.appendTail(sb);
+				props.setProperty(key, sb.toString());
+			}
+		}
 	}
 }

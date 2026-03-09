@@ -59,6 +59,39 @@ public class TransactionsIT extends BaseIT {
 
 	@Test
 	@Order(2)
+	void testCreateTransactionWithNumericAmount() throws Exception {
+		JSONObject split = new JSONObject();
+		split.put("amount", 100000);
+		split.put("fromId", accountId);
+		split.put("toId", categoryId);
+
+		JSONArray splits = new JSONArray();
+		splits.put(split);
+
+		JSONObject json = new JSONObject();
+		json.put("action", "insert");
+		json.put("description", "Numeric Amount Test");
+		json.put("date", "2024-03-15");
+		json.put("splits", splits);
+
+		String responseBody = helper.postJson(client, "/data/transactions", json);
+		JSONObject result = new JSONObject(responseBody);
+		assertThat(result.getBoolean("success")).isTrue();
+
+		JSONObject txns = helper.getTransactions(client, accountId);
+		JSONArray data = txns.getJSONArray("data");
+		boolean found = false;
+		for (int i = 0; i < data.length(); i++) {
+			if ("Numeric Amount Test".equals(data.getJSONObject(i).optString("description"))) {
+				found = true;
+				break;
+			}
+		}
+		assertThat(found).as("Transaction with numeric amount should appear in list").isTrue();
+	}
+
+	@Test
+	@Order(3)
 	void testCreateTransfer() throws Exception {
 		helper.createTransaction(client, "Transfer to Savings", "2024-03-16", accountId, account2Id, "200.00");
 
@@ -75,7 +108,7 @@ public class TransactionsIT extends BaseIT {
 	}
 
 	@Test
-	@Order(3)
+	@Order(4)
 	void testUpdateTransaction() throws Exception {
 		helper.createTransaction(client, "Old Description", "2024-03-17", accountId, categoryId, "25.00");
 
@@ -120,7 +153,7 @@ public class TransactionsIT extends BaseIT {
 	}
 
 	@Test
-	@Order(4)
+	@Order(5)
 	void testDeleteTransaction() throws Exception {
 		helper.createTransaction(client, "To Delete", "2024-03-18", accountId, categoryId, "10.00");
 

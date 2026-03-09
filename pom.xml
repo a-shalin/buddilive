@@ -303,30 +303,12 @@
             <version>4.27.0</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Moss libraries (local install) -->
-        <dependency>
-            <groupId>ca.digitalcave.moss</groupId>
-            <artifactId>moss-common</artifactId>
-            <version>1.0-1-g9ef29ef</version>
-        </dependency>
-        <dependency>
-            <groupId>ca.digitalcave.moss</groupId>
-            <artifactId>moss-crypto</artifactId>
-            <version>1.0-22-gb0bf44e</version>
-        </dependency>
-        <dependency>
-            <groupId>ca.digitalcave.moss</groupId>
-            <artifactId>moss-restlet</artifactId>
-            <version>1.0-136-g75f01f6</version>
-        </dependency>
     </dependencies>
 
     <build>
         <finalName>${war.name}</finalName>
 
         <plugins>
-            <!-- Java 1.8 compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

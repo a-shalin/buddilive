@@ -31,7 +31,7 @@ public class Split {
 	public Split(JSONObject json) throws JSONException {
 		this.setId(json.has("id") ? json.getLong("id") : null);
 		this.setTransactionId(json.has("transactionId") ? json.getLong("transactionId") : null);
-		this.setAmount(FormatUtil.parseCurrency(json.getString("amount")).toPlainString());
+		this.setAmount(FormatUtil.parseCurrency(String.valueOf(json.get("amount"))).toPlainString());
 		this.setFromSource(json.getInt("fromId"));
 		this.setToSource(json.getInt("toId"));
 		this.setMemo(json.optString("memo", null));
