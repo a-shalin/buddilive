@@ -297,6 +297,12 @@
             <version>3.27.3</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>4.27.0</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Moss libraries (local install) -->
         <dependency>
