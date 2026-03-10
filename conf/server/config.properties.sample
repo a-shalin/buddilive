@@ -1,15 +1,15 @@
-#Sample for Postgresql connection.  Change the connection details as needed for your server.
+#Database connection. Uses environment variables for Docker deployment.
 db.driver=org.postgresql.Driver
-db.url=jdbc:postgresql:buddilive
-db.user=buddilive
-db.password=password
+db.url=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+db.user=${DB_USER}
+db.password=${DB_PASSWORD}
 db.query=select 1
 
-#Mail configuration.  Change as needed
-#mail.smtp.from=user@localhost
-#mail.smtp.host=localhost
-#mail.smtp.port=25
-#mail.smtp.auth=false
-#mail.smtp.username=user
-#mail.smtp.password=password
-#mail.smtp.starttls.enable=false
+#Mail configuration
+mail.smtp.from=${EMAIL}
+mail.smtp.host=${MAIL_HOST}
+mail.smtp.port=${MAIL_PORT}
+mail.smtp.auth=${MAIL_AUTH}
+mail.smtp.username=${EMAIL}
+mail.smtp.password=${MAIL_PASSWORD}
+mail.smtp.starttls.enable=${MAIL_TLS}
