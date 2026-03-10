@@ -7,11 +7,11 @@ Ext.define("BuddiLive.controller.preferences.ChangePasswordEditor", {
 			"changepasswordeditor button[itemId='cancel']": {"click": this.cancel}
 		});
 	},
-	
+
 	"cancel": function(component){
 		component.up("changepasswordeditor").close();
 	},
-	
+
 	"ok": function(component){
 		var window = component.up("changepasswordeditor");
 		var panel = window.initialConfig.panel;
@@ -20,9 +20,9 @@ Ext.define("BuddiLive.controller.preferences.ChangePasswordEditor", {
 		request.newPassword = window.down("passwordfield[itemId='newPassword']").getValue();
 		request.currentPassword = window.down("textfield[itemId='currentPassword']").getValue();
 
-		var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": window});
+		var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": window});
 		mask.show();
-		
+
 		var conn = new Ext.data.Connection();
 		conn.request({
 			"url": "data/changepassword",
@@ -38,7 +38,7 @@ Ext.define("BuddiLive.controller.preferences.ChangePasswordEditor", {
 				connLogin.request({
 					"url": "index",
 					"method": "POST",
-					"params": { "action": "login", "identifier": "${user.plaintextIdentifier}", "secret": request.newPassword },
+					"params": { "action": "login", "identifier": BuddiLive.util.UserConfig.get('plaintextIdentifier'), "secret": request.newPassword },
 					"failure": function(response){
 						mask.hide();
 						BuddiLive.app.error(response);

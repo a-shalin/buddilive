@@ -93,6 +93,7 @@ public class BuddiApplication extends Application{
 	private Properties systemProperties = new Properties();
 	private PasswordChecker passwordChecker = new PasswordChecker().setHistoryEnforced(false);
 	private Crypto crypto = new Crypto().setAlgorithm(Algorithm.AES_256).setSaltLength(32).setKeyIterations(1);
+	private AuthenticationHelper authenticationHelper;
 
 	public synchronized void start() throws Exception {
 		try { systemProperties.load(new ClientResource(getContext(), "war:///WEB-INF/classes/version.properties").get().getStream()); } catch (Throwable e){}
@@ -182,8 +183,9 @@ public class BuddiApplication extends Application{
 		getTunnelService().setEnabled(true);
 		getTunnelService().setExtensionsTunnel(true);
 
-		final AuthenticationHelper authenticationHelper = new BuddiLiveAuthenticationHelper(this);
-		
+		this.authenticationHelper = new BuddiLiveAuthenticationHelper(this);
+		final AuthenticationHelper authenticationHelper = this.authenticationHelper;
+
 		authenticationHelper.getConfig().showCookieWarning = true;
 		authenticationHelper.getConfig().showForgotUsername = false;
 		authenticationHelper.getConfig().showForgotPassword = true;
@@ -384,6 +386,9 @@ public class BuddiApplication extends Application{
 	}
 	public Crypto getCrypto() {
 		return crypto;
+	}
+	public AuthenticationHelper getAuthenticationHelper() {
+		return authenticationHelper;
 	}
 	
 	public HtmlEmail getEmail(String from, String replyTo, String to) throws EmailException, AddressException {

@@ -60,10 +60,10 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 		viewport.down("button[itemId='editCategory']").setDisabled(!enabled);
 		viewport.down("button[itemId='deleteCategory']").setDisabled(!enabled);
 		if (selected && selected.length > 0 && selected[0].data.deleted){
-			viewport.down("button[itemId='deleteCategory']").setText("${translation("UNDELETE_BUDGET_CATEGORY")?json_string}");
+			viewport.down("button[itemId='deleteCategory']").setText(BuddiLive.translate("UNDELETE_BUDGET_CATEGORY"));
 		}
 		else {
-			viewport.down("button[itemId='deleteCategory']").setText("${translation("DELETE_BUDGET_CATEGORY")?json_string}");
+			viewport.down("button[itemId='deleteCategory']").setText(BuddiLive.translate("DELETE_BUDGET_CATEGORY"));
 		}
 	},
 
@@ -73,7 +73,7 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 		request.type = budgetTree.periodValue;
 		request.date = budgetTree.currentDate;
 		var conn = new Ext.data.Connection();
-		var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": budgetTree});
+		var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": budgetTree});
 		mask.show();
 		conn.request({
 			"url": "data/categories",

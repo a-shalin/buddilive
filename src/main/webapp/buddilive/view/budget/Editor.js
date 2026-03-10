@@ -10,7 +10,7 @@ Ext.define('BuddiLive.view.budget.Editor', {
 		var s = this.initialConfig.selected
 		var editor = this;
 		
-		this.title = (s ? "${translation("EDIT_BUDGET_CATEGORY")?json_string}" : "${translation("ADD_BUDGET_CATEGORY")?json_string}")
+		this.title = (s ? BuddiLive.translate("EDIT_BUDGET_CATEGORY") : BuddiLive.translate("ADD_BUDGET_CATEGORY"))
 		this.layout = "fit";
 		this.modal = true;
 		this.width = 400;
@@ -28,14 +28,14 @@ Ext.define('BuddiLive.view.budget.Editor', {
 					{
 						"xtype": "selfdocumentingfield",
 						"anchor": "100%",
-						"messageBody": "${translation("HELP_BUDGET_CATEGORY_NAME")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_BUDGET_CATEGORY_NAME"),
 						"type": "textfield",
 						"itemId": "name",
 						"value": (s ? s.name : null),
-						"fieldLabel": "${translation("BUDGET_CATEGORY_NAME")?json_string}",
+						"fieldLabel": BuddiLive.translate("BUDGET_CATEGORY_NAME"),
 						"allowBlank": false,
 						"enableKeyEvents": true,
-						"emptyText": "${translation("BUDGET_CATEGORY_EXAMPLES")?json_string}",
+						"emptyText": BuddiLive.translate("BUDGET_CATEGORY_EXAMPLES"),
 						"listeners": {
 							"afterrender": function(field) {
 								field.focus(false, 500);
@@ -44,10 +44,10 @@ Ext.define('BuddiLive.view.budget.Editor', {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_BUDGET_CATEGORY_PARENT")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_BUDGET_CATEGORY_PARENT"),
 						"type": "parentcombobox",
 						"itemId": "parent",
-						"fieldLabel": "${translation("BUDGET_CATEGORY_PARENT")?json_string}",
+						"fieldLabel": BuddiLive.translate("BUDGET_CATEGORY_PARENT"),
 						"emptyText": "Parent",
 						"value": (s ? s.parent : null),
 						"url": "data/categories/parents.json" + (s ? "?exclude=" + s.id : ""),
@@ -65,23 +65,23 @@ Ext.define('BuddiLive.view.budget.Editor', {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_BUDGET_CATEGORY_PERIOD_TYPE")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_BUDGET_CATEGORY_PERIOD_TYPE"),
 						"type": "combobox",
 						"itemId": "periodType",
 						"value": (s ? s.type : "MONTH"),
 						"hidden": s != null,
-						"fieldLabel": "${translation("BUDGET_CATEGORY_PERIOD_TYPE")?json_string}",
+						"fieldLabel": BuddiLive.translate("BUDGET_CATEGORY_PERIOD_TYPE"),
 						"editable": false,
 						"allowBlank": false,
 						"store": new Ext.data.Store({
 							"fields": ["text", "value"],
 							"data": [
-								{"text": "${translation("BUDGET_CATEGORY_TYPE_WEEK")?json_string}", "value": "WEEK"},
-								{"text": "${translation("BUDGET_CATEGORY_TYPE_SEMI_MONTH")?json_string}", "value": "SEMI_MONTH"},
-								{"text": "${translation("BUDGET_CATEGORY_TYPE_MONTH")?json_string}", "value": "MONTH"},
-								{"text": "${translation("BUDGET_CATEGORY_TYPE_QUARTER")?json_string}", "value": "QUARTER"},
-								{"text": "${translation("BUDGET_CATEGORY_TYPE_SEMI_YEAR")?json_string}", "value": "SEMI_YEAR"},
-								{"text": "${translation("BUDGET_CATEGORY_TYPE_YEAR")?json_string}", "value": "YEAR"}
+								{"text": BuddiLive.translate("BUDGET_CATEGORY_TYPE_WEEK"), "value": "WEEK"},
+								{"text": BuddiLive.translate("BUDGET_CATEGORY_TYPE_SEMI_MONTH"), "value": "SEMI_MONTH"},
+								{"text": BuddiLive.translate("BUDGET_CATEGORY_TYPE_MONTH"), "value": "MONTH"},
+								{"text": BuddiLive.translate("BUDGET_CATEGORY_TYPE_QUARTER"), "value": "QUARTER"},
+								{"text": BuddiLive.translate("BUDGET_CATEGORY_TYPE_SEMI_YEAR"), "value": "SEMI_YEAR"},
+								{"text": BuddiLive.translate("BUDGET_CATEGORY_TYPE_YEAR"), "value": "YEAR"}
 							]
 						}),
 						"queryMode": "local",
@@ -89,19 +89,19 @@ Ext.define('BuddiLive.view.budget.Editor', {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_BUDGET_CATEGORY_TYPE")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_BUDGET_CATEGORY_TYPE"),
 						"type": "combobox",
 						"itemId": "type",
 						"value": (s ? s.categoryType : "E"),
 						"hidden": s != null,
-						"fieldLabel": "${translation("BUDGET_CATEGORY_TYPE")?json_string}",
+						"fieldLabel": BuddiLive.translate("BUDGET_CATEGORY_TYPE"),
 						"editable": false,
 						"allowBlank": false,
 						"store": new Ext.data.Store({
 							"fields": ["text", "value"],
 							"data": [
-								{"text": "${translation("INCOME")?json_string}", "value": "I"},
-								{"text": "${translation("EXPENSE")?json_string}", "value": "E"}
+								{"text": BuddiLive.translate("INCOME"), "value": "I"},
+								{"text": BuddiLive.translate("EXPENSE"), "value": "E"}
 							]
 						}),
 						"queryMode": "local",
@@ -112,12 +112,12 @@ Ext.define('BuddiLive.view.budget.Editor', {
 		];
 		this.buttons = [
 			{
-				"text": "${translation("OK")?json_string}",
+				"text": BuddiLive.translate("OK"),
 				"itemId": "ok",
 				"disabled": true
 			},
 			{
-				"text": "${translation("CANCEL")?json_string}",
+				"text": BuddiLive.translate("CANCEL"),
 				"itemId": "cancel"
 			}
 		]

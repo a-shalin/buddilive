@@ -11,7 +11,7 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 		var me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
-		this.title = "${translation("REPORT_TABLE_INFLOW_AND_OUTFLOW_BY_ACCOUNT")?json_string} - " + this.initialConfig.options.dateRange;
+		this.title = BuddiLive.translate("REPORT_TABLE_INFLOW_AND_OUTFLOW_BY_ACCOUNT") + " - " + this.initialConfig.options.dateRange;
 		var styledRenderer = function(value, metaData, record){
 			metaData.style = record.data[metaData.column.dataIndex + "Style"];
 			return value;
@@ -40,10 +40,10 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 							"<table class='x-grid-table' style='width: 100%;'>",
 							"<tpl if='transactions.length &gt; 0'>",
 								"<tr>",
-									"<td class='x-grid-cell x-grid-td' style='width: 10%; font-weight: bold;'>${translation("DATE")?json_string}</td>",
-									"<td class='x-grid-cell x-grid-td' style='width: 20%; font-weight: bold;'>${translation("DESCRIPTION")?json_string}</td>",
-									"<td class='x-grid-cell x-grid-td' style='width: 20%; font-weight: bold;'>${translation("FROM")?json_string} &rarr; ${translation("TO")?json_string}</td>",
-									"<td class='x-grid-cell x-grid-td' style='width: 20%; font-weight: bold;'>${translation("AMOUNT")?json_string}</td>",
+									"<td class='x-grid-cell x-grid-td' style='width: 10%; font-weight: bold;'>" + BuddiLive.translate("DATE") + "</td>",
+									"<td class='x-grid-cell x-grid-td' style='width: 20%; font-weight: bold;'>" + BuddiLive.translate("DESCRIPTION") + "</td>",
+									"<td class='x-grid-cell x-grid-td' style='width: 20%; font-weight: bold;'>" + BuddiLive.translate("FROM") + " &rarr; " + BuddiLive.translate("TO") + "</td>",
+									"<td class='x-grid-cell x-grid-td' style='width: 20%; font-weight: bold;'>" + BuddiLive.translate("AMOUNT") + "</td>",
 								"</tr>",
 								"<tpl for='transactions'>",
 									"<tr>",
@@ -55,20 +55,20 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 								"</tpl>",
 							"<tpl else>",
 								"<tr>",
-									"<td class='x-grid-cell x-grid-td' style='width: 100%; font-weight: bold;'>${translation("NO_TRANSACTIONS_IN_SELECTED_RANGE")?json_string}</td>",
+									"<td class='x-grid-cell x-grid-td' style='width: 100%; font-weight: bold;'>" + BuddiLive.translate("NO_TRANSACTIONS_IN_SELECTED_RANGE") + "</td>",
 								"</tr>",
 							"</tpl>",
 							"</table>"
 						],
 						"toggleRow" : function(rowIdx, record) {
-							if (record.get("source") == "${translation("TOTAL")?json_string}") return false;
+							if (record.get("source") == BuddiLive.translate("TOTAL")) return false;
 							Ext.grid.plugin.RowExpander.prototype.toggleRow.apply(this, arguments);
 						}
 					}
 				],
 				"columns": [
 					{
-						"text": "${translation("ACCOUNT_NAME")?json_string}",
+						"text": BuddiLive.translate("ACCOUNT_NAME"),
 						"dataIndex": "source",
 						"hideable": false,
 						"sortable": false,
@@ -76,7 +76,7 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 						"renderer": styledRenderer
 					},
 					{
-						"text": "${translation("INFLOW")?json_string}",
+						"text": BuddiLive.translate("INFLOW"),
 						"dataIndex": "inflow",
 						"hideable": false,
 						"sortable": false,
@@ -84,7 +84,7 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 						"renderer": styledRenderer
 					},
 					{
-						"text": "${translation("OUTFLOW")?json_string}",
+						"text": BuddiLive.translate("OUTFLOW"),
 						"dataIndex": "outflow",
 						"hideable": false,
 						"sortable": false,
@@ -92,7 +92,7 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 						"renderer": styledRenderer
 					},
 					{
-						"text": "${translation("DIFFERENCE")?json_string}",
+						"text": BuddiLive.translate("DIFFERENCE"),
 						"dataIndex": "difference",
 						"hideable": false,
 						"sortable": false,

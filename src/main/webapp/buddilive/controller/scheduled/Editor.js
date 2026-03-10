@@ -47,7 +47,7 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 		request.scheduleWeek = activeCard.getScheduleWeek();
 		request.scheduleMonth = activeCard.getScheduleMonth();
 
-		var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": window});
+		var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": window});
 		mask.show();
 		
 		var conn = new Ext.data.Connection();

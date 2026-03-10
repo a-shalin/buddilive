@@ -13,11 +13,11 @@ Ext.define("BuddiLive.view.scheduled.panel.EveryXDays", {
 		this.items = [
 			{
 				"xtype": "selfdocumentingfield",
-				"messageBody": "${translation("HELP_REPEATING_EVERY_X_DAYS")?json_string}",
+				"messageBody": BuddiLive.translate("HELP_REPEATING_EVERY_X_DAYS"),
 				"type": "panel",
 				"border": false,
 				"layout": "hbox",
-				"fieldLabel": "${translation("REPEATING_EVERY_X_DAYS")?json_string}",
+				"fieldLabel": BuddiLive.translate("REPEATING_EVERY_X_DAYS"),
 				"items": [
 					{
 						"xtype": "numberfield",
@@ -28,7 +28,7 @@ Ext.define("BuddiLive.view.scheduled.panel.EveryXDays", {
 					},
 					{
 						"xtype": "displayfield",
-						"value": "${translation("DAYS")?json_string}",
+						"value": BuddiLive.translate("DAYS"),
 						"margin": "0 0 0 10",
 						"width": 50
 					}

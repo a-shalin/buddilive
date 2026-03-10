@@ -2,32 +2,37 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 	"extend": "Ext.form.NumberField",
 	"alias": "widget.currencyfield",
 
-	"decimalSeparator": "${user.decimalSeparator!?json_string}",
-	"thousandSeparator": "${user.thousandSeparator!?json_string}",
 	"forcePrecision" : false,
 	"hideTrigger": true,
 	"keyNavEnabled": false,
 	"mouseWheelEnabled": false,
-	"emptyText": "0${user.decimalSeparator!?json_string}00",
-	
+
 	"formatText": "0,000.00",
-	
+
 	"initComponent": function(){
-		Ext.util.Format.decimalSeparator = "${user.decimalSeparator!?json_string}";
-		Ext.util.Format.thousandSeparator = "${user.thousandSeparator!?json_string}";
+		var decimalSeparator = BuddiLive.util.UserConfig.get('decimalSeparator') || '.';
+		var thousandSeparator = BuddiLive.util.UserConfig.get('thousandSeparator') || ',';
+
+		this.decimalSeparator = decimalSeparator;
+		this.thousandSeparator = thousandSeparator;
+		this.emptyText = "0" + decimalSeparator + "00";
+
+		Ext.util.Format.decimalSeparator = decimalSeparator;
+		Ext.util.Format.thousandSeparator = thousandSeparator;
 
 		this.callParent(arguments);
 	},
 
-	//Convert a string to a number
 	"parseValue": function(value){
 		var me = this;
-		if (!isNaN(value)) return value;	//If this is already a number, then just return it.
-		var parsedValue = parseFloat(String(value).split("${user.currencySymbol!?json_string}").join("").split("${user.thousandSeparator!?json_string}").join("").split("${user.decimalSeparator!?json_string}").join("."));
+		if (!isNaN(value)) return value;
+		var currencySymbol = BuddiLive.util.UserConfig.get('currencySymbol') || '';
+		var thousandSeparator = BuddiLive.util.UserConfig.get('thousandSeparator') || ',';
+		var decimalSeparator = BuddiLive.util.UserConfig.get('decimalSeparator') || '.';
+		var parsedValue = parseFloat(String(value).split(currencySymbol).join("").split(thousandSeparator).join("").split(decimalSeparator).join("."));
 		return isNaN(parsedValue) ? null : parsedValue;
 	},
-	
-	//Convert a number or number-ish string to a formatted string for display
+
 	"valueToRaw": function(value) {
 		var me = this;
 		value = me.parseValue(value);
@@ -38,16 +43,16 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 			return Ext.util.Format.number(value, me.formatText);
 		}
 	},
-	
+
 	"rawToValue": function(raw) {
 		var me = this;
 		return me.parseValue(raw);
 	},
-	
+
 	"validate": function(){
-		return !isNaN(this.rawToValue(this.getRawValue()));	
+		return !isNaN(this.rawToValue(this.getRawValue()));
 	},
-	
+
 	"getValue": function(){
 		var me = this;
 		return me.parseValue(me.rawValue);

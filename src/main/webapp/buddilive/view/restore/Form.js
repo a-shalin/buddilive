@@ -5,7 +5,7 @@ Ext.define('BuddiLive.view.restore.Form', {
 	],
 	
 	"initComponent": function(){
-		this.title = "${translation("RESTORE")?json_string}",
+		this.title = BuddiLive.translate("RESTORE"),
 		this.layout = "fit";
 		this.modal = true;
 		this.width = 400;
@@ -18,32 +18,32 @@ Ext.define('BuddiLive.view.restore.Form', {
 				"items": [
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_RESTORE_FILE")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_RESTORE_FILE"),
 						"type": "filefield",
-						"fieldLabel": "${translation("RESTORE_FILE")?json_string}",
+						"fieldLabel": BuddiLive.translate("RESTORE_FILE"),
 						"allowBlank": false,
 						"name": "file"
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_DELETE_DATA")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_DELETE_DATA"),
 						"type": "checkbox",
 						"itemId": "deleteData",
 						"fieldLabel": " ",
 						"labelSeparator": "",
-						"boxLabel": "${translation("DELETE_DATA")?json_string}"
+						"boxLabel": BuddiLive.translate("DELETE_DATA")
 					}
 				]
 			}
 		];
 		this.buttons = [
 			{
-				"text": "${translation("OK")?json_string}",
+				"text": BuddiLive.translate("OK"),
 				"itemId": "ok",
 				"disabled": true
 			},
 			{
-				"text": "${translation("CANCEL")?json_string}",
+				"text": BuddiLive.translate("CANCEL"),
 				"itemId": "cancel"
 			}
 		];

@@ -8,7 +8,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 	"initComponent": function(){
 		var d = this.initialConfig.data
 
-		this.title = "${translation("PREFERENCES")?json_string}";
+		this.title = BuddiLive.translate("PREFERENCES");
 		this.layout = "fit";
 		this.modal = true;
 		this.width = 400;
@@ -24,7 +24,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.encrypt,
-						"boxLabel": "${translation("ENCRYPT_DATA")?json_string}",
+						"boxLabel": BuddiLive.translate("ENCRYPT_DATA"),
 						"listeners": {
 							"change": function(checkbox){
 								checkbox.up("form").down("textfield[itemId='password']").setVisible(d.encrypt != checkbox.getValue());
@@ -38,19 +38,19 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 						"allowBlank": false,
 						"itemId": "password",
 						"hidden": true,
-						"fieldLabel": "${translation("PASSWORD")?json_string}"
+						"fieldLabel": BuddiLive.translate("PASSWORD")
 					},
 					{
 						"xtype": "combobox",
 						"itemId": "locale",
-						"fieldLabel": "${translation("LANGUAGE")?json_string}",
+						"fieldLabel": BuddiLive.translate("LANGUAGE"),
 						"editable": false,
 						"value": d.locale,
 						"forceSelection": true,
 						"store": new Ext.data.Store({
 							"fields": ["text", "value"],
 							"data": [
-								{"text": "${translation("USE_BROWSER_LOCALE_SETTINGS")?json_string}", "value": ""},
+								{"text": BuddiLive.translate("USE_BROWSER_LOCALE_SETTINGS"), "value": ""},
 								{"text": "Deutsch", "value": "de"},
 								{"text": "English", "value": "en"},
 								{"text": "English (US)", "value": "en_US"},
@@ -75,19 +75,22 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 					{
 						"xtype": "combobox",
 						"itemId": "dateFormat",
-						"fieldLabel": "${translation("DATE_FORMAT")?json_string}",
+						"fieldLabel": BuddiLive.translate("DATE_FORMAT"),
 						"editable": false,
 						"value": d.dateFormat,
 						"forceSelection": true,
 						"store": new Ext.data.Store({
 							"fields": ["text", "value"],
-							"data": [
-								{"text": "${today?string("yyyy-MM-dd")}", "value": "yyyy-MM-dd"},
-								{"text": "${today?string("MM/dd/yyyy")}", "value": "MM/dd/yyyy"},
-								{"text": "${today?string("dd/MM/yyyy")}", "value": "dd/MM/yyyy"},
-								{"text": "${today?string("MMM dd, yyyy")}", "value": "MMM dd, yyyy"},
-								{"text": "${today?string("MMMM dd, yyyy")}", "value": "MMMM dd, yyyy"}
-							]
+							"data": (function(){
+								var now = new Date();
+								return [
+									{"text": Ext.Date.format(now, "Y-m-d"), "value": "yyyy-MM-dd"},
+									{"text": Ext.Date.format(now, "m/d/Y"), "value": "MM/dd/yyyy"},
+									{"text": Ext.Date.format(now, "d/m/Y"), "value": "dd/MM/yyyy"},
+									{"text": Ext.Date.format(now, "M d, Y"), "value": "MMM dd, yyyy"},
+									{"text": Ext.Date.format(now, "F d, Y"), "value": "MMMM dd, yyyy"}
+								];
+							})()
 						}),
 						"queryMode": "local",
 						"valueField": "value"
@@ -95,7 +98,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 					{
 						"xtype": "combobox",
 						"itemId": "currencySymbol",
-						"fieldLabel": "${translation("CURRENCY_FORMAT")?json_string}",
+						"fieldLabel": BuddiLive.translate("CURRENCY_FORMAT"),
 						"editable": true,
 						"value": d.currencySymbol,
 						"store": new Ext.data.Store({
@@ -130,7 +133,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.currencyAfter,
-						"boxLabel": "${translation("SHOW_CURRENCY_SYMBOL_AFTER_AMOUNT")?json_string}"
+						"boxLabel": BuddiLive.translate("SHOW_CURRENCY_SYMBOL_AFTER_AMOUNT")
 					},
 					{
 						"xtype": "checkbox",
@@ -138,7 +141,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.showDeleted,
-						"boxLabel": "${translation("SHOW_DELETED")?json_string}"
+						"boxLabel": BuddiLive.translate("SHOW_DELETED")
 					},
 					{
 						"xtype": "checkbox",
@@ -146,7 +149,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.showCleared,
-						"boxLabel": "${translation("SHOW_CLEARED")?json_string}"
+						"boxLabel": BuddiLive.translate("SHOW_CLEARED")
 					},
 					{
 						"xtype": "checkbox",
@@ -154,18 +157,18 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.showReconciled,
-						"boxLabel": "${translation("SHOW_RECONCILED")?json_string}"
+						"boxLabel": BuddiLive.translate("SHOW_RECONCILED")
 					}
 				]
 			}
 		];
 		this.buttons = [
 			{
-				"text": "${translation("OK")?json_string}",
+				"text": BuddiLive.translate("OK"),
 				"itemId": "ok"
 			},
 			{
-				"text": "${translation("CANCEL")?json_string}",
+				"text": BuddiLive.translate("CANCEL"),
 				"itemId": "cancel"
 			}
 		]

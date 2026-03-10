@@ -84,8 +84,17 @@ public abstract class BrowserBaseIT extends BaseIT {
 		return result != null ? result.toString() : null;
 	}
 
+	protected void dismissMessageBox() {
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+		executeJs(
+			"if (Ext.MessageBox && Ext.MessageBox.isVisible()) { Ext.MessageBox.hide(); }");
+	}
+
 	protected void waitForAppReload() {
-		// Wait for ExtJS to become undefined (page unloading), then wait for the app to reinitialize
 		wait.until(d -> {
 			try {
 				return (Boolean) executeJs(
@@ -116,5 +125,6 @@ public abstract class BrowserBaseIT extends BaseIT {
 			}
 		});
 		waitForComponent("accounttree");
+		dismissMessageBox();
 	}
 }

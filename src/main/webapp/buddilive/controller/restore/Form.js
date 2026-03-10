@@ -19,14 +19,14 @@ Ext.define("BuddiLive.controller.restore.Form", {
 		var window = component.up("restoreform");
 		var form = window.down("form").getForm();
 		var submit = function(deleteData){
-			var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": window});
+			var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": window});
 			mask.show();
 			form.submit({
 				"url": "data/restore?deleteData=" + deleteData,
 				"success": function(form, action){
 					Ext.MessageBox.show({
-						"title": "${translation("RESTORE_SUCCESS_TITLE")?json_string}",
-						"msg": "${translation("RESTORE_SUCCESS_MESSAGE")?json_string}",
+						"title": BuddiLive.translate("RESTORE_SUCCESS_TITLE"),
+						"msg": BuddiLive.translate("RESTORE_SUCCESS_MESSAGE"),
 						"buttons": Ext.Msg.OK,
 						"fn": function(){
 							location.reload();
@@ -45,8 +45,8 @@ Ext.define("BuddiLive.controller.restore.Form", {
 		var deleteData = window.down("checkbox[itemId='deleteData']").getValue();
 		if (deleteData){
 			Ext.MessageBox.show({
-				"title": "${translation("DELETE_DATA")?json_string}",
-				"msg": "${translation("CONFIRM_DELETE_DATA")?json_string}",
+				"title": BuddiLive.translate("DELETE_DATA"),
+				"msg": BuddiLive.translate("CONFIRM_DELETE_DATA"),
 				"buttons": Ext.MessageBox.YESNO,
 				"fn": function(buttonId){
 					if (buttonId != "yes") return;

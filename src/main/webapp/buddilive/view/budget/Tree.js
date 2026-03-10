@@ -23,20 +23,20 @@ Ext.define('BuddiLive.view.budget.Tree', {
 		"items": [
 			{
 				"xtype": "button",
-				"tooltip": "${translation("COPY_FROM_PREVIOUS_BUDGET_PERIOD_TOOLTIP")?json_string}",
-				"text": "${translation("COPY_FROM_PREVIOUS_BUDGET_PERIOD")?json_string}",
+				"tooltip": BuddiLive.translate("COPY_FROM_PREVIOUS_BUDGET_PERIOD_TOOLTIP"),
+				"text": BuddiLive.translate("COPY_FROM_PREVIOUS_BUDGET_PERIOD"),
 				"icon": "img/calendar-import.png",
 				"itemId": "copyFromPreviousPeriod"
 			},
 			"->",
 			{
 				"xtype": "label",
-				"text": "${translation("CURRENT_BUDGET_PERIOD")?json_string}"
+				"text": BuddiLive.translate("CURRENT_BUDGET_PERIOD")
 			},
 			" ",
 			{
 				"xtype": "button",
-				"tooltip": "${translation("PREVIOUS_BUDGET_PERIOD")?json_string}",
+				"tooltip": BuddiLive.translate("PREVIOUS_BUDGET_PERIOD"),
 				"icon": "img/calendar-previous.png",
 				"itemId": "previousPeriod"
 			},
@@ -50,7 +50,7 @@ Ext.define('BuddiLive.view.budget.Tree', {
 			},
 			{
 				"xtype": "button",
-				"tooltip": "${translation("NEXT_BUDGET_PERIOD")?json_string}",
+				"tooltip": BuddiLive.translate("NEXT_BUDGET_PERIOD"),
 				"icon": "img/calendar-next.png",
 				"itemId": "nextPeriod"
 			}
@@ -71,7 +71,7 @@ Ext.define('BuddiLive.view.budget.Tree', {
 		
 		this.columns = [
 			{
-				"text": "${translation("NAME")?json_string}",
+				"text": BuddiLive.translate("NAME"),
 				"dataIndex": "name",
 				"flex": 2,
 				"xtype": "treecolumn",
@@ -83,7 +83,7 @@ Ext.define('BuddiLive.view.budget.Tree', {
 				}
 			},
 			{
-				"text": "${translation("PREVIOUS")?json_string}",
+				"text": BuddiLive.translate("PREVIOUS"),
 				"dataIndex": "previous",
 				"flex": 1,
 				"align": "right",
@@ -92,7 +92,7 @@ Ext.define('BuddiLive.view.budget.Tree', {
 				"renderer": styledRenderer
 			},
 			{
-				"text": "${translation("CURRENT")?json_string}",
+				"text": BuddiLive.translate("CURRENT"),
 				"dataIndex": "current",
 				"flex": 1,
 				"sortable": false,
@@ -111,13 +111,13 @@ Ext.define('BuddiLive.view.budget.Tree', {
 				"renderer": function(value, metaData, record){
 					metaData.style = record.data.currentStyle;
 					if (record.data.currentAmount == 0) {
-						return "${translation("CLICK_TO_ENTER_BUDGETED_AMOUNT")}";
+						return BuddiLive.translate("CLICK_TO_ENTER_BUDGETED_AMOUNT");
 					}
 					return value;
 				}
 			},
 			{
-				"text": "${translation("ACTUAL_INCOME_EXPENSES")?json_string}",
+				"text": BuddiLive.translate("ACTUAL_INCOME_EXPENSES"),
 				"dataIndex": "actual",
 				"flex": 1,
 				"sortable": false,
@@ -126,7 +126,7 @@ Ext.define('BuddiLive.view.budget.Tree', {
 				"renderer": styledRenderer
 			},
 			{
-				"text": "${translation("AMOUNT_REMAINING")?json_string}",
+				"text": BuddiLive.translate("AMOUNT_REMAINING"),
 				"dataIndex": "difference",
 				"flex": 1,
 				"sortable": false,

@@ -1,7 +1,7 @@
 Ext.define('Login.view.SelfDocumentingField', {
 	"extend": "Ext.form.FieldContainer",
 	"alias": "widget.selfdocumentingfield",
-	
+
 	"initComponent": function(){
 		this.layout = "hbox";
 		this.childItemId = this.itemId;
@@ -9,23 +9,23 @@ Ext.define('Login.view.SelfDocumentingField', {
 			"xtype": this.initialConfig.type,
 			"flex": 1
 		}, this.initialConfig);
-		delete component.hidden;	//We hide the self documenting field, not the child component
+		delete component.hidden;
 		delete component.type;
 		delete component.fieldLabel;
 		delete this.itemId;
 		delete this.listeners;
 		delete this.disabled;
-		
-		var messageTitle = (this.initialConfig.messageTitle ? this.initialConfig.messageTitle : "${i18n("WHAT_IS_THIS")?json_string}");
+
+		var messageTitle = (this.initialConfig.messageTitle ? this.initialConfig.messageTitle : Login.translate("WHAT_IS_THIS"));
 		var messageBody = this.initialConfig.messageBody;
-		
+
 		this.items = [
 			component,
 			{
 				"xtype": "button",
 				"icon": "img/question.png",
 				"margin": "1 0 0 5",
-				"tooltip": (this.initialConfig.helpButtonTooltip ? this.initialConfig.helpButtonTooltip : "${i18n("WHAT_IS_THIS")?json_string}"),
+				"tooltip": (this.initialConfig.helpButtonTooltip ? this.initialConfig.helpButtonTooltip : Login.translate("WHAT_IS_THIS")),
 				"tabIndex": -1,
 				"listeners": {
 					"click": function(){

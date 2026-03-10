@@ -1,23 +1,43 @@
-<#if applicationLoaderPaths??>
+var __ac = window.__authConfig || {};
+
+var loaderPaths = {"Login": __ac.routerAttachPoint || "authentication"};
+if (__ac.applicationLoaderPaths) {
+	for (var key in __ac.applicationLoaderPaths) {
+		loaderPaths[key] = __ac.applicationLoaderPaths[key];
+	}
+}
 Ext.Loader.setConfig({
 	"enabled": true,
-	"paths": {
-	<#list applicationLoaderPaths!?keys as path>
-		"${path!?json_string}": "${applicationLoaderPaths[path]!?json_string}"
-	</#list>
-	}
+	"paths": loaderPaths
 });
-</#if>
 
-Ext.application({
-	"name": "Login",
-	"appFolder": "${routerAttachPoint}",
-	
-	"views": ["LoginPanel" <#list applicationViews! as view>,"${view?json_string}"</#list> ],
-	"controllers": ["LoginController" <#list applicationControllers! as controller>,"${controller?json_string}"</#list>],
-	"models": [<#list applicationModels! as model><#if model.first>,</#if>"${model?json_string}"</#list>],
-	
-	"launch": function() {
-		Ext.create("Login.view.LoginPanel");
+Ext.require(["Login.util.I18n"], function(){
+	Login.util.I18n.init(window.__authI18n);
+
+	var views = ["LoginPanel"];
+	var controllers = ["LoginController"];
+	var models = [];
+
+	if (__ac.applicationViews) {
+		views = views.concat(__ac.applicationViews);
 	}
+	if (__ac.applicationControllers) {
+		controllers = controllers.concat(__ac.applicationControllers);
+	}
+	if (__ac.applicationModels) {
+		models = models.concat(__ac.applicationModels);
+	}
+
+	Ext.application({
+		"name": "Login",
+		"appFolder": __ac.routerAttachPoint || "authentication",
+
+		"views": views,
+		"controllers": controllers,
+		"models": models,
+
+		"launch": function() {
+			Ext.create("Login.view.LoginPanel");
+		}
+	});
 });

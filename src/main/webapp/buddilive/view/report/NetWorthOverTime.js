@@ -10,7 +10,7 @@ Ext.define('BuddiLive.view.report.NetWorthOverTime', {
 		var me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
-		this.title = "${translation("REPORT_NET_WORTH_OVER_TIME")?json_string} - " + this.initialConfig.options.dateRange;
+		this.title = BuddiLive.translate("REPORT_NET_WORTH_OVER_TIME") + " - " + this.initialConfig.options.dateRange;
 		this.items = [
 			{
 				"xtype": "chart",
@@ -26,7 +26,7 @@ Ext.define('BuddiLive.view.report.NetWorthOverTime', {
 					},
 					"listeners": {
 						"beforeload": function(store, operation, eOpts){
-							me.mask("${translation("LOADING")?json_string}");
+							me.mask(BuddiLive.translate("LOADING"));
 						},
 						"load": function(store, records, successful, operation, eOpts){
 							me.unmask();
@@ -41,7 +41,7 @@ Ext.define('BuddiLive.view.report.NetWorthOverTime', {
 						"type": "numeric",
 						"position": "left",
 						"fields": ["netWorth"],
-						"title": "${translation("NET_WORTH")?json_string}",
+						"title": BuddiLive.translate("NET_WORTH"),
 						"grid": true
 					},
 					{
@@ -53,7 +53,7 @@ Ext.define('BuddiLive.view.report.NetWorthOverTime', {
 							}
 						},
 						"fields": ["date"],
-						"title": "${translation("DATE")?json_string}"
+						"title": BuddiLive.translate("DATE")
 					}
 				],
 				"series": [
@@ -64,7 +64,7 @@ Ext.define('BuddiLive.view.report.NetWorthOverTime', {
 						"style": {
 							"stroke-width": 2
 						},
-						"title": "${translation("NET_WORTH")?json_string}",
+						"title": BuddiLive.translate("NET_WORTH"),
 						"xField": "date",
 						"yField": "netWorth"
 					}

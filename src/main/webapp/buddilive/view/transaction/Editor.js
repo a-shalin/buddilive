@@ -36,20 +36,20 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 						"hidden": this.initialConfig.scheduledTransaction == true,
 						"flex": 1,
 						"enableKeyEvents": true,
-						"emptyText": "${translation("DATE")?json_string}"
+						"emptyText": BuddiLive.translate("DATE")
 					},
 					{
 						"xtype": "descriptioncombobox",
 						"itemId": "description",
 						"flex": 2,
-						"emptyText": "${translation("DESCRIPTION")?json_string}",
+						"emptyText": BuddiLive.translate("DESCRIPTION"),
 						"enableKeyEvents": true
 					},
 					{
 						"xtype": "textfield",
 						"itemId": "number",
 						"flex": 1,
-						"emptyText": "${translation("NUMBER")?json_string}",
+						"emptyText": BuddiLive.translate("NUMBER"),
 						"padding": (this.initialConfig.scheduledTransaction ? "1 0 5 5" : "5 5 5 5")
 					}
 				]
@@ -60,22 +60,22 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 				"dock": "bottom",
 				"items": [
 					{
-						"text": "${translation("DELETE_TRANSACTION")?json_string}",
-						"tooltip": "${translation("HELP_DELETE_TRANSACTION")?json_string}",
+						"text": BuddiLive.translate("DELETE_TRANSACTION"),
+						"tooltip": BuddiLive.translate("HELP_DELETE_TRANSACTION"),
 						"icon": "img/minus-circle.png",
 						"itemId": "deleteTransaction",
 						"disabled": true
 					},
 					"->",
 					{
-						"text": "${translation("CLEAR_TRANSACTION")?json_string}",
-						"tooltip": "${translation("HELP_CLEAR_TRANSACTION")?json_string}",
+						"text": BuddiLive.translate("CLEAR_TRANSACTION"),
+						"tooltip": BuddiLive.translate("HELP_CLEAR_TRANSACTION"),
 						"icon": "img/exclamation-circle.png",
 						"itemId": "clearTransaction"
 					},
 					{
-						"text": "${translation("RECORD_UPDATE_TRANSACTION")?json_string}",
-						"tooltip": "${translation("HELP_RECORD_UPDATE_TRANSACTION")?json_string}",
+						"text": BuddiLive.translate("RECORD_UPDATE_TRANSACTION"),
+						"tooltip": BuddiLive.translate("HELP_RECORD_UPDATE_TRANSACTION"),
 						"icon": "img/tick-circle.png",
 						"itemId": "recordTransaction",
 						"disabled": true

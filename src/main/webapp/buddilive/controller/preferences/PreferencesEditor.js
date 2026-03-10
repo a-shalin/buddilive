@@ -47,8 +47,8 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 
 		if (window.down("checkbox[itemId='encrypt']").getValue() != originalData.encrypt && window.down("textfield[itemId='password']").getValue().length == 0){
 			Ext.MessageBox.show({
-				"title": "${translation("INVALID")?json_string}",
-				"msg": "${translation("ENTER_PASSWORD_TO_CHANGE_ENCRYPTION")?json_string}",
+				"title": BuddiLive.translate("INVALID"),
+				"msg": BuddiLive.translate("ENTER_PASSWORD_TO_CHANGE_ENCRYPTION"),
 				"buttons": Ext.MessageBox.OK
 			});
 			return;
@@ -65,7 +65,7 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 		request.dateFormat = dateFormat ? dateFormat : "";
 		request.showDeleted = window.down("checkbox[itemId='showDeleted']").getValue();
 
-		var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": window});
+		var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": window});
 		mask.show();
 		
 		Ext.Ajax.request({

@@ -40,7 +40,7 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 				"itemId": "from",
 				"flex": 1,
 				"source": this.initialConfig.source,
-				"emptyText": "${translation("FROM")?json_string}",
+				"emptyText": BuddiLive.translate("FROM"),
 				"value": v.fromId
 			},
 			{"xtype": "panel", "html": "<img style='padding-top: 3px;' src='img/arrow.png'/>", "border": false, "width": 25, "height": 25},
@@ -49,14 +49,14 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 				"itemId": "to",
 				"flex": 1,
 				"source": this.initialConfig.source,
-				"emptyText": "${translation("TO")?json_string}",
+				"emptyText": BuddiLive.translate("TO"),
 				"value": v.toId
 			},
 			{
 				"xtype": "textfield",
 				"itemId": "memo",
 				"flex": 1,
-				"emptyText": "${translation("MEMO")?json_string}",
+				"emptyText": BuddiLive.translate("MEMO"),
 				"value": v.memo,
 				"padding": this.initialConfig.scheduledTransaction ? "1 0 5 5" : "0 0 5 5"
 			},
@@ -64,7 +64,7 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 				"xtype": "button",
 				"icon": "img/minus-circle.png",
 				"itemId": "removeSplit",
-				"tooltip": "${translation("REMOVE_SPLIT")?json_string}",
+				"tooltip": BuddiLive.translate("REMOVE_SPLIT"),
 				"padding": "2 5 2 5",
 				"margin": this.initialConfig.scheduledTransaction ? "2 0 0 5" : "0 0 0 5",
 				"hidden": true
@@ -80,7 +80,7 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 				"xtype": "button",
 				"icon": "img/plus-circle.png",
 				"itemId": "addSplit",
-				"tooltip": "${translation("ADD_SPLIT")?json_string}",
+				"tooltip": BuddiLive.translate("ADD_SPLIT"),
 				"padding": "2 5 2 5",
 				"margin": this.initialConfig.scheduledTransaction ? "2 0 0 5" : "0 5 0 5"
 			}
@@ -94,8 +94,8 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 		if (this.down("currencyfield").getValue() != "" 
 				&& (this.down("fromcombobox").getValue() == null || this.down("tocombobox").getValue() == null)){
 			Ext.MessageBox.show({
-				"title": "${translation("INFO_LOADING_DELETED_SOURCE_TITLE")?json_string}",
-				"msg": "${translation("INFO_LOADING_DELETED_SOURCE")?json_string}",
+				"title": BuddiLive.translate("INFO_LOADING_DELETED_SOURCE_TITLE"),
+				"msg": BuddiLive.translate("INFO_LOADING_DELETED_SOURCE"),
 				"buttons": Ext.MessageBox.OK
 			});
 		}

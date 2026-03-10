@@ -9,7 +9,7 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 	"initComponent": function(){
 		var d = this.initialConfig.data
 
-		this.title = "${translation("PREFERENCES")?json_string}";
+		this.title = BuddiLive.translate("PREFERENCES");
 		this.layout = "fit";
 		this.modal = true;
 		this.width = 500;
@@ -21,13 +21,13 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 				"items": [
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_ENCRYPT_DATA")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_ENCRYPT_DATA"),
 						"type": "checkbox",
 						"itemId": "encrypt",
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.encrypt,
-						"boxLabel": "${translation("ENCRYPT_DATA")?json_string}",
+						"boxLabel": BuddiLive.translate("ENCRYPT_DATA"),
 						"listeners": {
 							"change": function(checkbox){
 								checkbox.up("form").down("textfield[itemId='password']").up("selfdocumentingfield").setVisible(d.encrypt != checkbox.getValue());
@@ -37,79 +37,82 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_ENCRYPT_DATA_PASSWORD")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_ENCRYPT_DATA_PASSWORD"),
 						"type": "textfield",
 						"inputType": "password", 
 						"allowBlank": false,
 						"itemId": "password",
 						"hidden": true,
-						"fieldLabel": "${translation("PASSWORD")?json_string}"
+						"fieldLabel": BuddiLive.translate("PASSWORD")
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_USE_TWO_FACTOR")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_USE_TWO_FACTOR"),
 						"type": "checkbox",
 						"itemId": "useTwoFactor",
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.useTwoFactor,
-						"boxLabel": "${translation("USE_TWO_FACTOR")?json_string}"
+						"boxLabel": BuddiLive.translate("USE_TWO_FACTOR")
 					},
 					d.useTwoFactor ? {
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_REGENERATE_TWO_FACTOR_BACKUP")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_REGENERATE_TWO_FACTOR_BACKUP"),
 						"type": "button",
 						"itemId": "regenerateTwoFactorBackup",
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.useTwoFactor,
-						"text": "${translation("REGENERATE_TWO_FACTOR_BACKUP")?json_string}"
+						"text": BuddiLive.translate("REGENERATE_TWO_FACTOR_BACKUP")
 					} : { "xtype": "hidden" },
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_STORE_EMAIL")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_STORE_EMAIL"),
 						"type": "checkbox",
 						"itemId": "storeEmail",
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.storeEmail,
-						"boxLabel": "${translation("STORE_EMAIL")?json_string}"
+						"boxLabel": BuddiLive.translate("STORE_EMAIL")
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_LOCALE")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_LOCALE"),
 						"type": "localescombobox",
 						"itemId": "locale",
-						"fieldLabel": "${translation("LOCALE")?json_string}",
+						"fieldLabel": BuddiLive.translate("LOCALE"),
 						"value": d.locale
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_CURRENCY")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_CURRENCY"),
 						"type": "currenciescombobox",
 						"itemId": "currency",
-						"fieldLabel": "${translation("CURRENCY")?json_string}",
+						"fieldLabel": BuddiLive.translate("CURRENCY"),
 						"value": d.currency
 					},
  					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_DATE_FORMAT")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_DATE_FORMAT"),
 						"type": "combobox",
 						"itemId": "dateFormat",
-						"fieldLabel": "${translation("DATE_FORMAT")?json_string}",
+						"fieldLabel": BuddiLive.translate("DATE_FORMAT"),
 						"editable": false,
 						"value": d.dateFormat && d.dateFormat.length > 0 ? d.dateFormat : "",
 						"forceSelection": true,
 						"store": new Ext.data.Store({
 							"fields": ["text", "value"],
-							"data": [
-								{"text": "${translation("USE_LOCALE_DEFAULTS")?json_string}", "value": ""},
-								{"text": "${.now?string("yyyy-MM-dd")}", "value": "yyyy-MM-dd"},
-								{"text": "${.now?string("MM/dd/yyyy")}", "value": "MM/dd/yyyy"},
-								{"text": "${.now?string("dd/MM/yyyy")}", "value": "dd/MM/yyyy"},
-								{"text": "${.now?string("MMM dd, yyyy")}", "value": "MMM dd, yyyy"},
-								{"text": "${.now?string("MMMM dd, yyyy")}", "value": "MMMM dd, yyyy"}
-							]
+							"data": (function(){
+								var now = new Date();
+								return [
+									{"text": BuddiLive.translate("USE_LOCALE_DEFAULTS"), "value": ""},
+									{"text": Ext.Date.format(now, "Y-m-d"), "value": "yyyy-MM-dd"},
+									{"text": Ext.Date.format(now, "m/d/Y"), "value": "MM/dd/yyyy"},
+									{"text": Ext.Date.format(now, "d/m/Y"), "value": "dd/MM/yyyy"},
+									{"text": Ext.Date.format(now, "M d, Y"), "value": "MMM dd, yyyy"},
+									{"text": Ext.Date.format(now, "F d, Y"), "value": "MMMM dd, yyyy"}
+								];
+							})()
 						}),
 						"queryMode": "local",
 						"valueField": "value"
@@ -120,18 +123,18 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						"fieldLabel": " ",
 						"labelSeparator": "",
 						"checked": d.showDeleted,
-						"boxLabel": "${translation("SHOW_DELETED")?json_string}"
+						"boxLabel": BuddiLive.translate("SHOW_DELETED")
 					}
 				]
 			}
 		];
 		this.buttons = [
 			{
-				"text": "${translation("OK")?json_string}",
+				"text": BuddiLive.translate("OK"),
 				"itemId": "ok"
 			},
 			{
-				"text": "${translation("CANCEL")?json_string}",
+				"text": BuddiLive.translate("CANCEL"),
 				"itemId": "cancel"
 			}
 		]

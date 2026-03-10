@@ -1,9 +1,9 @@
 Ext.define("Login.view.PasswordField", {
 	"extend": "Ext.form.FieldContainer",
 	"alias": "widget.passwordfield",
-	
+
 	"layout": "vbox",
-	
+
 	"getValue": function(){
 		var password = this.down("textfield[itemId='password']");
 		if (password){
@@ -11,17 +11,17 @@ Ext.define("Login.view.PasswordField", {
 		}
 		return null;
 	},
-	
+
 	"isValid": function(){
 		return this.down("textfield[itemId='password']").isValid() && this.down("textfield[itemId='confirm']").isValid();
 	},
-	
+
 	"getErrors": function(){
 		return this.errors;
 	},
-	
+
 	"required": true,
-	
+
 	"initComponent": function(){
 		this.items = [
 			{
@@ -76,9 +76,9 @@ Ext.define("Login.view.PasswordField", {
 				"html": ""
 			}
 		];
-		
+
 		this.callParent(arguments);
-		
+
 		this.down("textfield[itemId='password']").addListener("blur", this.checkPassword);
 		this.down("textfield[itemId='password']").addListener("focus", this.checkPassword);
 		this.down("textfield[itemId='password']").addListener("change", this.checkPassword);
@@ -86,10 +86,10 @@ Ext.define("Login.view.PasswordField", {
 		this.down("textfield[itemId='confirm']").addListener("focus", this.checkPassword);
 		this.down("textfield[itemId='confirm']").addListener("change", this.checkPassword);
 	},
-	
+
 	"checkPassword": function(field){
 		Ext.Ajax.request({
-			"url": "${routerAttachPoint}/checkPassword",
+			"url": (window.__authConfig && window.__authConfig.routerAttachPoint || "authentication") + "/checkPassword",
 			"params": {
 				"identifier": field.up("passwordfield").identifier ? field.up("passwordfield").identifier : field.up("passwordfield").up("form").down("component[name=identifier]") ? field.up("passwordfield").up("form").down("component[name=identifier]").getValue() : "anonymous",
 				"secret": field.up("passwordfield").getValue()
@@ -98,16 +98,16 @@ Ext.define("Login.view.PasswordField", {
 			"success": function(response){
 				var lastCheck = Ext.decode(response.responseText, true);
 				if (lastCheck == null) return;
-				
+
 				try {
 					var passwordField = this.down("textfield[itemId='password']");
 					var password = passwordField.getValue();
 					var confirmField = this.down("textfield[itemId=confirm]");
 					var confirmPassword = confirmField.getValue();
-					
+
 					var color;
 					var strength = lastCheck.score;
-	
+
 					if (password == null || password.length == 0 || strength < 10) color = "#953131";
 					else if (strength < 20) color = "#ab5e4a";
 					else if (strength < 30) color = "#b17253";
@@ -119,14 +119,12 @@ Ext.define("Login.view.PasswordField", {
 					else if (strength < 90) color = "#74b254";
 					else if (strength < 100) color = "#4aa94a";
 					else { color = "#26a826"; strength = 100; }
-					
+
 					var passwordbar = this.down("label[itemId=passwordbar]");
 					passwordbar.setHtml("<div style='width: " + strength + "%; background-color: " + color + ";'>&nbsp;</div>");
-					
-					//Populate the error text
+
 					var passwordErrors = this.down("label[itemId='passworderrors']");
-					
-					//Nothing filled in, nothing required
+
 					if (passwordField == null
 							|| (!passwordField.initialConfig.required && !password)
 							|| (password.length == 0 && confirmPassword.length == 0 && !passwordField.required)) {
@@ -134,31 +132,28 @@ Ext.define("Login.view.PasswordField", {
 						passwordErrors.setHtml("");
 						return;
 					}
-					//Waiting for validation to return
 					else if (lastCheck == null) {
-						result = "${i18n("PASSWORD_UNVALIDATED")?json_string}";
+						result = Login.translate("PASSWORD_UNVALIDATED");
 						passwordField.errors = result;
 						passwordErrors.setHtml(result);
 						return result;
 					}
-					//Validation has returned, and is successful.  Clear errors and return true.
 					else if (lastCheck.passed && confirmPassword == password) {
 						passwordField.errors = null;
 						passwordErrors.setHtml("");
 						return true;
 					}
-					
-					//There were errors returned.  Describe them in the text.
+
 					var result = "<b>Problems</b>:<br/>";
-					if (lastCheck.length === false) result += "${i18n("PASSWORD_LENGTH")?json_string}<br/>";
-					if (lastCheck.strength === false) result += "${i18n("PASSWORD_STRENGTH")?json_string}<br/>";
-					if (lastCheck.variance === false) result += "${i18n("PASSWORD_VARIANCE")?json_string}<br/>";
-					if (lastCheck.classes === false) result += "${i18n("PASSWORD_CLASSES")?json_string}<br/>";
-					if (lastCheck.history === false) result += "${i18n("PASSWORD_HISTORY")?json_string}<br/>";
-					if (lastCheck.dictionary === false) result += "${i18n("PASSWORD_DICTIONARY")?json_string}<br/>";
-					if (lastCheck.pattern === false) result += "${i18n("PASSWORD_PATTERN")?json_string}<br/>";
-					if (lastCheck.custom === false) result += "${i18n("PASSWORD_CUSTOM")?json_string}<br/>";
-					if (password && confirmPassword != password) result += "${i18n("PASSWORD_CONFIRMATION_MATCH")?json_string}";
+					if (lastCheck.length === false) result += Login.translate("PASSWORD_LENGTH") + "<br/>";
+					if (lastCheck.strength === false) result += Login.translate("PASSWORD_STRENGTH") + "<br/>";
+					if (lastCheck.variance === false) result += Login.translate("PASSWORD_VARIANCE") + "<br/>";
+					if (lastCheck.classes === false) result += Login.translate("PASSWORD_CLASSES") + "<br/>";
+					if (lastCheck.history === false) result += Login.translate("PASSWORD_HISTORY") + "<br/>";
+					if (lastCheck.dictionary === false) result += Login.translate("PASSWORD_DICTIONARY") + "<br/>";
+					if (lastCheck.pattern === false) result += Login.translate("PASSWORD_PATTERN") + "<br/>";
+					if (lastCheck.custom === false) result += Login.translate("PASSWORD_CUSTOM") + "<br/>";
+					if (password && confirmPassword != password) result += Login.translate("PASSWORD_CONFIRMATION_MATCH");
 					passwordField.errors = result;
 					passwordErrors.setHtml(result);
 				}

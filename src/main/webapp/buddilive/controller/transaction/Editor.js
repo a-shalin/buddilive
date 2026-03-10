@@ -42,7 +42,7 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 	"recordTransaction": function(component){
 		var me = this;
 		var editor = component.up("transactioneditor");
-		var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": editor});
+		var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": editor});
 		mask.show();
 		
 		var lastTransaction = editor.lastTransaction;
@@ -85,9 +85,9 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 		var validBeginDate = Ext.Date.add(new Date(), Ext.Date.YEAR, -1);
 		var validEndDate = Ext.Date.add(new Date(), Ext.Date.MONTH, 1);
 		if (d < validBeginDate || d > validEndDate){
-			var msg = d < validBeginDate ? "${translation("CONFIRM_DATE_OUT_OF_RANGE_BEFORE")?json_string}" : "${translation("CONFIRM_DATE_OUT_OF_RANGE_AFTER")?json_string}";
+			var msg = d < validBeginDate ? BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_BEFORE") : BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_AFTER");
 			Ext.MessageBox.show({
-				"title": "${translation("CONFIRM_DATE_OUT_OF_RANGE_TITLE")?json_string}",
+				"title": BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_TITLE"),
 				"msg": msg,
 				"buttons": Ext.MessageBox.YESNO,
 				"fn": function(buttonId){
@@ -108,8 +108,8 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 				lastTransaction.number != request.number ||
 				lastTransaction.splits.length != request.splits.length)){
 			Ext.MessageBox.show({
-				"title": "${translation("CONFIRM_CHANGE_EXISTING_TRANSACTION_TITLE")?json_string}",
-				"msg": "${translation("CONFIRM_CHANGE_EXISTING_TRANSACTION")?json_string}",
+				"title": BuddiLive.translate("CONFIRM_CHANGE_EXISTING_TRANSACTION_TITLE"),
+				"msg": BuddiLive.translate("CONFIRM_CHANGE_EXISTING_TRANSACTION"),
 				"buttons": Ext.MessageBox.YESNO,
 				"fn": function(buttonId){
 					if (buttonId == "yes"){
@@ -142,8 +142,8 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 		var selection = list.getSelectionModel().getSelection();
 		if (selection.length > 0){
 			Ext.MessageBox.show({
-				"title": "${translation("DELETE_TRANSACTION")?json_string}",
-				"msg": "${translation("CONFIRM_DELETE_TRANSACTION")?json_string}",
+				"title": BuddiLive.translate("DELETE_TRANSACTION"),
+				"msg": BuddiLive.translate("CONFIRM_DELETE_TRANSACTION"),
 				"buttons": Ext.MessageBox.YESNO,
 				"fn": function(buttonId){
 					if (buttonId == "yes"){

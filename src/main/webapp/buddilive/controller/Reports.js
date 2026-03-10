@@ -1,6 +1,6 @@
 Ext.define("BuddiLive.controller.Reports", {
 	"extend": "Ext.app.Controller",
-	
+
 	"requires": [
 		"BuddiLive.view.report.picker.Interval",
 		"BuddiLive.view.report.PieTotalsByCategory",
@@ -24,7 +24,7 @@ Ext.define("BuddiLive.controller.Reports", {
 			"buddiviewport menuitem[itemId='showNetWorthOverTimeLine']": {"click": this.showNetWorthOverTimeLine}
 		});
 	},
-	
+
 	"showIncomeByCategoryPie": function(component){
 		Ext.widget({
 			"xtype": "reportpickerinterval",
@@ -55,7 +55,7 @@ Ext.define("BuddiLive.controller.Reports", {
 			}
 		}).show();
 	},
-	
+
 	"showIncomeAndExpensesByCategoryTable": function(component){
 		Ext.widget({
 			"xtype": "reportpickerinterval",
@@ -70,7 +70,7 @@ Ext.define("BuddiLive.controller.Reports", {
 			}
 		}).show();
 	},
-	
+
 	"showAverageIncomeAndExpensesByCategoryTable": function(component){
 		Ext.widget({
 			"xtype": "reportpickerinterval",
@@ -85,53 +85,55 @@ Ext.define("BuddiLive.controller.Reports", {
 			}
 		}).show();
 	},
-	
+
 	"showInflowAndOutflowByAccountTable": function(component){
-		<#if !((user.premium)!false)>
-		Ext.MessageBox.show({
-			"title": "${translation("PREMIUM_TITLE")?json_string}",
-			"msg": "${translation("PREMIUM_MESSAGE")?json_string}",
-			"buttons": Ext.Msg.OK
-		});
-		<#else>
-		Ext.widget({
-			"xtype": "reportpickerinterval",
-			"callback": function(options){
-				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-				var report = Ext.widget({
-					"xtype": "reportinflowandoutflowbyaccount",
-					"options": options
-				});
-				tabPanel.add(report);
-				tabPanel.setActiveTab(report);
-			}
-		}).show();
-		</#if>
+		if (!BuddiLive.util.UserConfig.get('premium')) {
+			Ext.MessageBox.show({
+				"title": BuddiLive.translate("PREMIUM_TITLE"),
+				"msg": BuddiLive.translate("PREMIUM_MESSAGE"),
+				"buttons": Ext.Msg.OK
+			});
+		}
+		else {
+			Ext.widget({
+				"xtype": "reportpickerinterval",
+				"callback": function(options){
+					var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+					var report = Ext.widget({
+						"xtype": "reportinflowandoutflowbyaccount",
+						"options": options
+					});
+					tabPanel.add(report);
+					tabPanel.setActiveTab(report);
+				}
+			}).show();
+		}
 	},
-	
+
 	"showInflowAndOutflowByPayeeTable": function(component){
-		<#if !((user.premium)!false)>
-		Ext.MessageBox.show({
-			"title": "${translation("PREMIUM_TITLE")?json_string}",
-			"msg": "${translation("PREMIUM_MESSAGE")?json_string}",
-			"buttons": Ext.Msg.OK
-		});
-		<#else>
-		Ext.widget({
-			"xtype": "reportpickerinterval",
-			"callback": function(options){
-				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-				var report = Ext.widget({
-					"xtype": "reportinflowandoutflowbypayee",
-					"options": options
-				});
-				tabPanel.add(report);
-				tabPanel.setActiveTab(report);
-			}
-		}).show();
-		</#if>
+		if (!BuddiLive.util.UserConfig.get('premium')) {
+			Ext.MessageBox.show({
+				"title": BuddiLive.translate("PREMIUM_TITLE"),
+				"msg": BuddiLive.translate("PREMIUM_MESSAGE"),
+				"buttons": Ext.Msg.OK
+			});
+		}
+		else {
+			Ext.widget({
+				"xtype": "reportpickerinterval",
+				"callback": function(options){
+					var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+					var report = Ext.widget({
+						"xtype": "reportinflowandoutflowbypayee",
+						"options": options
+					});
+					tabPanel.add(report);
+					tabPanel.setActiveTab(report);
+				}
+			}).show();
+		}
 	},
-	
+
 	"showAccountBalancesOverTimeLine": function(component){
 		Ext.widget({
 			"xtype": "reportpickerinterval",
@@ -146,7 +148,7 @@ Ext.define("BuddiLive.controller.Reports", {
 			}
 		}).show();
 	},
-	
+
 	"showNetWorthOverTimeLine": function(component){
 		Ext.widget({
 			"xtype": "reportpickerinterval",

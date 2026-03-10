@@ -1,7 +1,7 @@
 Ext.define("BuddiLive.view.Viewport", {
 	"extend": "Ext.container.Viewport",
 	"alias": "widget.buddiviewport",
-	
+
 	"requires": [
 		"BuddiLive.view.account.Tree",
 		"BuddiLive.view.budget.Panel",
@@ -14,31 +14,39 @@ Ext.define("BuddiLive.view.Viewport", {
 		"BuddiLive.view.transaction.List",
 		"BuddiLive.view.transaction.Editor"
 	],
-		
+
 	"layout": "border",
 	"height": "100%",
 	"width": "100%",
-	
+
 	"initComponent": function() {
-		
-		this.items = [
-			{
-				"xtype": "panel",
-				"region": "north",
-				"height": 60,
-				"border": false,
-				"html": "<#if !((user.premium)!false)><iframe id='adsensetop' src='buddilive/view/ads/top.html' scrolling='no' width='468' height='60' marginheight='0' marginwidth='0' seamless='seamless' frameborder='0'></iframe></#if><img src='img/logo-title-small.png' style='position: absolute; top: 2px; right: 30px'/>"
-				<#if !((user.premium)!false)>,
-				"listeners": {
-					"afterrender": function(){
-						window.setInterval(function(){
-							var iframe = document.getElementById('adsensetop');
-							if (iframe != null) iframe.src += "";
-						}, 1000 * 60 * 20);	//Reload every 20 minutes
-					}
+		var isPremium = BuddiLive.util.UserConfig.get('premium');
+		var isEncrypted = BuddiLive.util.UserConfig.get('encrypted');
+
+		var northHtml = isPremium ? "" : "<iframe id='adsensetop' src='buddilive/view/ads/top.html' scrolling='no' width='468' height='60' marginheight='0' marginwidth='0' seamless='seamless' frameborder='0'></iframe>";
+		northHtml += "<img src='img/logo-title-small.png' style='position: absolute; top: 2px; right: 30px'/>";
+
+		var northConfig = {
+			"xtype": "panel",
+			"region": "north",
+			"height": 60,
+			"border": false,
+			"html": northHtml
+		};
+
+		if (!isPremium) {
+			northConfig.listeners = {
+				"afterrender": function(){
+					window.setInterval(function(){
+						var iframe = document.getElementById('adsensetop');
+						if (iframe != null) iframe.src += "";
+					}, 1000 * 60 * 20);
 				}
-				</#if>
-			},
+			};
+		}
+
+		this.items = [
+			northConfig,
 			{
 				"xtype": "tabpanel",
 				"itemId": "budditabpanel",
@@ -48,7 +56,7 @@ Ext.define("BuddiLive.view.Viewport", {
 					{
 						"xtype": "panel",
 						"layout": "border",
-						"title": "${translation("MY_ACCOUNTS")?json_string}",
+						"title": BuddiLive.translate("MY_ACCOUNTS"),
 						"itemId": "myAccounts",
 						"items": [
 							{
@@ -68,7 +76,7 @@ Ext.define("BuddiLive.view.Viewport", {
 						"xtype": "panel",
 						"layout": "fit",
 						"region": "center",
-						"title": "${translation("MY_BUDGET")?json_string}",
+						"title": BuddiLive.translate("MY_BUDGET"),
 						"items": [
 							{
 								"xtype": "budgetpanel",
@@ -80,33 +88,34 @@ Ext.define("BuddiLive.view.Viewport", {
 				]
 			}
 		];
-		
+
 		this.callParent();
 	},
-	
+
 	"reload": function(){
-		//Reload the entire page
 		location.reload();
 	},
-	
+
 	"getDockedItems": function(type){
+		var isPremium = BuddiLive.util.UserConfig.get('premium');
+		var isEncrypted = BuddiLive.util.UserConfig.get('encrypted');
 		var items = [];
-		
+
 		if (type == "accounts"){
 			items.push(
 				{
-					"text": "${translation("NEW_ACCOUNT")?json_string}",
+					"text": BuddiLive.translate("NEW_ACCOUNT"),
 					"icon": "img/bank--plus.png",
 					"itemId": "addAccount"
 				},
 				{
-					"text": "${translation("MODIFY_ACCOUNT")?json_string}",
+					"text": BuddiLive.translate("MODIFY_ACCOUNT"),
 					"icon": "img/bank--pencil.png",
 					"itemId": "editAccount",
 					"disabled": true
 				},
 				{
-					"text": "${translation("DELETE_ACCOUNT")?json_string}",
+					"text": BuddiLive.translate("DELETE_ACCOUNT"),
 					"icon": "img/bank--minus.png",
 					"itemId": "deleteAccount",
 					"disabled": true
@@ -116,18 +125,18 @@ Ext.define("BuddiLive.view.Viewport", {
 		else if (type == "categories"){
 			items.push(
 				{
-					"text": "${translation("NEW_BUDGET_CATEGORY")?json_string}",
+					"text": BuddiLive.translate("NEW_BUDGET_CATEGORY"),
 					"icon": "img/table--plus.png",
 					"itemId": "addCategory"
 				},
 				{
-					"text": "${translation("MODIFY_BUDGET_CATEGORY")?json_string}",
+					"text": BuddiLive.translate("MODIFY_BUDGET_CATEGORY"),
 					"icon": "img/table--pencil.png",
 					"itemId": "editCategory",
 					"disabled": true
 				},
 				{
-					"text": "${translation("DELETE_BUDGET_CATEGORY")?json_string}",
+					"text": BuddiLive.translate("DELETE_BUDGET_CATEGORY"),
 					"icon": "img/table--minus.png",
 					"itemId": "deleteCategory",
 					"disabled": true
@@ -137,18 +146,18 @@ Ext.define("BuddiLive.view.Viewport", {
 		else if (type == "scheduled"){
 			items.push(
 				{
-					"text": "${translation("NEW_SCHEDULED_TRANSACTION")?json_string}",
+					"text": BuddiLive.translate("NEW_SCHEDULED_TRANSACTION"),
 					"icon": "img/alarm-clock--plus.png",
 					"itemId": "addScheduled"
 				},
 				{
-					"text": "${translation("MODIFY_SCHEDULED_TRANSACTION")?json_string}",
+					"text": BuddiLive.translate("MODIFY_SCHEDULED_TRANSACTION"),
 					"icon": "img/alarm-clock--pencil.png",
 					"itemId": "editScheduled",
 					"disabled": true
 				},
 				{
-					"text": "${translation("DELETE_SCHEDULED_TRANSACTION")?json_string}",
+					"text": BuddiLive.translate("DELETE_SCHEDULED_TRANSACTION"),
 					"icon": "img/alarm-clock--minus.png",
 					"itemId": "deleteScheduled",
 					"disabled": true
@@ -158,139 +167,135 @@ Ext.define("BuddiLive.view.Viewport", {
 		else if (type == "report"){
 			items.push(
 				{
-					"text": "${translation("REFRESH")?json_string}",
+					"text": BuddiLive.translate("REFRESH"),
 					"icon": "img/refresh.gif",
 					"itemId": "refreshReport"
 				}
 			);
 		}
 
-		
+
 		items.push(
 			"->",
-			<#if (user.encrypted)!false>
-			{
+			isEncrypted ? {
 				"icon": "img/lock.png",
 				"overCls": "",
-				"tooltip": "${translation("DATA_ENCRYPTED")?json_string}"
-			},
-			" ",
-			</#if>
-			<#if ((user.premium)!false)>
-			{
+				"tooltip": BuddiLive.translate("DATA_ENCRYPTED")
+			} : "",
+			isEncrypted ? " " : "",
+			isPremium ? {
 				"icon": "img/medal-premium.png",
 				"overCls": "",
-				"tooltip": "${translation("PREMIUM_THANKS")?json_string}"
-			},
-			" ",
-			</#if>
+				"tooltip": BuddiLive.translate("PREMIUM_THANKS")
+			} : "",
+			isPremium ? " " : "",
 			{
-				"text": "${translation("REPORTS")?json_string}",
+				"text": BuddiLive.translate("REPORTS"),
 				"icon": "img/chart.png",
 				"menu": [
 					{
-						"text": "${translation("REPORT_TABLE_INCOME_AND_EXPENSES_BY_CATEGORY")?json_string}",
+						"text": BuddiLive.translate("REPORT_TABLE_INCOME_AND_EXPENSES_BY_CATEGORY"),
 						"icon": "img/table-sum.png",
 						"itemId": "showIncomeAndExpensesByCategoryTable"
 					},
 					{
-						"text": "${translation("REPORT_TABLE_AVERAGE_INCOME_AND_EXPENSES_BY_CATEGORY")?json_string}",
+						"text": BuddiLive.translate("REPORT_TABLE_AVERAGE_INCOME_AND_EXPENSES_BY_CATEGORY"),
 						"icon": "img/table-sum.png",
 						"itemId": "showAverageIncomeAndExpensesByCategoryTable"
 					},
 					{
-						"text": "${translation("REPORT_TABLE_INFLOW_AND_OUTFLOW_BY_ACCOUNT")?json_string}",
-						"icon": "img/table-sum<#if !((user.premium)!false)>-disabled</#if>.png",
+						"text": BuddiLive.translate("REPORT_TABLE_INFLOW_AND_OUTFLOW_BY_ACCOUNT"),
+						"icon": "img/table-sum" + (isPremium ? "" : "-disabled") + ".png",
 						"itemId": "showInflowAndOutflowByAccountTable"
 					},
 					{
-						"text": "${translation("REPORT_TABLE_INFLOW_AND_OUTFLOW_BY_PAYEE")?json_string}",
-						"icon": "img/table-sum<#if !((user.premium)!false)>-disabled</#if>.png",
+						"text": BuddiLive.translate("REPORT_TABLE_INFLOW_AND_OUTFLOW_BY_PAYEE"),
+						"icon": "img/table-sum" + (isPremium ? "" : "-disabled") + ".png",
 						"itemId": "showInflowAndOutflowByPayeeTable"
 					},
 					{
-						"text": "${translation("REPORT_PIE_INCOME_BY_CATEGORY")?json_string}",
+						"text": BuddiLive.translate("REPORT_PIE_INCOME_BY_CATEGORY"),
 						"icon": "img/chart-pie.png",
 						"itemId": "showIncomeByCategoryPie"
 					},
 					{
-						"text": "${translation("REPORT_PIE_EXPENSES_BY_CATEGORY")?json_string}",
+						"text": BuddiLive.translate("REPORT_PIE_EXPENSES_BY_CATEGORY"),
 						"icon": "img/chart-pie.png",
 						"itemId": "showExpensesByCategoryPie"
 					},
 					{
-						"text": "${translation("REPORT_ACCOUNT_BALANCES_OVER_TIME")?json_string}",
+						"text": BuddiLive.translate("REPORT_ACCOUNT_BALANCES_OVER_TIME"),
 						"icon": "img/chart-up.png",
 						"itemId": "showAccountBalancesOverTimeLine"
 					},
 					{
-						"text": "${translation("REPORT_NET_WORTH_OVER_TIME")?json_string}",
+						"text": BuddiLive.translate("REPORT_NET_WORTH_OVER_TIME"),
 						"icon": "img/chart-up.png",
 						"itemId": "showNetWorthOverTimeLine"
 					}
 				]
 			},
 			{
-				"text": "${translation("SYSTEM")?json_string}",
+				"text": BuddiLive.translate("SYSTEM"),
 				"icon": "img/switch.png",
 				"menu": [
 					{
-						"text": "${translation("CHANGE_PASSWORD")?json_string}",
+						"text": BuddiLive.translate("CHANGE_PASSWORD"),
 						"icon": "img/ui-text-field-password.png",
 						"itemId": "changePassword"
 					},
 					{
-						"text": "${translation("PREFERENCES")?json_string}",
+						"text": BuddiLive.translate("PREFERENCES"),
 						"icon": "img/gear.png",
 						"itemId": "showPreferences"
 					},
 					{
-						"text": "${translation("SCHEDULED_TRANSACTIONS")?json_string}",
+						"text": BuddiLive.translate("SCHEDULED_TRANSACTIONS"),
 						"icon": "img/alarm-clock.png",
 						"itemId": "showScheduled"
 					},
 					"-",
 					{
-						"text": "${translation("BACKUP")?json_string}",
+						"text": BuddiLive.translate("BACKUP"),
 						"icon": "img/drive-download.png",
 						"itemId": "backup"
 					},
 					{
-						"text": "${translation("RESTORE")?json_string}",
+						"text": BuddiLive.translate("RESTORE"),
 						"icon": "img/drive-upload.png",
 						"itemId": "restore"
 					},
 					{
-						"text": "${translation("EXPORT_CSV")?json_string}",
-						"icon": "img/blue-document-excel-csv<#if !((user.premium)!false)>-disabled</#if>.png",
+						"text": BuddiLive.translate("EXPORT_CSV"),
+						"icon": "img/blue-document-excel-csv" + (isPremium ? "" : "-disabled") + ".png",
 						"itemId": "exportCsv"
 					},
 					"-",
 					{
-						"text": "${translation("HELP_GETTING_STARTED_TITLE")?json_string}",
+						"text": BuddiLive.translate("HELP_GETTING_STARTED_TITLE"),
 						"icon": "img/question.png",
 						"itemId": "gettingStarted"
 					},
 					{
-						"text": "${translation("DONATE_TITLE")?json_string}",
+						"text": BuddiLive.translate("DONATE_TITLE"),
 						"icon": "img/money-coin.png",
 						"itemId": "donate"
 					},
 					"-",
 					{
-						"text": "${translation("DELETE_USER")?json_string}",
+						"text": BuddiLive.translate("DELETE_USER"),
 						"icon": "img/minus-octagon.png",
 						"itemId": "deleteUser"
 					}
 				]
 			},
 			{
-				"text": "${translation("LOGOUT")?json_string}",
+				"text": BuddiLive.translate("LOGOUT"),
 				"icon": "img/control-power.png",
 				"itemId": "logout"
 			}
 		);
-		
+
 		return [
 			{
 				"xtype": "toolbar",

@@ -43,7 +43,7 @@ Ext.define("BuddiLive.controller.account.Editor", {
 		var startBalance = window.down("numberfield[itemId='startBalance']").getValue();
 		if (startBalance) request.startBalance = startBalance;
 		
-		var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": window});
+		var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": window});
 		mask.show();
 
 		var conn = new Ext.data.Connection();

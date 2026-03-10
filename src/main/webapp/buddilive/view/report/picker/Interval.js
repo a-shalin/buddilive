@@ -3,12 +3,13 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 	"alias": "widget.reportpickerinterval",
 	"requires": [
 	],
-	
+
 	"initComponent": function(){
 		var me = this;
 		var s = this.initialConfig.selected
+		var extDateFormat = BuddiLive.util.UserConfig.get('extDateFormat') || 'Y-m-d';
 
-		this.title = "${translation("INTERVAL_PICKER")?json_string}";
+		this.title = BuddiLive.translate("INTERVAL_PICKER");
 		this.layout = "fit";
 		this.modal = true;
 		this.width = 400;
@@ -20,30 +21,30 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 				"items": [
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_INTERVAL_PICKER")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_INTERVAL_PICKER"),
 						"type": "combobox",
 						"itemId": "interval",
 						"value": "PLUGIN_FILTER_THIS_MONTH",
-						"fieldLabel": "${translation("INTERVAL")?json_string}",
+						"fieldLabel": BuddiLive.translate("INTERVAL"),
 						"forceSelection": true,
 						"editable": false,
 						"allowBlank": false,
 						"store": new Ext.data.Store({
 							"fields": ["text", "value"],
 							"data": [
-								{"text": "${translation("PLUGIN_FILTER_THIS_WEEK")?json_string}", "value": "PLUGIN_FILTER_THIS_WEEK"},
-								{"text": "${translation("PLUGIN_FILTER_LAST_WEEK")?json_string}", "value": "PLUGIN_FILTER_LAST_WEEK"},
-								{"text": "${translation("PLUGIN_FILTER_THIS_SEMI_MONTH")?json_string}", "value": "PLUGIN_FILTER_THIS_SEMI_MONTH"},
-								{"text": "${translation("PLUGIN_FILTER_LAST_SEMI_MONTH")?json_string}", "value": "PLUGIN_FILTER_LAST_SEMI_MONTH"},
-								{"text": "${translation("PLUGIN_FILTER_THIS_MONTH")?json_string}", "value": "PLUGIN_FILTER_THIS_MONTH"},
-								{"text": "${translation("PLUGIN_FILTER_LAST_MONTH")?json_string}", "value": "PLUGIN_FILTER_LAST_MONTH"},
-								{"text": "${translation("PLUGIN_FILTER_THIS_QUARTER")?json_string}", "value": "PLUGIN_FILTER_THIS_QUARTER"},
-								{"text": "${translation("PLUGIN_FILTER_LAST_QUARTER")?json_string}", "value": "PLUGIN_FILTER_LAST_QUARTER"},
-								{"text": "${translation("PLUGIN_FILTER_THIS_YEAR")?json_string}", "value": "PLUGIN_FILTER_THIS_YEAR"},
-								{"text": "${translation("PLUGIN_FILTER_THIS_YEAR_TO_DATE")?json_string}", "value": "PLUGIN_FILTER_THIS_YEAR_TO_DATE"},
-								{"text": "${translation("PLUGIN_FILTER_LAST_YEAR")?json_string}", "value": "PLUGIN_FILTER_LAST_YEAR"},
-								{"text": "${translation("PLUGIN_FILTER_ALL_TIME")?json_string}", "value": "PLUGIN_FILTER_ALL_TIME"},
-								{"text": "${translation("PLUGIN_FILTER_OTHER")?json_string}", "value": "PLUGIN_FILTER_OTHER"}
+								{"text": BuddiLive.translate("PLUGIN_FILTER_THIS_WEEK"), "value": "PLUGIN_FILTER_THIS_WEEK"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_LAST_WEEK"), "value": "PLUGIN_FILTER_LAST_WEEK"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_THIS_SEMI_MONTH"), "value": "PLUGIN_FILTER_THIS_SEMI_MONTH"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_LAST_SEMI_MONTH"), "value": "PLUGIN_FILTER_LAST_SEMI_MONTH"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_THIS_MONTH"), "value": "PLUGIN_FILTER_THIS_MONTH"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_LAST_MONTH"), "value": "PLUGIN_FILTER_LAST_MONTH"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_THIS_QUARTER"), "value": "PLUGIN_FILTER_THIS_QUARTER"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_LAST_QUARTER"), "value": "PLUGIN_FILTER_LAST_QUARTER"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_THIS_YEAR"), "value": "PLUGIN_FILTER_THIS_YEAR"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_THIS_YEAR_TO_DATE"), "value": "PLUGIN_FILTER_THIS_YEAR_TO_DATE"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_LAST_YEAR"), "value": "PLUGIN_FILTER_LAST_YEAR"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_ALL_TIME"), "value": "PLUGIN_FILTER_ALL_TIME"},
+								{"text": BuddiLive.translate("PLUGIN_FILTER_OTHER"), "value": "PLUGIN_FILTER_OTHER"}
 							]
 						}),
 						"listeners": {
@@ -57,11 +58,11 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_START_DATE")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_START_DATE"),
 						"type": "datefield",
 						"itemId": "startDate",
 						"allowBlank": false,
-						"fieldLabel": "${translation("START_DATE")?json_string}",
+						"fieldLabel": BuddiLive.translate("START_DATE"),
 						"msgTarget": "none",
 						"hidden": true,
 						"value": new Date(),
@@ -74,11 +75,11 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_END_DATE")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_END_DATE"),
 						"type": "datefield",
 						"itemId": "endDate",
 						"allowBlank": false,
-						"fieldLabel": "${translation("END_DATE")?json_string}",
+						"fieldLabel": BuddiLive.translate("END_DATE"),
 						"msgTarget": "none",
 						"hidden": true,
 						"value": new Date(),
@@ -94,7 +95,7 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 		];
 		this.buttons = [
 			{
-				"text": "${translation("OK")?json_string}",
+				"text": BuddiLive.translate("OK"),
 				"itemId": "ok",
 				"listeners": {
 					"click": function(){
@@ -105,13 +106,13 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 							var startValid = me.down("datefield[itemId='startDate']").validate();
 							var endValid = me.down("datefield[itemId='endDate']").validate();
 							if (!startValid || !endValid) return;
-							
+
 							var startDate = me.down("datefield[itemId='startDate']").getValue();
 							var endDate = me.down("datefield[itemId='endDate']").getValue();
 							query += ("&startDate=" + Ext.Date.format(startDate, "Y-m-d"));
 							query += ("&endDate=" + Ext.Date.format(endDate, "Y-m-d"));
-							
-							dateRange = Ext.Date.format(startDate, "${(user.extDateFormat!"Y-m-d")?json_string}") + " - " + Ext.Date.format(endDate, "${(user.extDateFormat!"Y-m-d")?json_string}");
+
+							dateRange = Ext.Date.format(startDate, extDateFormat) + " - " + Ext.Date.format(endDate, extDateFormat);
 						}
 						var options = {
 							"query": query,
@@ -123,7 +124,7 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 				}
 			},
 			{
-				"text": "${translation("CANCEL")?json_string}",
+				"text": BuddiLive.translate("CANCEL"),
 				"itemId": "cancel",
 				"listeners": {
 					"click": function(){
@@ -132,7 +133,7 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 				}
 			}
 		]
-	
+
 		this.callParent(arguments);
 	}
 });

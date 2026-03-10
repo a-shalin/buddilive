@@ -17,7 +17,7 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 		var s = this.initialConfig.selected
 		var editor = this;
 		
-		this.title = (s ? "${translation("EDIT_SCHEDULED_TRANSACTION")?json_string}" : "${translation("ADD_SCHEDULED_TRANSACTION")?json_string}");
+		this.title = (s ? BuddiLive.translate("EDIT_SCHEDULED_TRANSACTION") : BuddiLive.translate("ADD_SCHEDULED_TRANSACTION"));
 		this.layout = "fit";
 		this.modal = true;
 		this.width = 750;
@@ -39,12 +39,12 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_SCHEDULED_TRANSACTION_NAME")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_SCHEDULED_TRANSACTION_NAME"),
 						"type": "textfield",
 						"itemId": "name",
 						"enableKeyEvents": true,
 						"value": (s ? s.name : null),
-						"fieldLabel": "${translation("SCHEDULED_TRANSACTION_NAME")?json_string}",
+						"fieldLabel": BuddiLive.translate("SCHEDULED_TRANSACTION_NAME"),
 						"allowBlank": false,
 						"listeners": {
 							"afterrender": function(field) {
@@ -54,10 +54,10 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_SCHEDULED_TRANSACTION_REPEAT")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_SCHEDULED_TRANSACTION_REPEAT"),
 						"type": "combobox",
 						"itemId": "repeat",
-						"fieldLabel": "${translation("SCHEDULED_TRANSACTION_REPEAT")?json_string}",
+						"fieldLabel": BuddiLive.translate("SCHEDULED_TRANSACTION_REPEAT"),
 						"value": (s ? s.repeat : "SCHEDULE_FREQUENCY_MONTHLY_BY_DATE"),
 						"disabled": s != null,
 						"displayField": "text",
@@ -68,15 +68,15 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 						"store": new Ext.data.Store({
 							"fields": ["text", "value"],
 							"data": [
-								{"text": "${translation("SCHEDULE_FREQUENCY_MONTHLY_BY_DATE")?json_string}", "value": "SCHEDULE_FREQUENCY_MONTHLY_BY_DATE"},
-								{"text": "${translation("SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK")?json_string}", "value": "SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK"},
-								{"text": "${translation("SCHEDULE_FREQUENCY_WEEKLY")?json_string}", "value": "SCHEDULE_FREQUENCY_WEEKLY"},
-								{"text": "${translation("SCHEDULE_FREQUENCY_BIWEEKLY")?json_string}", "value": "SCHEDULE_FREQUENCY_BIWEEKLY"},
-								{"text": "${translation("SCHEDULE_FREQUENCY_EVERY_DAY")?json_string}", "value": "SCHEDULE_FREQUENCY_EVERY_DAY"},
-								{"text": "${translation("SCHEDULE_FREQUENCY_EVERY_X_DAYS")?json_string}", "value": "SCHEDULE_FREQUENCY_EVERY_X_DAYS"},
-								{"text": "${translation("SCHEDULE_FREQUENCY_EVERY_WEEKDAY")?json_string}", "value": "SCHEDULE_FREQUENCY_EVERY_WEEKDAY"},
-								{"text": "${translation("SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH")?json_string}", "value": "SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH"},
-								{"text": "${translation("SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR")?json_string}", "value": "SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR"}
+								{"text": BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DATE"), "value": "SCHEDULE_FREQUENCY_MONTHLY_BY_DATE"},
+								{"text": BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK"), "value": "SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK"},
+								{"text": BuddiLive.translate("SCHEDULE_FREQUENCY_WEEKLY"), "value": "SCHEDULE_FREQUENCY_WEEKLY"},
+								{"text": BuddiLive.translate("SCHEDULE_FREQUENCY_BIWEEKLY"), "value": "SCHEDULE_FREQUENCY_BIWEEKLY"},
+								{"text": BuddiLive.translate("SCHEDULE_FREQUENCY_EVERY_DAY"), "value": "SCHEDULE_FREQUENCY_EVERY_DAY"},
+								{"text": BuddiLive.translate("SCHEDULE_FREQUENCY_EVERY_X_DAYS"), "value": "SCHEDULE_FREQUENCY_EVERY_X_DAYS"},
+								{"text": BuddiLive.translate("SCHEDULE_FREQUENCY_EVERY_WEEKDAY"), "value": "SCHEDULE_FREQUENCY_EVERY_WEEKDAY"},
+								{"text": BuddiLive.translate("SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH"), "value": "SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH"},
+								{"text": BuddiLive.translate("SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR"), "value": "SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR"}
 							]
 						}),
 						"queryMode": "local",
@@ -90,22 +90,22 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_SCHEDULED_TRANSACTION_START_DATE")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_SCHEDULED_TRANSACTION_START_DATE"),
 						"type": "datefield",
 						"itemId": "startDate",
 						"value": (s ? s.start : new Date),
 						"disabled": s != null,
-						"fieldLabel": "${translation("SCHEDULED_TRANSACTION_START_DATE")?json_string}",
+						"fieldLabel": BuddiLive.translate("SCHEDULED_TRANSACTION_START_DATE"),
 						"allowBlank": false
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_SCHEDULED_TRANSACTION_END_DATE")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_SCHEDULED_TRANSACTION_END_DATE"),
 						"type": "datefield",
 						"itemId": "endDate",
-						"emptyText": "${translation("SCHEDULED_TRANSACTION_END_DATE_EMPTY_TEXT")?json_string}",
+						"emptyText": BuddiLive.translate("SCHEDULED_TRANSACTION_END_DATE_EMPTY_TEXT"),
 						"value": (s ? s.end : null),
-						"fieldLabel": "${translation("SCHEDULED_TRANSACTION_END_DATE")?json_string}"
+						"fieldLabel": BuddiLive.translate("SCHEDULED_TRANSACTION_END_DATE")
 					},
 					{
 						"xtype": "panel",
@@ -136,31 +136,31 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_SCHEDULED_TRANSACTION_TRANSACTION")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_SCHEDULED_TRANSACTION_TRANSACTION"),
 						"type": "transactioneditor",
 						"scheduledTransaction": true,
-						"fieldLabel": "${translation("SCHEDULED_TRANSACTION_TRANSACTION")?json_string}",
+						"fieldLabel": BuddiLive.translate("SCHEDULED_TRANSACTION_TRANSACTION"),
 						"transaction": s
 					},
 					{
 						"xtype": "selfdocumentingfield",
-						"messageBody": "${translation("HELP_SCHEDULED_TRANSACTION_MESSAGE")?json_string}",
+						"messageBody": BuddiLive.translate("HELP_SCHEDULED_TRANSACTION_MESSAGE"),
 						"type": "textarea",
 						"itemId": "message",
 						"value": (s ? s.message : null),
-						"fieldLabel": "${translation("SCHEDULED_TRANSACTION_MESSAGE")?json_string}"
+						"fieldLabel": BuddiLive.translate("SCHEDULED_TRANSACTION_MESSAGE")
 					}
 				]
 			}
 		];
 		this.buttons = [
 			{
-				"text": "${translation("OK")?json_string}",
+				"text": BuddiLive.translate("OK"),
 				"itemId": "ok",
 				"disabled": true
 			},
 			{
-				"text": "${translation("CANCEL")?json_string}",
+				"text": BuddiLive.translate("CANCEL"),
 				"itemId": "cancel"
 			}
 		]

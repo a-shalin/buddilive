@@ -13,9 +13,9 @@ Ext.define("BuddiLive.view.scheduled.panel.MonthlyByDayOfWeek", {
 		this.items = [
 			{
 				"xtype": "selfdocumentingfield",
-				"messageBody": "${translation("HELP_REPEATING_MONTHLY_BY_DAY_OF_WEEK")?json_string}",
+				"messageBody": BuddiLive.translate("HELP_REPEATING_MONTHLY_BY_DAY_OF_WEEK"),
 				"type": "combobox",
-				"fieldLabel": "${translation("REPEATING_MONTHLY")?json_string}",
+				"fieldLabel": BuddiLive.translate("REPEATING_MONTHLY"),
 				"value": (s ? s.scheduleDay : 0),
 				"displayField": "text",
 				"valueField": "value",
@@ -24,13 +24,13 @@ Ext.define("BuddiLive.view.scheduled.panel.MonthlyByDayOfWeek", {
 				"store": new Ext.data.Store({
 					"fields": ["text", "value"],
 					"data": [
-						{"text": "${translation("SCHEDULE_DAY_FIRST_SUNDAY")?json_string}", "value": 0},
-						{"text": "${translation("SCHEDULE_DAY_FIRST_MONDAY")?json_string}", "value": 1},
-						{"text": "${translation("SCHEDULE_DAY_FIRST_TUESDAY")?json_string}", "value": 2},
-						{"text": "${translation("SCHEDULE_DAY_FIRST_WEDNESDAY")?json_string}", "value": 3},
-						{"text": "${translation("SCHEDULE_DAY_FIRST_THURSDAY")?json_string}", "value": 4},
-						{"text": "${translation("SCHEDULE_DAY_FIRST_FRIDAY")?json_string}", "value": 5},
-						{"text": "${translation("SCHEDULE_DAY_FIRST_SATURDAY")?json_string}", "value": 6}
+						{"text": BuddiLive.translate("SCHEDULE_DAY_FIRST_SUNDAY"), "value": 0},
+						{"text": BuddiLive.translate("SCHEDULE_DAY_FIRST_MONDAY"), "value": 1},
+						{"text": BuddiLive.translate("SCHEDULE_DAY_FIRST_TUESDAY"), "value": 2},
+						{"text": BuddiLive.translate("SCHEDULE_DAY_FIRST_WEDNESDAY"), "value": 3},
+						{"text": BuddiLive.translate("SCHEDULE_DAY_FIRST_THURSDAY"), "value": 4},
+						{"text": BuddiLive.translate("SCHEDULE_DAY_FIRST_FRIDAY"), "value": 5},
+						{"text": BuddiLive.translate("SCHEDULE_DAY_FIRST_SATURDAY"), "value": 6}
 					]
 				}),
 				"queryMode": "local",

@@ -10,7 +10,7 @@ Ext.define('BuddiLive.view.report.AverageIncomeAndExpensesByCategory', {
 		var me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
-		this.title = "${translation("REPORT_TABLE_AVERAGE_INCOME_AND_EXPENSES_BY_CATEGORY")?json_string} - " + this.initialConfig.options.dateRange;
+		this.title = BuddiLive.translate("REPORT_TABLE_AVERAGE_INCOME_AND_EXPENSES_BY_CATEGORY") + " - " + this.initialConfig.options.dateRange;
 		var styledRenderer = function(value, metaData, record){
 			metaData.style = record.data[metaData.column.dataIndex + "Style"];
 			return value;
@@ -33,7 +33,7 @@ Ext.define('BuddiLive.view.report.AverageIncomeAndExpensesByCategory', {
 				}),
 				"columns": [
 					{
-						"text": "${translation("BUDGET_CATEGORY_NAME")?json_string}",
+						"text": BuddiLive.translate("BUDGET_CATEGORY_NAME"),
 						"dataIndex": "source",
 						"hideable": false,
 						"sortable": false,
@@ -41,7 +41,7 @@ Ext.define('BuddiLive.view.report.AverageIncomeAndExpensesByCategory', {
 						"renderer": styledRenderer
 					},
 					{
-						"text": "${translation("AVERAGE_ACTUAL")?json_string}",
+						"text": BuddiLive.translate("AVERAGE_ACTUAL"),
 						"dataIndex": "average",
 						"hideable": false,
 						"sortable": false,
@@ -49,7 +49,7 @@ Ext.define('BuddiLive.view.report.AverageIncomeAndExpensesByCategory', {
 						"renderer": styledRenderer
 					},
 					{
-						"text": "${translation("AVERAGE_BUDGETED")?json_string}",
+						"text": BuddiLive.translate("AVERAGE_BUDGETED"),
 						"dataIndex": "averageBudgeted",
 						"hideable": false,
 						"sortable": false,
@@ -57,7 +57,7 @@ Ext.define('BuddiLive.view.report.AverageIncomeAndExpensesByCategory', {
 						"renderer": styledRenderer
 					},
 					{
-						"text": "${translation("DIFFERENCE")?json_string}",
+						"text": BuddiLive.translate("DIFFERENCE"),
 						"dataIndex": "difference",
 						"hideable": false,
 						"sortable": false,
@@ -65,7 +65,7 @@ Ext.define('BuddiLive.view.report.AverageIncomeAndExpensesByCategory', {
 						"renderer": styledRenderer
 					},
 					{
-						"text": "${translation("BUDGET_CATEGORY_PERIOD_TYPE")?json_string}",
+						"text": BuddiLive.translate("BUDGET_CATEGORY_PERIOD_TYPE"),
 						"dataIndex": "period",
 						"hideable": false,
 						"sortable": false,

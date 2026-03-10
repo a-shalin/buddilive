@@ -10,7 +10,7 @@ Ext.define('BuddiLive.view.report.PieTotalsByCategory', {
 		var me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
-		this.title = "${translation("REPORT_PIE_INCOME_BY_CATEGORY")?json_string} - " + this.initialConfig.options.dateRange;
+		this.title = BuddiLive.translate("REPORT_PIE_INCOME_BY_CATEGORY") + " - " + this.initialConfig.options.dateRange;
 		this.items = [
 			{
 				"xtype": "polar",
@@ -27,7 +27,7 @@ Ext.define('BuddiLive.view.report.PieTotalsByCategory', {
 					},
 					"listeners": {
 						"beforeload": function(store, operation, eOpts){
-							me.mask("${translation("LOADING")?json_string}");
+							me.mask(BuddiLive.translate("LOADING"));
 						},
 						"load": function(store, records, successful, operation, eOpts){
 							me.unmask();

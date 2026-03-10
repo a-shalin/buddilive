@@ -8,7 +8,7 @@ Ext.define('BuddiLive.view.preferences.ChangePasswordEditor', {
 	"initComponent": function(){
 		var d = this.initialConfig.data
 
-		this.title = "${translation("CHANGE_PASSWORD")?json_string}";
+		this.title = BuddiLive.translate("CHANGE_PASSWORD");
 		this.layout = "fit";
 		this.modal = true;
 		this.width = 500;
@@ -22,12 +22,12 @@ Ext.define('BuddiLive.view.preferences.ChangePasswordEditor', {
 						"xtype": "textfield",
 						"itemId": "currentPassword",
 						"inputType": "password",
-						"fieldLabel": "${translation("CURRENT_PASSWORD")?json_string}"
+						"fieldLabel": BuddiLive.translate("CURRENT_PASSWORD")
 					},
 					{
 						"xtype": "passwordfield",
 						"itemId": "newPassword",
-						"fieldLabel": "${translation("NEW_PASSWORD")?json_string}",
+						"fieldLabel": BuddiLive.translate("NEW_PASSWORD"),
 						"identifier": "anonymous"
 					}
 				]
@@ -35,11 +35,11 @@ Ext.define('BuddiLive.view.preferences.ChangePasswordEditor', {
 		];
 		this.buttons = [
 			{
-				"text": "${translation("OK")?json_string}",
+				"text": BuddiLive.translate("OK"),
 				"itemId": "ok"
 			},
 			{
-				"text": "${translation("CANCEL")?json_string}",
+				"text": BuddiLive.translate("CANCEL"),
 				"itemId": "cancel"
 			}
 		]

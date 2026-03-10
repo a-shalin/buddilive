@@ -1,274 +1,328 @@
 Ext.define('Login.view.LoginPanelMobile', {
 	"extend": "Ext.tab.Panel",
 	"xtype": "login",
-	
+
 	"requires": [
 		"Login.view.PasswordField",
 		"Login.view.TransientLabel"
-		${applicationRequires!}
 	],
 
-	"title": "${i18n("FORM_TITLE")?json_string}",
-	"tabPosition": "${tabPosition!"bottom"?json_string}",
 	"height": "100%",
 	"minTabWidth": 120,
 	"cls": "login-tab-panel",
-	"tabBar": {
-		"cls": "login-tab-bar",		//Allows making the login buttons larger
-		<#if tabBarBackgroundInvisible!false>
-		"style": {
-			"background-image": "none",
-			"background-color": "transparent",
-			"border": "none"
-		},
-		</#if>
-		"layout": {
-			"pack": "${tabPackAlignment!"start"?json_string}"
-		}
-	},
 	"defaults": {
 		"xtype": "panel",
-		"layout": "card", 
+		"layout": "card",
 		"defaults": {
 			"xtype": "form",
-			"border": false, 
+			"border": false,
 			"margin": 10,
-			"defaults": { 
-				"xtype": "textfield", 
-				"anchor": "100%", 
+			"defaults": {
+				"xtype": "textfield",
+				"anchor": "100%",
 				"labelWidth": 120,
 				"labelAlign": "top",
 				"labelStyle": "font-size: 1.2em",
-				"allowBlank": false, 
+				"allowBlank": false,
 				"enableKeyEvents": true,
 				"scale": "medium"
 			}
 		}
 	},
-	
 
-<#if showCookieWarning!false>
-	"listeners": {
-		"afterrender": function(){
-			var url = window.location.href;
-			var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
-			var allowCookies = allowCookiesStorage.getItem(url);
-			allowCookiesStorage.release();
-			if (allowCookies != "true"){
-				var showMessage = function(){
-					var window = Ext.create({
+	"initComponent": function() {
+		var __ac = window.__authConfig || {};
+		var items = [];
+
+		this.title = Login.translate("FORM_TITLE");
+		this.tabPosition = __ac.tabPosition || "bottom";
+
+		var tabBarConfig = {
+			"cls": "login-tab-bar",
+			"layout": {
+				"pack": __ac.tabPackAlignment || "start"
+			}
+		};
+		if (__ac.tabBarBackgroundInvisible) {
+			tabBarConfig.style = {
+				"background-image": "none",
+				"background-color": "transparent",
+				"border": "none"
+			};
+		}
+		this.tabBar = tabBarConfig;
+
+		if (__ac.showCookieWarning) {
+			this.listeners = {
+				"afterrender": function(){
+					var url = window.location.href;
+					var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
+					var allowCookies = allowCookiesStorage.getItem(url);
+					allowCookiesStorage.release();
+					if (allowCookies != "true"){
+						var showMessage = function(){
+							var win = Ext.create({
+								"xtype": "panel",
+								"modal": true,
+								"floating": true,
+								"width": "90%",
+								"itemId": "cookieMessage",
+								"title": Login.translate("COOKIES_USED_TITLE"),
+								"items": [
+									{
+										"xtype": "panel",
+										"html": Login.translate("COOKIES_USED_MESSAGE"),
+										"buttons": [
+											{
+												"text": "Yes",
+												"listeners": {
+													"afterrender": function(button){
+														button.focus();
+													},
+													"click": function(button){
+														var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
+														allowCookiesStorage.setItem(url, "true");
+														allowCookiesStorage.release();
+
+														button.up("panel[itemId=cookieMessage]").close();
+													}
+												}
+											},
+											{ "text": "No" }
+										]
+									}
+								]
+							});
+							win.show();
+						};
+
+						Ext.defer(function(){
+							showMessage();
+						}, 10);
+					}
+				}
+			};
+		}
+
+		if (__ac.showLogin !== false) {
+			var loginFormItems = [
+				{ "fieldLabel": Login.translate("IDENTIFIER_LABEL"), "name": "identifier", "inputAttrTpl": "autocapitalize='off'", "listeners": { "afterrender": function(component){ component.focus(); } } },
+				{ "fieldLabel": Login.translate("PASSWORD_LABEL"), "inputType": "password", "inputAttrTpl": "autocapitalize='off'", "name": "password" }
+			];
+			if (__ac.showRemember !== false) {
+				loginFormItems.push({ "fieldLabel": Login.translate("REMEMBER_LABEL"), "xtype": "checkbox", "name": "remember" });
+			}
+			if (__ac.extraLoginStep1Fields) {
+				loginFormItems = loginFormItems.concat(__ac.extraLoginStep1Fields);
+			}
+			loginFormItems.push(
+				{ "xtype": "transientlabel", "itemId": "messageLogin1", "height": 40 },
+				{ "xtype": "label", "height": 100},
+				{ "xtype": "button", "text": Login.translate("LOGIN_LABEL"), "itemId": "authenticate" },
+				{ "xtype": "label", "height": 50, "html": "&nbsp;", "style": {"display": "block"}},
+				{ "xtype": "label", "html": "<a href='.?desktop' style='color: #666; align: right;'>Desktop View</a>", "style": {"display": "block"}}
+			);
+
+			var ssoItems = [];
+			if (__ac.ssoProviders) {
+				for (var key in __ac.ssoProviders) {
+					ssoItems.push({"xtype": "button", "text": Login.translate("SAML_LOGIN_LABEL") + " " + __ac.ssoProviders[key], "ssoProviderId": key, "width": "100%", "margin": "5px"});
+				}
+			}
+
+			var passwordExpiredItems = [
+				{ "name": "identifier", "xtype": "hiddenfield" },
+				{ "fieldLabel": Login.translate("NEW_PASSWORD_LABEL"), "name": "password", "xtype": "passwordfield" }
+			];
+			if (__ac.extraLoginStep2Fields) {
+				passwordExpiredItems = passwordExpiredItems.concat(__ac.extraLoginStep2Fields);
+			}
+			passwordExpiredItems.push(
+				{ "xtype": "transientlabel", "itemId": "messageActivate" },
+				{ "xtype": "button", "text": Login.translate("CHANGE_PASSWORD_BUTTON"), "itemId": "activate" },
+				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
+				{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" }
+			);
+
+			items.push({
+				"title": Login.translate("LOGIN_TITLE"),
+				"activeItem": __ac.activeItem || "authenticate",
+				"items": [
+					{
+						"itemId": "authenticate",
 						"xtype": "panel",
-						"modal": true,
-						"floating": true,
-						"width": "90%",
-						"itemId": "cookieMessage",
-						"title": "${i18n("COOKIES_USED_TITLE")?json_string}",
 						"items": [
 							{
+								"xtype": "form",
+								"width": "100%",
+								"border": false,
+								"defaults": {
+									"xtype": "textfield",
+									"anchor": "100%",
+									"allowBlank": false,
+									"enableKeyEvents": true
+								},
+								"items": loginFormItems
+							},
+							{
 								"xtype": "panel",
-								"html": "${i18n("COOKIES_USED_MESSAGE")?json_string}",
-								"buttons": [
-									{
-										"text": "Yes",
-										"listeners": {
-											"afterrender": function(button){
-												button.focus();
-											},
-											"click": function(button){
-												var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
-												allowCookiesStorage.setItem(url, "true");
-												allowCookiesStorage.release();
-												
-												button.up("panel[itemId=cookieMessage]").close();
-											}
-										}
-									},
-									{ "text": "No" }
-								]
+								"border": false,
+								"itemId": "ssoProviders",
+								"items": ssoItems
 							}
 						]
-					});
-					window.show();
-				};
-				
-				Ext.defer(function(){
-					showMessage();
-				}, 10);
+					},
+					{
+						"itemId": "passwordExpired",
+						"items": passwordExpiredItems
+					},
+					{
+						"itemId": "totpToken",
+						"items": [
+							{ "fieldLabel": Login.translate("TWO_FACTOR_LABEL"), "name": "totpToken" },
+							{ "xtype": "transientlabel", "itemId": "messageTwoFactorToken" },
+							{ "xtype": "button", "text": Login.translate("SUBMIT"), "itemId": "totpToken" },
+							{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
+							{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" }
+						]
+					},
+					{
+						"itemId": "twoFactorSetup",
+						"items": [
+							{ "xtype": "textarea", "editable": false, "name": "2faSecret", "fieldLabel": Login.translate("TWO_FACTOR_SECRET_LABEL"), "itemId": "textSecret", "height": 25},
+							{ "xtype": "label", "html": Login.translate("TWO_FACTOR_SETUP_INSTRUCTIONS_MOBILE")},
+							{ "fieldLabel": Login.translate("TWO_FACTOR_LABEL"), "name": "totpToken" },
+							{ "xtype": "transientlabel", "itemId": "messageTwoFactorSetup" },
+							{ "xtype": "button", "text": Login.translate("RELOAD"), "itemId": "totpLoadSecret" },
+							{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
+							{ "xtype": "button", "text": Login.translate("SUBMIT"), "itemId": "totpSetupVerify" },
+							{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
+							{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" }
+						]
+					},
+					{
+						"itemId": "totpBackupCodes",
+						"items": [
+							{ "xtype": "textarea", "itemId": "totpBackupCodes", "height": 350, "border": false},
+							{ "xtype": "label", "html": Login.translate("TWO_FACTOR_BACKUP_CODES_INSTRUCTIONS")},
+							{ "xtype": "transientlabel", "itemId": "messageTwoFactorBackupCodes" },
+							{ "xtype": "button", "text": Login.translate("OK"), "itemId": "totpBackupCodesOk" }
+						]
+					}
+				]
+			});
+		}
+
+		if (__ac.showRegister) {
+			var registerItems = [
+				{ "fieldLabel": Login.translate("IDENTIFIER_LABEL"), "name": "email", "inputAttrTpl": "autocapitalize='off'", "vtype": "email" }
+			];
+			if (__ac.extraRegisterStep1Fields) {
+				registerItems = registerItems.concat(__ac.extraRegisterStep1Fields);
 			}
-		}
-	},
-</#if>
+			registerItems.push(
+				{ "xtype": "transientlabel", "itemId": "messageRegister1" },
+				{ "xtype": "button", "text": Login.translate("EXISTING_KEY_BUTTON"), "itemId": "forward" },
+				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
+				{ "xtype": "button", "text": Login.translate("GENERATE_KEY_BUTTON"), "itemId": "register" }
+			);
 
-	"items": [
-<#if showLogin!true>
-		{
-			"title": "${i18n("LOGIN_TITLE")?json_string}",
-			"activeItem": "${activeItem}",
-			"items": [
-				{
-					"itemId": "authenticate",
-					"xtype": "panel",
-					"items": [
-						{
-							"xtype": "form",
-							"width": "100%",
-							"border": false,
-							"defaults": { 
-								"xtype": "textfield", 
-								"anchor": "100%", 
-								"allowBlank": false, 
-								"enableKeyEvents": true
-							},
-							"items": [
-								{ "fieldLabel": "${i18n("IDENTIFIER_LABEL")?json_string}", "name": "identifier", "inputAttrTpl": "autocapitalize='off'", "listeners": { "afterrender": function(component){ component.focus(); } } },
-								{ "fieldLabel": "${i18n("PASSWORD_LABEL")?json_string}", "inputType": "password", "inputAttrTpl": "autocapitalize='off'", "name": "password" },
-								<#if showRemember!true>
-								{ "fieldLabel": "${i18n("REMEMBER_LABEL")?json_string}", "xtype": "checkbox", "name": "remember" },
-								</#if>
-								<#if extraLoginStep1Fields??><@extraLoginStep1Fields/></#if>
-								{ "xtype": "transientlabel", "itemId": "messageLogin1", "height": 40 },
-								{ "xtype": "label", "height": 100},
-								{ "xtype": "button", "text": "${i18n("LOGIN_LABEL")?json_string}", "itemId": "authenticate" },
-								{ "xtype": "label", "height": 50, "html": "&nbsp;", "style": {"display": "block"}},
-								{ "xtype": "label", "html": "<a href='.?desktop' style='color: #666; align: right;'>Desktop View</a>", "style": {"display": "block"}}
-							]
-						},
-						{
-							"xtype": "panel",
-							"border": false,
-							"itemId": "ssoProviders",
-							"items": [
-								<#list ssoProviders as key, value>
-								{"xtype": "button", "text": "${i18n("SAML_LOGIN_LABEL")?json_string} ${value}", "ssoProviderId": "${key}", "width": "100%", "margin": "5px"},
-								</#list>
-							]
-						}
-					]
-				},
-				{
-					"itemId": "passwordExpired",
-					"items": [
-						{ "name": "identifier", "xtype": "hiddenfield" },
-						{ "fieldLabel": "${i18n("NEW_PASSWORD_LABEL")?json_string}", "name": "password", "xtype": "passwordfield" },
-						<#if extraLoginStep2Fields??><@extraLoginStep2Fields/></#if>
-						{ "xtype": "transientlabel", "itemId": "messageActivate" },
-						{ "xtype": "button", "text": "${i18n("CHANGE_PASSWORD_BUTTON")?json_string}", "itemId": "activate" },
-						{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-						{ "xtype": "button", "text": "${i18n("BACK_BUTTON")?json_string}", "itemId": "back" }
-					]
-				},
-				{
-					"itemId": "totpToken",
-					"items": [
-						{ "fieldLabel": "${i18n("TWO_FACTOR_LABEL")?json_string}", "name": "totpToken" },
-						{ "xtype": "transientlabel", "itemId": "messageTwoFactorToken" },
-						{ "xtype": "button", "text": "${i18n("SUBMIT")?json_string}", "itemId": "totpToken" },
-						{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-						{ "xtype": "button", "text": "${i18n("BACK_BUTTON")?json_string}", "itemId": "back" }
-					]
-				},
-				{
-					"itemId": "twoFactorSetup",
-					"items": [
-						{ "xtype": "textarea", "editable": false, "name": "2faSecret", "fieldLabel": "${i18n("TWO_FACTOR_SECRET_LABEL")?json_string}", "itemId": "textSecret", "height": 25},
-						{ "xtype": "label", "html": "${i18n("TWO_FACTOR_SETUP_INSTRUCTIONS_MOBILE")?json_string}"},
-						{ "fieldLabel": "${i18n("TWO_FACTOR_LABEL")?json_string}", "name": "totpToken" },
-						{ "xtype": "transientlabel", "itemId": "messageTwoFactorSetup" },
-						{ "xtype": "button", "text": "${i18n("RELOAD")?json_string}", "itemId": "totpLoadSecret" },
-						{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-						{ "xtype": "button", "text": "${i18n("SUBMIT")?json_string}", "itemId": "totpSetupVerify" },
-						{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-						{ "xtype": "button", "text": "${i18n("BACK_BUTTON")?json_string}", "itemId": "back" }
+			var activateItems = [
+				{ "fieldLabel": Login.translate("ACTIVATION_KEY_LABEL"), "inputAttrTpl": "autocapitalize='off'", "name": "identifier" },
+				{ "fieldLabel": Login.translate("PASSWORD_LABEL"), "name": "secret", "xtype": "passwordfield" }
+			];
+			if (__ac.extraRegisterStep2Fields) {
+				activateItems = activateItems.concat(__ac.extraRegisterStep2Fields);
+			}
+			activateItems.push(
+				{ "xtype": "transientlabel", "itemId": "messageRegister2" },
+				{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" },
+				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
+				{ "xtype": "button", "text": Login.translate("CREATE_ACCOUNT_BUTTON"), "itemId": "activate" }
+			);
 
-					]
-				},
-				{
-					"itemId": "totpBackupCodes",
-					"items": [
-						{ "xtype": "textarea", "itemId": "totpBackupCodes", "height": 350, "border": false},
-						{ "xtype": "label", "html": "${i18n("TWO_FACTOR_BACKUP_CODES_INSTRUCTIONS")?json_string}"},
-						{ "xtype": "transientlabel", "itemId": "messageTwoFactorBackupCodes" },
-						{ "xtype": "button", "text": "${i18n("OK")?json_string}", "itemId": "totpBackupCodesOk" }
-					]
-				}
-			]
+			items.push({
+				"title": Login.translate("REGISTER_TITLE"),
+				"items": [
+					{
+						"itemId": "register",
+						"items": registerItems
+					},
+					{
+						"itemId": "activate",
+						"items": activateItems
+					}
+				]
+			});
 		}
-</#if>
-<#if showRegister!false>
-		,{
-			"title": "${i18n("REGISTER_TITLE")?json_string}",
-			"items": [
-				{
-					"itemId": "register",
-					"items": [
-						{ "fieldLabel": "${i18n("IDENTIFIER_LABEL")?json_string}", "name": "email", "inputAttrTpl": "autocapitalize='off'", "vtype": "email" },
-						<#if extraRegisterStep1Fields??><@extraRegisterStep1Fields/></#if>
-						{ "xtype": "transientlabel", "itemId": "messageRegister1" },
-						{ "xtype": "button", "text": "${i18n("EXISTING_KEY_BUTTON")?json_string}", "itemId": "forward" },
-						{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-						{ "xtype": "button", "text": "${i18n("GENERATE_KEY_BUTTON")?json_string}", "itemId": "register" }
-					]
-				},
-				{
-					"itemId": "activate",
-					"items": [
-						{ "fieldLabel": "${i18n("ACTIVATION_KEY_LABEL")?json_string}", "inputAttrTpl": "autocapitalize='off'", "name": "identifier" },
-						{ "fieldLabel": "${i18n("PASSWORD_LABEL")?json_string}", "name": "secret", "xtype": "passwordfield" },
-						<#if extraRegisterStep2Fields??><@extraRegisterStep2Fields/></#if>
-						{ "xtype": "transientlabel", "itemId": "messageRegister2" },
-						{ "xtype": "button", "text": "${i18n("BACK_BUTTON")?json_string}", "itemId": "back" },
-						{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-						{ "xtype": "button", "text": "${i18n("CREATE_ACCOUNT_BUTTON")?json_string}", "itemId": "activate" }
-					]
-				}
-			]
+
+		if (__ac.showForgotPassword !== false) {
+			var forgotItems = [
+				{ "fieldLabel": Login.translate("IDENTIFIER_LABEL"), "inputAttrTpl": "autocapitalize='off'", "name": "identifier" }
+			];
+			if (__ac.extraforgotPasswordStep1PanelFields) {
+				forgotItems = forgotItems.concat(__ac.extraforgotPasswordStep1PanelFields);
+			}
+			forgotItems.push(
+				{ "xtype": "transientlabel", "itemId": "messageForgotPassword1" },
+				{ "xtype": "button", "text": Login.translate("GENERATE_KEY_BUTTON"), "itemId": "forgotPassword" },
+				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
+				{ "xtype": "button", "text": Login.translate("EXISTING_KEY_BUTTON"), "itemId": "forward" }
+			);
+
+			var resetItems = [
+				{ "fieldLabel": Login.translate("ACTIVATION_KEY_LABEL"), "inputAttrTpl": "autocapitalize='off'", "name": "activationKey" },
+				{ "fieldLabel": Login.translate("NEW_PASSWORD_LABEL"), "name": "password", "xtype": "passwordfield" }
+			];
+			if (__ac.extraforgotPasswordStep2PanelFields) {
+				resetItems = resetItems.concat(__ac.extraforgotPasswordStep2PanelFields);
+			}
+			resetItems.push(
+				{ "xtype": "transientlabel", "itemId": "messageForgotPassword2" },
+				{ "xtype": "button", "text": Login.translate("RESET_PASSWORD_BUTTON"), "itemId": "resetPassword" },
+				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
+				{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" }
+			);
+
+			items.push({
+				"title": Login.translate("RESET_TITLE"),
+				"items": [
+					{
+						"itemId": "forgotPassword",
+						"items": forgotItems
+					},
+					{
+						"itemId": "resetPassword",
+						"items": resetItems
+					}
+				]
+			});
 		}
-</#if>
-<#if showForgotPassword!true>
-		,{
-			"title": "${i18n("RESET_TITLE")?json_string}",
-			"items": [
-				{
-					"itemId": "forgotPassword",
-					"items": [
-						{ "fieldLabel": "${i18n("IDENTIFIER_LABEL")?json_string}", "inputAttrTpl": "autocapitalize='off'", "name": "identifier" },
-						<#if extraResetStep1PanelFields??><@extraResetStep1PanelFields/></#if>
-						{ "xtype": "transientlabel", "itemId": "messageForgotPassword1" },
-						{ "xtype": "button", "text": "${i18n("GENERATE_KEY_BUTTON")?json_string}", "itemId": "forgotPassword" },
-						{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-						{ "xtype": "button", "text": "${i18n("EXISTING_KEY_BUTTON")?json_string}", "itemId": "forward" }
-					]
-				},
-				{
-					"itemId": "resetPassword",
-					"items": [
-						{ "fieldLabel": "${i18n("ACTIVATION_KEY_LABEL")?json_string}", "inputAttrTpl": "autocapitalize='off'", "name": "activationKey" },
-						{ "fieldLabel": "${i18n("NEW_PASSWORD_LABEL")?json_string}", "name": "password", "xtype": "passwordfield" },
-						<#if extraResetStep2PanelFields??><@extraResetStep2PanelFields/></#if>
-						{ "xtype": "transientlabel", "itemId": "messageForgotPassword2" },
-						{ "xtype": "button", "text": "${i18n("RESET_PASSWORD_BUTTON")?json_string}", "itemId": "resetPassword" },
-						{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-						{ "xtype": "button", "text": "${i18n("BACK_BUTTON")?json_string}", "itemId": "back" }
-					]
-				}
-			]
+
+		if (__ac.showForgotUsername) {
+			var forgotUsernameItems = [
+				{ "fieldLabel": Login.translate("EMAIL_LABEL"), "inputAttrTpl": "autocapitalize='off'", "name": "email" }
+			];
+			if (__ac.extraForgotUsernameStep1PanelFields) {
+				forgotUsernameItems = forgotUsernameItems.concat(__ac.extraForgotUsernameStep1PanelFields);
+			}
+			forgotUsernameItems.push(
+				{ "xtype": "transientlabel", "itemId": "messageForgotUsername1" },
+				{ "xtype": "button", "text": Login.translate("SUBMIT"), "itemId": "forgotUsername" }
+			);
+
+			items.push({
+				"title": Login.translate("FORGOT_USERNAME_TITLE"),
+				"items": [
+					{
+						"itemId": "forgotUsername",
+						"items": forgotUsernameItems
+					}
+				]
+			});
 		}
-</#if>
-<#if showForgotUsername!true>
-		,{
-			"title": "${i18n("FORGOT_USERNAME_TITLE")?json_string}",
-			"items": [
-				{
-					"itemId": "forgotUsername",
-					"items": [
-						{ "fieldLabel": "${i18n("EMAIL_LABEL")?json_string}", "inputAttrTpl": "autocapitalize='off'", "name": "email" },
-						<#if extraForgotUsernameStep1PanelFields??><@extraForgotUsernameStep1PanelFields/></#if>
-						{ "xtype": "transientlabel", "itemId": "messageForgotUsername1" },
-						{ "xtype": "button", "text": "${i18n("SUBMIT")?json_string}", "itemId": "forgotUsername" }
-					]
-				}
-			]
-		}
-</#if>
-	]
+
+		this.items = items;
+		this.callParent(arguments);
+	}
 });

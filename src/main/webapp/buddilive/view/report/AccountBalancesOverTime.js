@@ -30,7 +30,7 @@ Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
 			}
 		});
 		
-		this.title = "${translation("REPORT_ACCOUNT_BALANCES_OVER_TIME")?json_string} - " + this.initialConfig.options.dateRange;
+		this.title = BuddiLive.translate("REPORT_ACCOUNT_BALANCES_OVER_TIME") + " - " + this.initialConfig.options.dateRange;
 		this.items = [
 			{
 				"xtype": "chart",
@@ -47,7 +47,7 @@ Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
 					},
 					"listeners": {
 						"beforeload": function(store, operation, eOpts){
-							me.mask("${translation("LOADING")?json_string}");
+							me.mask(BuddiLive.translate("LOADING"));
 						},
 						"load": function(store, records, successful, operation, eOpts){
 							me.unmask();
@@ -62,7 +62,7 @@ Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
 						"type": "numeric",
 						"position": "left",
 						"fields": fields,
-						"title": "${translation("ACCOUNT_BALANCE")?json_string}",
+						"title": BuddiLive.translate("ACCOUNT_BALANCE"),
 						"grid": true
 					},
 					{
@@ -74,7 +74,7 @@ Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
 							}
 						},
 						"fields": ["date"],
-						"title": "${translation("DATE")?json_string}"
+						"title": BuddiLive.translate("DATE")
 					}
 				],
 				"series": series

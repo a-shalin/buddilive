@@ -38,7 +38,7 @@ public class DefaultResource extends ServerResource {
 		
 		final boolean forceDoNotModify = path.startsWith("media/lib/extjs");
 		
-		if (!forceDoNotModify && (variant.getMediaType().equals(MediaType.TEXT_HTML) || variant.getMediaType().equals(MediaType.APPLICATION_JAVASCRIPT))) {
+		if (!forceDoNotModify && variant.getMediaType().equals(MediaType.TEXT_HTML)) {
 			final HashMap<String, Object> dataModel = new HashMap<String, Object>();
 			final User user = (User) getClientInfo().getUser();
 			dataModel.put("user", user);

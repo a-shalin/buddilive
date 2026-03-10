@@ -1,10 +1,10 @@
 Ext.define("BuddiLive.controller.Viewport", {
 	"extend": "Ext.app.Controller",
-	
+
 	"requires": [
 		"BuddiLive.view.report.picker.Interval",
 	],
-	
+
 	"stores": [
 		"transaction.split.FromComboboxStore",
 		"transaction.split.ToComboboxStore"
@@ -36,7 +36,7 @@ Ext.define("BuddiLive.controller.Viewport", {
 			}}
 		});
 	},
-	
+
 	"addAccount": function(component){
 		var grid = component.up("buddiviewport").down("accounttree");
 		Ext.widget("accounteditor", {
@@ -56,13 +56,13 @@ Ext.define("BuddiLive.controller.Viewport", {
 		var viewport = component.up("buddiviewport");
 		var grid = viewport.down("accounttree");
 		var selected = grid.getSelectionModel().getSelection()[0].data;
-		
+
 		if (selected == null) return;
-		
+
 		if (selected.deleted){
 			var request = {"action": "undelete", "id": selected.id};
 			var conn = new Ext.data.Connection();
-			var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": viewport});
+			var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": viewport});
 			mask.show();
 			conn.request({
 				"url": "data/accounts",
@@ -86,15 +86,15 @@ Ext.define("BuddiLive.controller.Viewport", {
 		}
 		else {
 			Ext.MessageBox.show({
-				"title": "${translation("DELETE_ACCOUNT")?json_string}",
-				"msg": "${translation("CONFIRM_DELETE_ACCOUNT")?json_string}",
+				"title": BuddiLive.translate("DELETE_ACCOUNT"),
+				"msg": BuddiLive.translate("CONFIRM_DELETE_ACCOUNT"),
 				"buttons": Ext.MessageBox.YESNO,
 				"fn": function(buttonId){
 					if (buttonId != "yes") return;
-					
+
 					var request = {"action": "delete", "id": selected.id};
 					var conn = new Ext.data.Connection();
-					var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": viewport});
+					var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": viewport});
 					mask.show();
 					conn.request({
 						"url": "data/accounts",
@@ -119,7 +119,7 @@ Ext.define("BuddiLive.controller.Viewport", {
 			});
 		}
 	},
-	
+
 	"addCategory": function(component){
 		var panel = component.up("buddiviewport").down("budgetpanel");
 		Ext.widget("budgeteditor", {
@@ -139,15 +139,15 @@ Ext.define("BuddiLive.controller.Viewport", {
 		var viewport = component.up("buddiviewport");
 		var panel = viewport.down("budgetpanel");
 		var budgetTrees = Ext.ComponentQuery.query("budgettree", panel);
-		
+
 		var selected = panel.getActiveTab().getSelectionModel().getSelection()[0].data;
 
 		if (selected == null) return;
-		
+
 		if (selected.deleted){
 			var request = {"action": "undelete", "id": selected.id};
 			var conn = new Ext.data.Connection();
-			var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": viewport});
+			var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": viewport});
 			mask.show();
 			conn.request({
 				"url": "data/categories",
@@ -171,15 +171,15 @@ Ext.define("BuddiLive.controller.Viewport", {
 		}
 		else {
 			Ext.MessageBox.show({
-				"title": "${translation("DELETE_CATEGORY")?json_string}",
-				"msg": "${translation("CONFIRM_DELETE_CATEGORY")?json_string}",
+				"title": BuddiLive.translate("DELETE_CATEGORY"),
+				"msg": BuddiLive.translate("CONFIRM_DELETE_CATEGORY"),
 				"buttons": Ext.MessageBox.YESNO,
 				"fn": function(buttonId){
 					if (buttonId != "yes") return;
-					
+
 					var request = {"action": "delete", "id": selected.id};
 					var conn = new Ext.data.Connection();
-					var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": viewport});
+					var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": viewport});
 					mask.show();
 					conn.request({
 						"url": "data/categories",
@@ -204,7 +204,7 @@ Ext.define("BuddiLive.controller.Viewport", {
 			});
 		}
 	},
-	
+
 	"addScheduled": function(component){
 		var panel = component.up("buddiviewport").down("scheduledlist").down("grid");
 		Ext.widget("schedulededitor", {
@@ -222,21 +222,21 @@ Ext.define("BuddiLive.controller.Viewport", {
 	"deleteScheduled": function(component){
 		var viewport = component.up("buddiviewport");
 		var panel = viewport.down("scheduledlist").down("grid");
-		
+
 		var selected = panel.getSelectionModel().getSelection()[0].data;
 
 		if (selected == null) return;
-		
+
 		Ext.MessageBox.show({
-			"title": "${translation("DELETE_SCHEDULED")?json_string}",
-			"msg": "${translation("CONFIRM_DELETE_SCHEDULED")?json_string}",
+			"title": BuddiLive.translate("DELETE_SCHEDULED"),
+			"msg": BuddiLive.translate("CONFIRM_DELETE_SCHEDULED"),
 			"buttons": Ext.MessageBox.YESNO,
 			"fn": function(buttonId){
 				if (buttonId != "yes") return;
-				
+
 				var request = {"action": "delete", "id": selected.id};
 				var conn = new Ext.data.Connection();
-				var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": viewport});
+				var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": viewport});
 				mask.show();
 				conn.request({
 					"url": "data/scheduledtransactions",
@@ -258,14 +258,14 @@ Ext.define("BuddiLive.controller.Viewport", {
 			}
 		});
 	},
-	
+
 	"refreshReport": function(component){
 		var store = component.up("panel").down("chart, polar, grid").getStore();
 		if (store){
 			store.reload();
 		}
 	},
-	
+
 	"changePassword": function(component){
 		var panel = component.up("buddiviewport");
 		var conn = new Ext.data.Connection();
@@ -273,7 +273,7 @@ Ext.define("BuddiLive.controller.Viewport", {
 			"panel": panel
 		}).show();
 	},
-	
+
 	"showPreferences": function(component){
 		var panel = component.up("buddiviewport");
 		var conn = new Ext.data.Connection();
@@ -295,7 +295,7 @@ Ext.define("BuddiLive.controller.Viewport", {
 			}
 		});
 	},
-	
+
 	"showScheduled": function(component){
 		var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 		if (tabPanel.down("scheduledlist") == null){
@@ -303,15 +303,15 @@ Ext.define("BuddiLive.controller.Viewport", {
 		}
 		tabPanel.setActiveTab(tabPanel.down("scheduledlist"));
 	},
-	
+
 	"gettingStarted": function(){
 		Ext.MessageBox.show({
-			"title": "${translation("HELP_GETTING_STARTED_TITLE")?json_string}",
-			"msg": "${translation("HELP_GETTING_STARTED")?json_string}",
+			"title": BuddiLive.translate("HELP_GETTING_STARTED_TITLE"),
+			"msg": BuddiLive.translate("HELP_GETTING_STARTED"),
 			"buttons": Ext.Msg.OK
 		});
 	},
-	
+
 	"backup": function(component){
 		window.open("data/backup.json");
 	},
@@ -319,52 +319,53 @@ Ext.define("BuddiLive.controller.Viewport", {
 	"restore": function(component){
 		Ext.widget("restoreform").show();
 	},
-	
+
 	"exportCsv": function(component){
-		<#if !((user.premium)!false)>
-		Ext.MessageBox.show({
-			"title": "${translation("PREMIUM_TITLE")?json_string}",
-			"msg": "${translation("PREMIUM_MESSAGE")?json_string}",
-			"buttons": Ext.Msg.OK
-		});
-		<#else>
-		Ext.widget({
-			"xtype": "reportpickerinterval",
-			"callback": function(options){
-				window.open("data/export.json?type=CSV&" + options.query);
-			}
-		}).show();
-		</#if>
+		if (!BuddiLive.util.UserConfig.get('premium')) {
+			Ext.MessageBox.show({
+				"title": BuddiLive.translate("PREMIUM_TITLE"),
+				"msg": BuddiLive.translate("PREMIUM_MESSAGE"),
+				"buttons": Ext.Msg.OK
+			});
+		}
+		else {
+			Ext.widget({
+				"xtype": "reportpickerinterval",
+				"callback": function(options){
+					window.open("data/export.json?type=CSV&" + options.query);
+				}
+			}).show();
+		}
 	},
-	
+
 	"donate": function(){
 		window.open("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YSF44FWNVSMSN&source=url");
 	},
-	
+
 	"deleteUser": function(component){
 		var viewport = component.up("buddiviewport");
 		Ext.MessageBox.show({
-			"title": "${translation("DELETE_USER")?json_string}",
-			"msg": "${translation("CONFIRM_DELETE_USER")?json_string}",
+			"title": BuddiLive.translate("DELETE_USER"),
+			"msg": BuddiLive.translate("CONFIRM_DELETE_USER"),
 			"buttons": Ext.MessageBox.YESNO,
 			"fn": function(buttonId){
 				if (buttonId != "yes") return;
-				
+
 				Ext.MessageBox.show({
-					"title": "${translation("DELETE_USER")?json_string}",
-					"msg": "${translation("CONFIRM_DELETE_USER2")?json_string}",
+					"title": BuddiLive.translate("DELETE_USER"),
+					"msg": BuddiLive.translate("CONFIRM_DELETE_USER2"),
 					"buttons": Ext.MessageBox.YESNO,
 					"fn": function(buttonId){
 						if (buttonId != "yes") return;
-						
-						var mask = new Ext.LoadMask({"msg": "${translation("PROCESSING")?json_string}", "target": viewport});
+
+						var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": viewport});
 						mask.show();
 						new Ext.data.Connection().request({
 							"url": "data/userpreferences",
 							"jsonData": {"action": "delete"},
 							"headers": {"Accept": "application/json"},
 							"method": "POST",
-							"timeout": 10 * 60 * 1000,	//Set a high timeout value to give time for deleting everything
+							"timeout": 10 * 60 * 1000,
 							"success": function(response){
 								mask.hide();
 								location.reload();
