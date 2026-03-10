@@ -1,6 +1,7 @@
 package ca.digitalcave.buddi.live.service;
 
 import java.util.ArrayList;
+import java.util.logging.Level;
 
 import org.json.JSONObject;
 import org.restlet.Application;
@@ -15,6 +16,17 @@ import org.restlet.representation.Variant;
 import org.restlet.service.StatusService;
 
 public class BuddiStatusService extends StatusService {
+
+	@Override
+	public Status toStatus(Throwable throwable, Request request, Response response) {
+		final Status status = super.toStatus(throwable, request, response);
+		if (status.isServerError()) {
+			Application.getCurrent().getLogger().log(Level.SEVERE, "Server error: " + request.getMethod() + " " + request.getResourceRef(), throwable);
+		} else if (status.isClientError() && throwable.getCause() != null) {
+			Application.getCurrent().getLogger().log(Level.WARNING, "Client error: " + request.getMethod() + " " + request.getResourceRef(), throwable);
+		}
+		return status;
+	}
 
 	@Override
 	public Representation getRepresentation(Status status, Request request, Response response) {
