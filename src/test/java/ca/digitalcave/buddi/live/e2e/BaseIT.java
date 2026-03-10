@@ -9,6 +9,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -44,7 +45,7 @@ public abstract class BaseIT {
 		server.setHandler(context);
 		server.start();
 
-		port = server.getConnectors()[0].getLocalPort();
+		port = ((ServerConnector) server.getConnectors()[0]).getLocalPort();
 
 		// Warm up the connection pool by making a request that triggers DB activity.
 		// The Liquibase migration may leave a dead connection in the c3p0 pool;
