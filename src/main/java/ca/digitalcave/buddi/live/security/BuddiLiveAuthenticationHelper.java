@@ -1,30 +1,8 @@
 package ca.digitalcave.buddi.live.security;
 
-import java.security.Key;
-import java.util.Currency;
-import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.crypto.SecretKey;
-import jakarta.mail.internet.AddressException;
-
-import org.apache.commons.lang3.LocaleUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.mail2.core.EmailException;
-import org.apache.commons.mail2.jakarta.HtmlEmail;
-import org.apache.ibatis.session.SqlSession;
-import org.restlet.data.ChallengeResponse;
-import org.restlet.data.Form;
-import org.restlet.data.Status;
-import org.restlet.resource.ResourceException;
-
 import ca.digitalcave.buddi.live.BuddiApplication;
 import ca.digitalcave.buddi.live.db.BuddiSystem;
 import ca.digitalcave.buddi.live.db.Users;
-import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
@@ -37,6 +15,25 @@ import ca.digitalcave.moss.restlet.CookieAuthenticator;
 import ca.digitalcave.moss.restlet.model.AuthUser;
 import ca.digitalcave.moss.restlet.plugin.AuthenticationConfiguration;
 import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
+import jakarta.mail.internet.AddressException;
+import org.apache.commons.lang3.LocaleUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.mail2.core.EmailException;
+import org.apache.commons.mail2.jakarta.HtmlEmail;
+import org.apache.ibatis.session.SqlSession;
+import org.restlet.data.ChallengeResponse;
+import org.restlet.data.Form;
+import org.restlet.data.Status;
+import org.restlet.resource.ResourceException;
+
+import javax.crypto.SecretKey;
+import java.security.Key;
+import java.util.Currency;
+import java.util.List;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	
@@ -286,21 +283,33 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			if (!"on".equals(form.getFirstValue("agree", "off"))){
 				throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, LocaleUtil.getTranslation().getString("CREATE_USER_AGREEMENT_REQUIRED"));
 			}
-			
+
 			final User newUser = new User();
 			newUser.setIdentifier(getHashedUsername(email));	//This is a simple SHA-256 hash of the username.  We store username hashed in the DB for extra privacy.
 			newUser.setUuid(UUID.randomUUID().toString());
 			newUser.setCurrency(Currency.getInstance(form.getFirstValue("currency", "USD")));
 			newUser.setLocale(LocaleUtils.toLocale(form.getFirstValue("locale", "en_US")));
-			ConstraintsChecker.checkInsertUser(newUser, sqlSession);
+
+			final User existingUser = sqlSession.getMapper(Users.class).selectUser(newUser.getIdentifier());
+			if (existingUser != null) {
+				if (existingUser.getSecret() != null && existingUser.getSecret().length > 0) {
+					throw new DatabaseException("The user name already exists");
+				}
+				// Unactivated user: replace activation key so they can re-register
+				sqlSession.getMapper(Users.class).deleteActivationKey(existingUser);
+				final Integer insertActivationCount = sqlSession.getMapper(Users.class).insertActivationKey(existingUser, activationKey);
+				if (insertActivationCount != 1) throw new DatabaseException(String.format("Activation key insert failed; expected 1 row, returned %s", insertActivationCount));
+				sqlSession.commit();
+				return;
+			}
 
 			cleanupUsers(sqlSession, null);
-			
+
 			final Integer insertUserCount = sqlSession.getMapper(Users.class).insertUser(newUser);
 			if (insertUserCount != 1) throw new DatabaseException(String.format("User insert failed; expected 1 row, returned %s", insertUserCount));
 			final Integer insertActivationCount = sqlSession.getMapper(Users.class).insertActivationKey(newUser, activationKey);
 			if (insertActivationCount != 1) throw new DatabaseException(String.format("Activation key insert failed; expected 1 row, returned %s", insertActivationCount));
-			
+
 			sqlSession.commit();
 		}
 		finally {
