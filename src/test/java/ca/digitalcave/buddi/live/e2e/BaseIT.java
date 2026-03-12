@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.ServerSetup;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -19,6 +21,7 @@ public abstract class BaseIT {
 
 	private static Server server;
 	private static int port;
+	private static GreenMail greenMail;
 	private static boolean started = false;
 	private static final Path CONFIG_TARGET = Path.of("src/main/webapp/WEB-INF/classes/config.properties");
 
@@ -26,6 +29,8 @@ public abstract class BaseIT {
 	static void ensureServerStarted() throws Exception {
 		if (started) return;
 		started = true;
+
+		Class.forName("org.apache.derby.iapi.jdbc.AutoloadedDriver");
 
 		Path derbyDir = Path.of("target/e2etest-derby");
 		if (Files.exists(derbyDir)) {
@@ -37,6 +42,9 @@ public abstract class BaseIT {
 
 		Files.createDirectories(CONFIG_TARGET.getParent());
 		Files.copy(Path.of("conf/e2etest/config.properties"), CONFIG_TARGET, StandardCopyOption.REPLACE_EXISTING);
+
+		greenMail = new GreenMail(new ServerSetup(8025, "localhost", ServerSetup.PROTOCOL_SMTP));
+		greenMail.start();
 
 		server = new Server(0);
 		URL warUrl = new File("src/main/webapp").toURI().toURL();
@@ -62,6 +70,7 @@ public abstract class BaseIT {
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			try { server.stop(); } catch (Exception ignored) {}
+			try { if (greenMail != null) greenMail.stop(); } catch (Exception ignored) {}
 		}));
 	}
 

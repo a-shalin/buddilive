@@ -332,6 +332,7 @@ src/main/webapp/
 mvn clean package              # → target/buddilive.war
 mvn clean package -Ptest       # → target/buddilive-test.war
 mvn exec:java -Pstandalone     # standalone Jetty on port 8686
+mvn -Pe2etest                  # E2E tests (starts embedded Jetty with Derby, runs tests, shuts down)
 ```
 
 ### Configuration

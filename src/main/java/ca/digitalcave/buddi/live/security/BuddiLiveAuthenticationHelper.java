@@ -16,7 +16,6 @@ import ca.digitalcave.moss.restlet.model.AuthUser;
 import ca.digitalcave.moss.restlet.plugin.AuthenticationConfiguration;
 import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
 import jakarta.mail.internet.AddressException;
-import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail2.core.EmailException;
 import org.apache.commons.mail2.jakarta.HtmlEmail;
@@ -29,6 +28,7 @@ import org.restlet.resource.ResourceException;
 import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.Currency;
+import java.util.Locale;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -288,7 +288,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			newUser.setIdentifier(getHashedUsername(email));	//This is a simple SHA-256 hash of the username.  We store username hashed in the DB for extra privacy.
 			newUser.setUuid(UUID.randomUUID().toString());
 			newUser.setCurrency(Currency.getInstance(form.getFirstValue("currency", "USD")));
-			newUser.setLocale(LocaleUtils.toLocale(form.getFirstValue("locale", "en_US")));
+			newUser.setLocale(LocaleUtil.parseLocale(form.getFirstValue("locale", "en_US"), Locale.US));
 
 			final User existingUser = sqlSession.getMapper(Users.class).selectUser(newUser.getIdentifier());
 			if (existingUser != null) {

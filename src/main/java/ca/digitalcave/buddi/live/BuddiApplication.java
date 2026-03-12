@@ -110,7 +110,11 @@ public class BuddiApplication extends Application{
 		}
 		
 		//If we are using Derby, and the user does not have a connection URL, set one up in a sane location.
-		if ("org.apache.derby.jdbc.EmbeddedDriver".equals(configProperties.getProperty("db.driver")) && configProperties.getProperty("db.url") == null){
+		final String dbDriver = configProperties.getProperty("db.driver");
+		if (("org.apache.derby.jdbc.EmbeddedDriver".equals(dbDriver)
+				|| "org.apache.derby.iapi.jdbc.AutoloadedDriver".equals(dbDriver)
+				|| "org.apache.derby.iapi.jdbc.Driver42".equals(dbDriver))
+				&& configProperties.getProperty("db.url") == null){
 			final File buddiLiveFolder = OperatingSystemUtil.getUserFolder("BuddiLive");
 			
 			//Try to create directory if needed

@@ -2,8 +2,8 @@ package ca.digitalcave.buddi.live.resource.buddilive;
 
 import java.io.IOException;
 import java.util.Currency;
+import java.util.Locale;
 
-import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.session.SqlSession;
 import org.json.JSONException;
@@ -79,7 +79,7 @@ public class UserPreferencesResource extends ServerResource {
 					else DataUpdater.turnOnEncryption(user, sqlSession);
 				}
 				user.setEmail(json.optBoolean("storeEmail", false) ? user.getPlaintextIdentifier() : null);
-				user.setLocale(LocaleUtils.toLocale(json.optString("locale", "en_US")));
+				user.setLocale(LocaleUtil.parseLocale(json.optString("locale", "en_US"), Locale.US));
 				user.setCurrency(Currency.getInstance(json.optString("currency", "USD")));
 				user.setOverrideDateFormat(json.optString("dateFormat", null));
 				user.setTwoFactorRequired(json.optBoolean("useTwoFactor", false));

@@ -47,6 +47,7 @@ public class TestHelper {
 	}
 
 	public void registerUser(String email, String password, String locale, String currency) throws Exception {
+		Class.forName("org.apache.derby.iapi.jdbc.AutoloadedDriver");
 		OkHttpClient client = newClient();
 
 		// After Liquibase migration, c3p0 may have a stale connection in the pool.

@@ -61,7 +61,7 @@ public class LocalesResource extends ServerResource {
 			for (Locale locale : commonLocales) {
 				final JSONObject entry = new JSONObject();
 				entry.put("text", locale.getDisplayName(user != null && user.getLocale() != null ? user.getLocale() : Locale.ENGLISH));
-				entry.put("value", locale.toString());
+				entry.put("value", toLegacyLocaleString(locale));
 				result.append("data", entry);
 			}
 			
@@ -74,7 +74,7 @@ public class LocalesResource extends ServerResource {
 			for (Locale locale : allLocales) {
 				final JSONObject entry = new JSONObject();
 				entry.put("text", locale.getDisplayName(user != null && user.getLocale() != null ? user.getLocale() : Locale.ENGLISH));
-				entry.put("value", locale.toString());
+				entry.put("value", toLegacyLocaleString(locale));
 				result.append("data", entry);
 			}
 			return new JsonRepresentation(result);
@@ -82,5 +82,13 @@ public class LocalesResource extends ServerResource {
 		catch (JSONException e){
 			throw new ResourceException(Status.SERVER_ERROR_INTERNAL, e);
 		}
+	}
+
+	private String toLegacyLocaleString(Locale locale) {
+		if (locale == null) return "";
+		if (StringUtils.isBlank(locale.getLanguage())) return locale.toString();
+		if (StringUtils.isBlank(locale.getCountry())) return locale.getLanguage();
+		if (StringUtils.isBlank(locale.getVariant())) return locale.getLanguage() + "_" + locale.getCountry();
+		return locale.getLanguage() + "_" + locale.getCountry() + "_" + locale.getVariant();
 	}
 }
