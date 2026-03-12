@@ -50,7 +50,8 @@ public class DataManagementIT extends BaseIT {
 	void testRestoreIgnoresDeletedTransactions() throws Exception {
 		String accountUuid = "11111111-1111-1111-1111-111111111111";
 		String categoryUuid = "22222222-2222-2222-2222-222222222222";
-		String transactionUuid = "84ed058d-98c3-47fb-af6c-9fced9c3932e";
+		String deletedTransactionUuid = "84ed058d-98c3-47fb-af6c-9fced9c3932e";
+		String activeTransactionUuid = "84ed058d-98c3-47fb-af6c-9fced9c3932f";
 
 		JSONObject split = new JSONObject();
 		split.put("amount", "10000");
@@ -58,13 +59,21 @@ public class DataManagementIT extends BaseIT {
 		split.put("from", accountUuid);
 		split.put("to", categoryUuid);
 
-		JSONObject transaction = new JSONObject();
-		transaction.put("date", "2026-03-12");
-		transaction.put("number", "");
-		transaction.put("deleted", true);
-		transaction.put("description", "to tkf from halva sav");
-		transaction.put("uuid", transactionUuid);
-		transaction.put("splits", new JSONArray().put(split));
+		JSONObject deletedTransaction = new JSONObject();
+		deletedTransaction.put("date", "2026-03-12");
+		deletedTransaction.put("number", "");
+		deletedTransaction.put("deleted", true);
+		deletedTransaction.put("description", "to tkf from halva sav");
+		deletedTransaction.put("uuid", deletedTransactionUuid);
+		deletedTransaction.put("splits", new JSONArray().put(split));
+
+		JSONObject activeTransaction = new JSONObject();
+		activeTransaction.put("date", "2026-03-12");
+		activeTransaction.put("number", "");
+		activeTransaction.put("deleted", false);
+		activeTransaction.put("description", "active restore tx");
+		activeTransaction.put("uuid", activeTransactionUuid);
+		activeTransaction.put("splits", new JSONArray().put(split));
 
 		JSONObject account = new JSONObject();
 		account.put("uuid", accountUuid);
@@ -83,7 +92,7 @@ public class DataManagementIT extends BaseIT {
 		JSONObject restoreData = new JSONObject();
 		restoreData.put("accounts", new JSONArray().put(account));
 		restoreData.put("categories", new JSONArray().put(category));
-		restoreData.put("transactions", new JSONArray().put(transaction));
+		restoreData.put("transactions", new JSONArray().put(deletedTransaction).put(activeTransaction));
 
 		RequestBody file = RequestBody.create(restoreData.toString(), MediaType.get("application/json"));
 		RequestBody multipart = new MultipartBody.Builder()
@@ -107,8 +116,11 @@ public class DataManagementIT extends BaseIT {
 
 		JSONObject transactions = helper.getTransactions(client, accountId);
 		assertThat(transactions.getBoolean("success")).isTrue();
-		assertThat(transactions.getInt("total")).isEqualTo(0);
-		assertThat(transactions.getJSONArray("data")).isEmpty();
+		assertThat(transactions.getInt("total")).isEqualTo(1);
+		JSONArray data = transactions.getJSONArray("data");
+		assertThat(data).hasSize(1);
+		assertThat(data.getJSONObject(0).getString("description")).isEqualTo("active restore tx");
+		assertThat(data.getJSONObject(0).getBoolean("deleted")).isFalse();
 	}
 
 	private int findAccountIdByName(JSONObject accounts, String name) {
