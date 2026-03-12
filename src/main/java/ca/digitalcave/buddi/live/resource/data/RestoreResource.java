@@ -237,6 +237,7 @@ public class RestoreResource extends ServerResource {
 		if (transactions != null){
 			for (int i = 0; i < transactions.length(); i++) {
 				final JSONObject t = transactions.getJSONObject(i);
+				if (t.optBoolean("deleted", false)) continue;
 				//We only insert if the specified UUID is not already there.
 				if (sqlSession.getMapper(Transactions.class).selectTransactionCount(user, t.getString("uuid")) == 0){
 					final Transaction transaction = new Transaction();
