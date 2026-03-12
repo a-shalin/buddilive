@@ -20,7 +20,7 @@ Ext.define("BuddiLive.view.Viewport", {
 	"width": "100%",
 
 	"initComponent": function() {
-		var isPremium = BuddiLive.util.UserConfig.get('premium');
+		var isPremium = true; //BuddiLive.util.UserConfig.get('premium');
 		var isEncrypted = BuddiLive.util.UserConfig.get('encrypted');
 
 		var northHtml = isPremium ? "" : "<iframe id='adsensetop' src='buddilive/view/ads/top.html' scrolling='no' width='468' height='60' marginheight='0' marginwidth='0' seamless='seamless' frameborder='0'></iframe>";
