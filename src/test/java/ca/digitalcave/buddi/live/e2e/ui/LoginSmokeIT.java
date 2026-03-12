@@ -54,4 +54,68 @@ public class LoginSmokeIT extends BrowserBaseIT {
 			"return Ext.ComponentQuery.query('login').length > 0;");
 		assertThat(hasLoginForm).isTrue();
 	}
+
+	@Test
+	void testRegisterComboboxesAreSearchable() {
+		driver.get(getBaseUrl() + "/index.html");
+		waitForExtJs();
+		waitForComponent("login");
+
+		executeJs("Ext.ComponentQuery.query('login')[0].setActiveTab(1);");
+		waitForComponent("login combobox[name=locale]");
+		waitForComponent("login combobox[name=currency]");
+
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"var locale = Ext.ComponentQuery.query('login combobox[name=locale]')[0];" +
+					"var currency = Ext.ComponentQuery.query('login combobox[name=currency]')[0];" +
+					"return locale && currency && locale.getStore().isLoaded() && currency.getStore().isLoaded();");
+			} catch (Exception e) {
+				return false;
+			}
+		});
+
+		String localeConfig = (String) executeJs(
+			"var combo = Ext.ComponentQuery.query('login combobox[name=locale]')[0];" +
+			"return String(combo.editable) + '|' + String(combo.queryMode);");
+		assertThat(localeConfig)
+			.as("Locale combobox should be editable and use local query mode")
+			.isEqualTo("true|local");
+
+		String currencyConfig = (String) executeJs(
+			"var combo = Ext.ComponentQuery.query('login combobox[name=currency]')[0];" +
+			"return String(combo.editable) + '|' + String(combo.queryMode);");
+		assertThat(currencyConfig)
+			.as("Currency combobox should be editable and use local query mode")
+			.isEqualTo("true|local");
+
+		Boolean localeFiltersUnmatchedQuery = (Boolean) executeJs(
+			"var combo = Ext.ComponentQuery.query('login combobox[name=locale]')[0];" +
+			"combo.getStore().clearFilter();" +
+			"var before = combo.getStore().getCount();" +
+			"combo.setRawValue('zzzzzzzz');" +
+			"combo.doQuery(combo.getRawValue(), false, true);" +
+			"var after = combo.getStore().getCount();" +
+			"combo.getStore().clearFilter();" +
+			"combo.setRawValue('');" +
+			"return before > 0 && after === 0;");
+		assertThat(localeFiltersUnmatchedQuery)
+			.as("Locale combobox should filter out unmatched input")
+			.isTrue();
+
+		Boolean currencyFiltersUnmatchedQuery = (Boolean) executeJs(
+			"var combo = Ext.ComponentQuery.query('login combobox[name=currency]')[0];" +
+			"combo.getStore().clearFilter();" +
+			"var before = combo.getStore().getCount();" +
+			"combo.setRawValue('zzzzzzzz');" +
+			"combo.doQuery(combo.getRawValue(), false, true);" +
+			"var after = combo.getStore().getCount();" +
+			"combo.getStore().clearFilter();" +
+			"combo.setRawValue('');" +
+			"return before > 0 && after === 0;");
+		assertThat(currencyFiltersUnmatchedQuery)
+			.as("Currency combobox should filter out unmatched input")
+			.isTrue();
+	}
 }

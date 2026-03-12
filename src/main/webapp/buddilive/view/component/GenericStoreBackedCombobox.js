@@ -9,7 +9,9 @@ Ext.define("BuddiLive.view.component.GenericStoreBackedCombobox", {
 		this.displayField = this.displayField || "text";
 		this.valueField = this.valueField || "value";
 		this.enableKeyEvents = true;
-		this.editable = this.editable || false;
+		this.editable = this.initialConfig.editable != null ? this.initialConfig.editable : true;
+		this.queryMode = this.initialConfig.queryMode || "local";
+		this.anyMatch = this.initialConfig.anyMatch != null ? this.initialConfig.anyMatch : true;
 
 		this.listConfig = this.listConfig || {
 			"itemTpl": "<div style='{style}'>{text}</div>"
