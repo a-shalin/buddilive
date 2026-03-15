@@ -1,36 +1,36 @@
 Ext.define('Login.view.LoginPanelMobile', {
-	"extend": "Ext.tab.Panel",
-	"xtype": "login",
+	extend: "Ext.tab.Panel",
+	xtype: "login",
 
-	"requires": [
+	requires: [
 		"Login.view.PasswordField",
 		"Login.view.TransientLabel"
 	],
 
-	"height": "100%",
-	"minTabWidth": 120,
-	"cls": "login-tab-panel",
-	"defaults": {
-		"xtype": "panel",
-		"layout": "card",
-		"defaults": {
-			"xtype": "form",
-			"border": false,
-			"margin": 10,
-			"defaults": {
-				"xtype": "textfield",
-				"anchor": "100%",
-				"labelWidth": 120,
-				"labelAlign": "top",
-				"labelStyle": "font-size: 1.2em",
-				"allowBlank": false,
-				"enableKeyEvents": true,
-				"scale": "medium"
+	height: "100%",
+	minTabWidth: 120,
+	cls: "login-tab-panel",
+	defaults: {
+		xtype: "panel",
+		layout: "card",
+		defaults: {
+			xtype: "form",
+			border: false,
+			margin: 10,
+			defaults: {
+				xtype: "textfield",
+				anchor: "100%",
+				labelWidth: 120,
+				labelAlign: "top",
+				labelStyle: "font-size: 1.2em",
+				allowBlank: false,
+				enableKeyEvents: true,
+				scale: "medium"
 			}
 		}
 	},
 
-	"initComponent": function() {
+	initComponent: function() {
 		var __ac = window.__authConfig || {};
 		var items = [];
 
@@ -38,23 +38,23 @@ Ext.define('Login.view.LoginPanelMobile', {
 		this.tabPosition = __ac.tabPosition || "bottom";
 
 		var tabBarConfig = {
-			"cls": "login-tab-bar",
-			"layout": {
-				"pack": __ac.tabPackAlignment || "start"
+			cls: "login-tab-bar",
+			layout: {
+				pack: __ac.tabPackAlignment || "start"
 			}
 		};
 		if (__ac.tabBarBackgroundInvisible) {
 			tabBarConfig.style = {
 				"background-image": "none",
 				"background-color": "transparent",
-				"border": "none"
+				border: "none"
 			};
 		}
 		this.tabBar = tabBarConfig;
 
 		if (__ac.showCookieWarning) {
 			this.listeners = {
-				"afterrender": function(){
+				afterrender: function(){
 					var url = window.location.href;
 					var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
 					var allowCookies = allowCookiesStorage.getItem(url);
@@ -62,24 +62,24 @@ Ext.define('Login.view.LoginPanelMobile', {
 					if (allowCookies != "true"){
 						var showMessage = function(){
 							var win = Ext.create({
-								"xtype": "panel",
-								"modal": true,
-								"floating": true,
-								"width": "90%",
-								"itemId": "cookieMessage",
-								"title": Login.translate("COOKIES_USED_TITLE"),
-								"items": [
+								xtype: "panel",
+								modal: true,
+								floating: true,
+								width: "90%",
+								itemId: "cookieMessage",
+								title: Login.translate("COOKIES_USED_TITLE"),
+								items: [
 									{
-										"xtype": "panel",
-										"html": Login.translate("COOKIES_USED_MESSAGE"),
-										"buttons": [
+										xtype: "panel",
+										html: Login.translate("COOKIES_USED_MESSAGE"),
+										buttons: [
 											{
-												"text": "Yes",
-												"listeners": {
-													"afterrender": function(button){
+												text: "Yes",
+												listeners: {
+													afterrender: function(button){
 														button.focus();
 													},
-													"click": function(button){
+													click: function(button){
 														var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
 														allowCookiesStorage.setItem(url, "true");
 														allowCookiesStorage.release();
@@ -88,7 +88,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 													}
 												}
 											},
-											{ "text": "No" }
+											{ text: "No" }
 										]
 									}
 								]
@@ -106,107 +106,107 @@ Ext.define('Login.view.LoginPanelMobile', {
 
 		if (__ac.showLogin !== false) {
 			var loginFormItems = [
-				{ "fieldLabel": Login.translate("IDENTIFIER_LABEL"), "name": "identifier", "inputAttrTpl": "autocapitalize='off'", "listeners": { "afterrender": function(component){ component.focus(); } } },
-				{ "fieldLabel": Login.translate("PASSWORD_LABEL"), "inputType": "password", "inputAttrTpl": "autocapitalize='off'", "name": "password" }
+				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "identifier", inputAttrTpl: "autocapitalize='off'", listeners: { afterrender: function(component){ component.focus(); } } },
+				{ fieldLabel: Login.translate("PASSWORD_LABEL"), inputType: "password", inputAttrTpl: "autocapitalize='off'", name: "password" }
 			];
 			if (__ac.showRemember !== false) {
-				loginFormItems.push({ "fieldLabel": Login.translate("REMEMBER_LABEL"), "xtype": "checkbox", "name": "remember" });
+				loginFormItems.push({ fieldLabel: Login.translate("REMEMBER_LABEL"), xtype: "checkbox", name: "remember" });
 			}
 			if (__ac.extraLoginStep1Fields) {
 				loginFormItems = loginFormItems.concat(__ac.extraLoginStep1Fields);
 			}
 			loginFormItems.push(
-				{ "xtype": "transientlabel", "itemId": "messageLogin1", "height": 40 },
-				{ "xtype": "label", "height": 100},
-				{ "xtype": "button", "text": Login.translate("LOGIN_LABEL"), "itemId": "authenticate" },
-				{ "xtype": "label", "height": 50, "html": "&nbsp;", "style": {"display": "block"}},
-				{ "xtype": "label", "html": "<a href='.?desktop' style='color: #666; align: right;'>Desktop View</a>", "style": {"display": "block"}}
+				{ xtype: "transientlabel", itemId: "messageLogin1", height: 40 },
+				{ xtype: "label", height: 100},
+				{ xtype: "button", text: Login.translate("LOGIN_LABEL"), itemId: "authenticate" },
+				{ xtype: "label", height: 50, html: "&nbsp;", style: {display: "block"}},
+				{ xtype: "label", html: "<a href='.?desktop' style='color: #666; align: right;'>Desktop View</a>", style: {display: "block"}}
 			);
 
 			var ssoItems = [];
 			if (__ac.ssoProviders) {
 				for (var key in __ac.ssoProviders) {
-					ssoItems.push({"xtype": "button", "text": Login.translate("SAML_LOGIN_LABEL") + " " + __ac.ssoProviders[key], "ssoProviderId": key, "width": "100%", "margin": "5px"});
+					ssoItems.push({xtype: "button", text: Login.translate("SAML_LOGIN_LABEL") + " " + __ac.ssoProviders[key], ssoProviderId: key, width: "100%", margin: "5px"});
 				}
 			}
 
 			var passwordExpiredItems = [
-				{ "name": "identifier", "xtype": "hiddenfield" },
-				{ "fieldLabel": Login.translate("NEW_PASSWORD_LABEL"), "name": "password", "xtype": "passwordfield" }
+				{ name: "identifier", xtype: "hiddenfield" },
+				{ fieldLabel: Login.translate("NEW_PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
 			];
 			if (__ac.extraLoginStep2Fields) {
 				passwordExpiredItems = passwordExpiredItems.concat(__ac.extraLoginStep2Fields);
 			}
 			passwordExpiredItems.push(
-				{ "xtype": "transientlabel", "itemId": "messageActivate" },
-				{ "xtype": "button", "text": Login.translate("CHANGE_PASSWORD_BUTTON"), "itemId": "activate" },
-				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-				{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" }
+				{ xtype: "transientlabel", itemId: "messageActivate" },
+				{ xtype: "button", text: Login.translate("CHANGE_PASSWORD_BUTTON"), itemId: "activate" },
+				{ xtype: "label", height: 20, html: "&nbsp;", style: {display: "block"}},
+				{ xtype: "button", text: Login.translate("BACK_BUTTON"), itemId: "back" }
 			);
 
 			items.push({
-				"title": Login.translate("LOGIN_TITLE"),
-				"activeItem": __ac.activeItem || "authenticate",
-				"items": [
+				title: Login.translate("LOGIN_TITLE"),
+				activeItem: __ac.activeItem || "authenticate",
+				items: [
 					{
-						"itemId": "authenticate",
-						"xtype": "panel",
-						"items": [
+						itemId: "authenticate",
+						xtype: "panel",
+						items: [
 							{
-								"xtype": "form",
-								"width": "100%",
-								"border": false,
-								"defaults": {
-									"xtype": "textfield",
-									"anchor": "100%",
-									"allowBlank": false,
-									"enableKeyEvents": true
+								xtype: "form",
+								width: "100%",
+								border: false,
+								defaults: {
+									xtype: "textfield",
+									anchor: "100%",
+									allowBlank: false,
+									enableKeyEvents: true
 								},
-								"items": loginFormItems
+								items: loginFormItems
 							},
 							{
-								"xtype": "panel",
-								"border": false,
-								"itemId": "ssoProviders",
-								"items": ssoItems
+								xtype: "panel",
+								border: false,
+								itemId: "ssoProviders",
+								items: ssoItems
 							}
 						]
 					},
 					{
-						"itemId": "passwordExpired",
-						"items": passwordExpiredItems
+						itemId: "passwordExpired",
+						items: passwordExpiredItems
 					},
 					{
-						"itemId": "totpToken",
-						"items": [
-							{ "fieldLabel": Login.translate("TWO_FACTOR_LABEL"), "name": "totpToken" },
-							{ "xtype": "transientlabel", "itemId": "messageTwoFactorToken" },
-							{ "xtype": "button", "text": Login.translate("SUBMIT"), "itemId": "totpToken" },
-							{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-							{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" }
+						itemId: "totpToken",
+						items: [
+							{ fieldLabel: Login.translate("TWO_FACTOR_LABEL"), name: "totpToken" },
+							{ xtype: "transientlabel", itemId: "messageTwoFactorToken" },
+							{ xtype: "button", text: Login.translate("SUBMIT"), itemId: "totpToken" },
+							{ xtype: "label", height: 20, html: "&nbsp;", style: {display: "block"}},
+							{ xtype: "button", text: Login.translate("BACK_BUTTON"), itemId: "back" }
 						]
 					},
 					{
-						"itemId": "twoFactorSetup",
-						"items": [
-							{ "xtype": "textarea", "editable": false, "name": "2faSecret", "fieldLabel": Login.translate("TWO_FACTOR_SECRET_LABEL"), "itemId": "textSecret", "height": 25},
-							{ "xtype": "label", "html": Login.translate("TWO_FACTOR_SETUP_INSTRUCTIONS_MOBILE")},
-							{ "fieldLabel": Login.translate("TWO_FACTOR_LABEL"), "name": "totpToken" },
-							{ "xtype": "transientlabel", "itemId": "messageTwoFactorSetup" },
-							{ "xtype": "button", "text": Login.translate("RELOAD"), "itemId": "totpLoadSecret" },
-							{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-							{ "xtype": "button", "text": Login.translate("SUBMIT"), "itemId": "totpSetupVerify" },
-							{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-							{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" }
+						itemId: "twoFactorSetup",
+						items: [
+							{ xtype: "textarea", editable: false, name: "2faSecret", fieldLabel: Login.translate("TWO_FACTOR_SECRET_LABEL"), itemId: "textSecret", height: 25},
+							{ xtype: "label", html: Login.translate("TWO_FACTOR_SETUP_INSTRUCTIONS_MOBILE")},
+							{ fieldLabel: Login.translate("TWO_FACTOR_LABEL"), name: "totpToken" },
+							{ xtype: "transientlabel", itemId: "messageTwoFactorSetup" },
+							{ xtype: "button", text: Login.translate("RELOAD"), itemId: "totpLoadSecret" },
+							{ xtype: "label", height: 20, html: "&nbsp;", style: {display: "block"}},
+							{ xtype: "button", text: Login.translate("SUBMIT"), itemId: "totpSetupVerify" },
+							{ xtype: "label", height: 20, html: "&nbsp;", style: {display: "block"}},
+							{ xtype: "button", text: Login.translate("BACK_BUTTON"), itemId: "back" }
 						]
 					},
 					{
-						"itemId": "totpBackupCodes",
-						"items": [
-							{ "xtype": "textarea", "itemId": "totpBackupCodes", "height": 350, "border": false},
-							{ "xtype": "label", "html": Login.translate("TWO_FACTOR_BACKUP_CODES_INSTRUCTIONS")},
-							{ "xtype": "transientlabel", "itemId": "messageTwoFactorBackupCodes" },
-							{ "xtype": "button", "text": Login.translate("OK"), "itemId": "totpBackupCodesOk" }
+						itemId: "totpBackupCodes",
+						items: [
+							{ xtype: "textarea", itemId: "totpBackupCodes", height: 350, border: false},
+							{ xtype: "label", html: Login.translate("TWO_FACTOR_BACKUP_CODES_INSTRUCTIONS")},
+							{ xtype: "transientlabel", itemId: "messageTwoFactorBackupCodes" },
+							{ xtype: "button", text: Login.translate("OK"), itemId: "totpBackupCodesOk" }
 						]
 					}
 				]
@@ -215,42 +215,42 @@ Ext.define('Login.view.LoginPanelMobile', {
 
 		if (__ac.showRegister) {
 			var registerItems = [
-				{ "fieldLabel": Login.translate("IDENTIFIER_LABEL"), "name": "email", "inputAttrTpl": "autocapitalize='off'", "vtype": "email" }
+				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "email", inputAttrTpl: "autocapitalize='off'", vtype: "email" }
 			];
 			if (__ac.extraRegisterStep1Fields) {
 				registerItems = registerItems.concat(__ac.extraRegisterStep1Fields);
 			}
 			registerItems.push(
-				{ "xtype": "transientlabel", "itemId": "messageRegister1" },
-				{ "xtype": "button", "text": Login.translate("EXISTING_KEY_BUTTON"), "itemId": "forward" },
-				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-				{ "xtype": "button", "text": Login.translate("GENERATE_KEY_BUTTON"), "itemId": "register" }
+				{ xtype: "transientlabel", itemId: "messageRegister1" },
+				{ xtype: "button", text: Login.translate("EXISTING_KEY_BUTTON"), itemId: "forward" },
+				{ xtype: "label", height: 20, html: "&nbsp;", style: {display: "block"}},
+				{ xtype: "button", text: Login.translate("GENERATE_KEY_BUTTON"), itemId: "register" }
 			);
 
 			var activateItems = [
-				{ "fieldLabel": Login.translate("ACTIVATION_KEY_LABEL"), "inputAttrTpl": "autocapitalize='off'", "name": "identifier" },
-				{ "fieldLabel": Login.translate("PASSWORD_LABEL"), "name": "secret", "xtype": "passwordfield" }
+				{ fieldLabel: Login.translate("ACTIVATION_KEY_LABEL"), inputAttrTpl: "autocapitalize='off'", name: "identifier" },
+				{ fieldLabel: Login.translate("PASSWORD_LABEL"), name: "secret", xtype: "passwordfield" }
 			];
 			if (__ac.extraRegisterStep2Fields) {
 				activateItems = activateItems.concat(__ac.extraRegisterStep2Fields);
 			}
 			activateItems.push(
-				{ "xtype": "transientlabel", "itemId": "messageRegister2" },
-				{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" },
-				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-				{ "xtype": "button", "text": Login.translate("CREATE_ACCOUNT_BUTTON"), "itemId": "activate" }
+				{ xtype: "transientlabel", itemId: "messageRegister2" },
+				{ xtype: "button", text: Login.translate("BACK_BUTTON"), itemId: "back" },
+				{ xtype: "label", height: 20, html: "&nbsp;", style: {display: "block"}},
+				{ xtype: "button", text: Login.translate("CREATE_ACCOUNT_BUTTON"), itemId: "activate" }
 			);
 
 			items.push({
-				"title": Login.translate("REGISTER_TITLE"),
-				"items": [
+				title: Login.translate("REGISTER_TITLE"),
+				items: [
 					{
-						"itemId": "register",
-						"items": registerItems
+						itemId: "register",
+						items: registerItems
 					},
 					{
-						"itemId": "activate",
-						"items": activateItems
+						itemId: "activate",
+						items: activateItems
 					}
 				]
 			});
@@ -258,42 +258,42 @@ Ext.define('Login.view.LoginPanelMobile', {
 
 		if (__ac.showForgotPassword !== false) {
 			var forgotItems = [
-				{ "fieldLabel": Login.translate("IDENTIFIER_LABEL"), "inputAttrTpl": "autocapitalize='off'", "name": "identifier" }
+				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), inputAttrTpl: "autocapitalize='off'", name: "identifier" }
 			];
 			if (__ac.extraforgotPasswordStep1PanelFields) {
 				forgotItems = forgotItems.concat(__ac.extraforgotPasswordStep1PanelFields);
 			}
 			forgotItems.push(
-				{ "xtype": "transientlabel", "itemId": "messageForgotPassword1" },
-				{ "xtype": "button", "text": Login.translate("GENERATE_KEY_BUTTON"), "itemId": "forgotPassword" },
-				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-				{ "xtype": "button", "text": Login.translate("EXISTING_KEY_BUTTON"), "itemId": "forward" }
+				{ xtype: "transientlabel", itemId: "messageForgotPassword1" },
+				{ xtype: "button", text: Login.translate("GENERATE_KEY_BUTTON"), itemId: "forgotPassword" },
+				{ xtype: "label", height: 20, html: "&nbsp;", style: {display: "block"}},
+				{ xtype: "button", text: Login.translate("EXISTING_KEY_BUTTON"), itemId: "forward" }
 			);
 
 			var resetItems = [
-				{ "fieldLabel": Login.translate("ACTIVATION_KEY_LABEL"), "inputAttrTpl": "autocapitalize='off'", "name": "activationKey" },
-				{ "fieldLabel": Login.translate("NEW_PASSWORD_LABEL"), "name": "password", "xtype": "passwordfield" }
+				{ fieldLabel: Login.translate("ACTIVATION_KEY_LABEL"), inputAttrTpl: "autocapitalize='off'", name: "activationKey" },
+				{ fieldLabel: Login.translate("NEW_PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
 			];
 			if (__ac.extraforgotPasswordStep2PanelFields) {
 				resetItems = resetItems.concat(__ac.extraforgotPasswordStep2PanelFields);
 			}
 			resetItems.push(
-				{ "xtype": "transientlabel", "itemId": "messageForgotPassword2" },
-				{ "xtype": "button", "text": Login.translate("RESET_PASSWORD_BUTTON"), "itemId": "resetPassword" },
-				{ "xtype": "label", "height": 20, "html": "&nbsp;", "style": {"display": "block"}},
-				{ "xtype": "button", "text": Login.translate("BACK_BUTTON"), "itemId": "back" }
+				{ xtype: "transientlabel", itemId: "messageForgotPassword2" },
+				{ xtype: "button", text: Login.translate("RESET_PASSWORD_BUTTON"), itemId: "resetPassword" },
+				{ xtype: "label", height: 20, html: "&nbsp;", style: {display: "block"}},
+				{ xtype: "button", text: Login.translate("BACK_BUTTON"), itemId: "back" }
 			);
 
 			items.push({
-				"title": Login.translate("RESET_TITLE"),
-				"items": [
+				title: Login.translate("RESET_TITLE"),
+				items: [
 					{
-						"itemId": "forgotPassword",
-						"items": forgotItems
+						itemId: "forgotPassword",
+						items: forgotItems
 					},
 					{
-						"itemId": "resetPassword",
-						"items": resetItems
+						itemId: "resetPassword",
+						items: resetItems
 					}
 				]
 			});
@@ -301,22 +301,22 @@ Ext.define('Login.view.LoginPanelMobile', {
 
 		if (__ac.showForgotUsername) {
 			var forgotUsernameItems = [
-				{ "fieldLabel": Login.translate("EMAIL_LABEL"), "inputAttrTpl": "autocapitalize='off'", "name": "email" }
+				{ fieldLabel: Login.translate("EMAIL_LABEL"), inputAttrTpl: "autocapitalize='off'", name: "email" }
 			];
 			if (__ac.extraForgotUsernameStep1PanelFields) {
 				forgotUsernameItems = forgotUsernameItems.concat(__ac.extraForgotUsernameStep1PanelFields);
 			}
 			forgotUsernameItems.push(
-				{ "xtype": "transientlabel", "itemId": "messageForgotUsername1" },
-				{ "xtype": "button", "text": Login.translate("SUBMIT"), "itemId": "forgotUsername" }
+				{ xtype: "transientlabel", itemId: "messageForgotUsername1" },
+				{ xtype: "button", text: Login.translate("SUBMIT"), itemId: "forgotUsername" }
 			);
 
 			items.push({
-				"title": Login.translate("FORGOT_USERNAME_TITLE"),
-				"items": [
+				title: Login.translate("FORGOT_USERNAME_TITLE"),
+				items: [
 					{
-						"itemId": "forgotUsername",
-						"items": forgotUsernameItems
+						itemId: "forgotUsername",
+						items: forgotUsernameItems
 					}
 				]
 			});

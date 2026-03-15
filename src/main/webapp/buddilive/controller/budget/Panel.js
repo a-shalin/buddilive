@@ -1,25 +1,25 @@
 Ext.define("BuddiLive.controller.budget.Panel", {
-	"extend": "Ext.app.Controller",
+	extend: "Ext.app.Controller",
 
-	"init": function() {
+	init: function() {
 		this.control({
-			"budgetpanel": {
-				"afterrender": this.reload,
-				"reload": this.reload
+			budgetpanel: {
+				afterrender: this.reload,
+				reload: this.reload
 			}
 		});
 	},
 	
-	"reload": function(component){
+	reload: function(component){
 		var budgetPanel = (component.xtype == "budgetpanel" ? component : component.up("budgetpanel"));
 		var conn = new Ext.data.Connection();
 		conn.request({
-			"url": "data/categories/periods",
-			"headers": {
-				"Accept": "application/json"
+			url: "data/categories/periods",
+			headers: {
+				Accept: "application/json"
 			},
-			"method": "GET",
-			"success": function(response){
+			method: "GET",
+			success: function(response){
 				var json = Ext.decode(response.responseText, true);
 				Ext.suspendLayouts();
 				budgetPanel.removeAll();
@@ -27,9 +27,9 @@ Ext.define("BuddiLive.controller.budget.Panel", {
 					for (var i = 0; i < json.data.length; i++){
 						budgetPanel.add(
 							{
-								"xtype": "budgettree",
-								"periodValue": json.data[i].value,
-								"periodText": json.data[i].text
+								xtype: "budgettree",
+								periodValue: json.data[i].value,
+								periodText: json.data[i].text
 							}
 						);
 					}
@@ -37,7 +37,7 @@ Ext.define("BuddiLive.controller.budget.Panel", {
 				budgetPanel.setActiveTab(budgetPanel.child("budgettree[itemId='MONTH']") || 1);
 				Ext.resumeLayouts(true);
 			},
-			"failure": function(response){
+			failure: function(response){
 				BuddiLive.app.error(response);
 			}
 		});

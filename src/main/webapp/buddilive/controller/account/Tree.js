@@ -1,13 +1,13 @@
 Ext.define("BuddiLive.controller.account.Tree", {
-	"extend": "Ext.app.Controller",
+	extend: "Ext.app.Controller",
 
-	"init": function() {
+	init: function() {
 		this.control({
-			"accounttree": {"selectionchange": this.selectionChange}
+			accounttree: {selectionchange: this.selectionChange}
 		});
 	},
 	
-	"selectionChange": function(selectionModel, selected){
+	selectionChange: function(selectionModel, selected){
 		var panel = selectionModel.view.panel.up("buddiviewport");
 		var selectedItem = selected[0].data;
 		var selectedType = selected.length > 0 ? selectedItem.nodeType : null;
@@ -23,7 +23,7 @@ Ext.define("BuddiLive.controller.account.Tree", {
 		if (selectedType == "account"){
 			var transactionList = panel.down("transactionlist");
 			Ext.apply(transactionList.getStore().getProxy().extraParams, {
-				"source": selectedItem.id
+				source: selectedItem.id
 			}); 
 			transactionList.reload();
 			

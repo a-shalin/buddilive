@@ -1,19 +1,19 @@
 Ext.define("BuddiLive.controller.scheduled.Editor", {
-	"extend": "Ext.app.Controller",
+	extend: "Ext.app.Controller",
 
-	"init": function() {
+	init: function() {
 		this.control({
 			"schedulededitor component": {
-				"blur": this.updateButtons,
-				"keyup": this.updateButtons,
-				"afterrender": this.updateButtons
+				blur: this.updateButtons,
+				keyup: this.updateButtons,
+				afterrender: this.updateButtons
 			},
-			"schedulededitor button[itemId='ok']": {"click": this.ok},
-			"schedulededitor button[itemId='cancel']": {"click": this.cancel}
+			"schedulededitor button[itemId='ok']": {click: this.ok},
+			"schedulededitor button[itemId='cancel']": {click: this.cancel}
 		});
 	},
 	
-	"updateButtons": function(component){
+	updateButtons: function(component){
 		var window = component.up("schedulededitor");
 		var ok = window.down("button[itemId='ok']");
 		var name = window.down("textfield[itemId='name']");
@@ -23,16 +23,16 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 		ok.setDisabled(name.getValue().length == 0 || startDate.getValue() == null || !transaction.validate());
 	},
 	
-	"cancel": function(component){
+	cancel: function(component){
 		component.up("schedulededitor").close();
 	},
 	
-	"ok": function(component){
+	ok: function(component){
 		var window = component.up("schedulededitor");
 		var panel = window.initialConfig.panel;
 		var selected = window.initialConfig.selected;
 
-		var request = {"action": (selected ? "update" : "insert")};
+		var request = {action: (selected ? update: "insert")};
 		request.id = window.down("hidden[itemId='id']").getValue();
 		request.lastCreatedDate = window.down("hidden[itemId='lastCreatedDate']").getValue();
 		request.name = window.down("textfield[itemId='name']").getValue();
@@ -47,24 +47,24 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 		request.scheduleWeek = activeCard.getScheduleWeek();
 		request.scheduleMonth = activeCard.getScheduleMonth();
 
-		var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": window});
+		var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
 		mask.show();
 		
 		var conn = new Ext.data.Connection();
 		conn.request({
-			"url": "data/scheduledtransactions",
-			"headers": {
-				"Accept": "application/json"
+			url: "data/scheduledtransactions",
+			headers: {
+				Accept: "application/json"
 			},
-			"method": "POST",
-			"jsonData": request,
-			"success": function(response){
+			method: "POST",
+			jsonData: request,
+			success: function(response){
 				mask.hide();
 				window.close();
 				panel.getStore().load();
 				panel.getSelectionModel().deselectAll()
 			},
-			"failure": function(response){
+			failure: function(response){
 				mask.hide();
 				BuddiLive.app.error(response);
 			}

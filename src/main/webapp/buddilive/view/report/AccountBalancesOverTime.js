@@ -1,12 +1,12 @@
 Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
-	"extend": "Ext.panel.Panel",
-	"alias": "widget.reportaccountbalancesovertime",
+	extend: "Ext.panel.Panel",
+	alias: "widget.reportaccountbalancesovertime",
 	
-	"requires": [],
+	requires: [],
 	
-	"closable": true,
-	"layout": "fit",
-	"initComponent": function(){
+	closable: true,
+	layout: "fit",
+	initComponent: function(){
 		var me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
@@ -16,15 +16,15 @@ Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
 			if (node.data.nodeType == "account"){
 				fields.push("a" + node.data.id);
 				series.push({
-					"type": "line",
-					"axis": "left",
-					"showMarkers": false,
-					"style": {
+					type: "line",
+					axis: "left",
+					showMarkers: false,
+					style: {
 						"stroke-width": 2
 					},
-					"title": node.data.name,
-					"xField": "date",
-					"yField": "a" + node.data.id
+					title: node.data.name,
+					xField: "date",
+					yField: "a" + node.data.id
 				});
 				return true;
 			}
@@ -33,51 +33,51 @@ Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
 		this.title = BuddiLive.translate("REPORT_ACCOUNT_BALANCES_OVER_TIME") + " - " + this.initialConfig.options.dateRange;
 		this.items = [
 			{
-				"xtype": "chart",
-				"store": Ext.create("Ext.data.Store", {
-					"autoLoad": true,
-					"fields": fields,
-					"proxy": {
-						"type": "ajax",
-						"url": "data/report/balancesovertime.json?" + this.initialConfig.options.query,
-						"reader": {
-							"type": "json",
-							"rootProperty": "data"
+				xtype: "chart",
+				store: Ext.create("Ext.data.Store", {
+					autoLoad: true,
+					fields: fields,
+					proxy: {
+						type: "ajax",
+						url: "data/report/balancesovertime.json?" + this.initialConfig.options.query,
+						reader: {
+							type: "json",
+							rootProperty: "data"
 						}
 					},
-					"listeners": {
-						"beforeload": function(store, operation, eOpts){
+					listeners: {
+						beforeload: function(store, operation, eOpts){
 							me.mask(BuddiLive.translate("LOADING"));
 						},
-						"load": function(store, records, successful, operation, eOpts){
+						load: function(store, records, successful, operation, eOpts){
 							me.unmask();
 						}
 					}
 				}),
-				"legend": {
-					"docked": "right"
+				legend: {
+					docked: "right"
 				},
 				axes: [
 					{
-						"type": "numeric",
-						"position": "left",
-						"fields": fields,
-						"title": BuddiLive.translate("ACCOUNT_BALANCE"),
-						"grid": true
+						type: "numeric",
+						position: "left",
+						fields: fields,
+						title: BuddiLive.translate("ACCOUNT_BALANCE"),
+						grid: true
 					},
 					{
-						"type": "category",
-						"position": "bottom",
-						"label": {
-							"rotate": {
-								"degrees": -90
+						type: "category",
+						position: "bottom",
+						label: {
+							rotate: {
+								degrees: -90
 							}
 						},
-						"fields": ["date"],
-						"title": BuddiLive.translate("DATE")
+						fields: ["date"],
+						title: BuddiLive.translate("DATE")
 					}
 				],
-				"series": series
+				series: series
 			}
 		]
 	

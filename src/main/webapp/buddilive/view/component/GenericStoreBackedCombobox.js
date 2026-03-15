@@ -1,7 +1,7 @@
 Ext.define("BuddiLive.view.component.GenericStoreBackedCombobox", {
-	"extend": "Ext.form.field.ComboBox",
+	extend: "Ext.form.field.ComboBox",
 	
-	"initComponent": function(){
+	initComponent: function(){
 		var combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
@@ -14,7 +14,7 @@ Ext.define("BuddiLive.view.component.GenericStoreBackedCombobox", {
 		this.anyMatch = this.initialConfig.anyMatch != null ? this.initialConfig.anyMatch : true;
 
 		this.listConfig = this.listConfig || {
-			"itemTpl": "<div style='{style}'>{text}</div>"
+			itemTpl: "<div style='{style}'>{text}</div>"
 		};
 	
 		this.callParent(arguments);

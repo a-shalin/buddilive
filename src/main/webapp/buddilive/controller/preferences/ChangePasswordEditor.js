@@ -1,51 +1,51 @@
 Ext.define("BuddiLive.controller.preferences.ChangePasswordEditor", {
-	"extend": "Ext.app.Controller",
+	extend: "Ext.app.Controller",
 
-	"init": function() {
+	init: function() {
 		this.control({
-			"changepasswordeditor button[itemId='ok']": {"click": this.ok},
-			"changepasswordeditor button[itemId='cancel']": {"click": this.cancel}
+			"changepasswordeditor button[itemId='ok']": {click: this.ok},
+			"changepasswordeditor button[itemId='cancel']": {click: this.cancel}
 		});
 	},
 
-	"cancel": function(component){
+	cancel: function(component){
 		component.up("changepasswordeditor").close();
 	},
 
-	"ok": function(component){
+	ok: function(component){
 		var window = component.up("changepasswordeditor");
 		var panel = window.initialConfig.panel;
 
-		var request = {"action": "update"};
+		var request = {action: "update"};
 		request.newPassword = window.down("passwordfield[itemId='newPassword']").getValue();
 		request.currentPassword = window.down("textfield[itemId='currentPassword']").getValue();
 
-		var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": window});
+		var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
 		mask.show();
 
 		var conn = new Ext.data.Connection();
 		conn.request({
-			"url": "data/changepassword",
-			"headers": {
-				"Accept": "application/json"
+			url: "data/changepassword",
+			headers: {
+				Accept: "application/json"
 			},
-			"method": "POST",
-			"jsonData": request,
-			"success": function(response){
+			method: "POST",
+			jsonData: request,
+			success: function(response){
 				mask.hide();
 				window.close();
 				var connLogin = new Ext.data.Connection();
 				connLogin.request({
-					"url": "index",
-					"method": "POST",
-					"params": { "action": "login", "identifier": BuddiLive.util.UserConfig.get('plaintextIdentifier'), "secret": request.newPassword },
-					"failure": function(response){
+					url: "index",
+					method: "POST",
+					params: { action: "login", identifier: BuddiLive.util.UserConfig.get('plaintextIdentifier'), secret: request.newPassword },
+					failure: function(response){
 						mask.hide();
 						BuddiLive.app.error(response);
 					}
 				});
 			},
-			"failure": function(response){
+			failure: function(response){
 				mask.hide();
 				BuddiLive.app.error(response);
 			}

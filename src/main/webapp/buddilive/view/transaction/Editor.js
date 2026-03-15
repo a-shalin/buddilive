@@ -1,84 +1,84 @@
 Ext.define('BuddiLive.view.transaction.Editor', {
-	"extend": "Ext.panel.Panel",
-	"alias": "widget.transactioneditor",
+	extend: "Ext.panel.Panel",
+	alias: "widget.transactioneditor",
 	
-	"requires": [
+	requires: [
 		"BuddiLive.view.transaction.DescriptionCombobox",
 		"BuddiLive.view.transaction.split.Editor"
 	],
 	
-	"layout": "vbox",
-	"border": false,
-	"initComponent": function(){
+	layout: "vbox",
+	border: false,
+	initComponent: function(){
 		this.items = [
-			{"xtype": "spliteditor"}
+			{xtype: "spliteditor"}
 		];
 		
 		this.dockedItems = [
 			{
-				"xtype": "panel",
-				"width": "100%",
-				"dock": "top",
-				"layout": "hbox",
-				"border": false,
-				"defaults": {
-					"padding": (this.initialConfig.scheduledTransaction ? "0 0 5 0" : "5 0 5 5")
+				xtype: "panel",
+				width: "100%",
+				dock: "top",
+				layout: "hbox",
+				border: false,
+				defaults: {
+					padding: (this.initialConfig.scheduledTransaction ? "0 0 5 0" : "5 0 5 5")
 				},
-				"items": [
+				items: [
 					{
-						"xtype": "hidden",
-						"itemId": "id",
-						"hidden": true
+						xtype: "hidden",
+						itemId: "id",
+						hidden: true
 					},
 					{
-						"xtype": "datefield",
-						"itemId": "date",
-						"hidden": this.initialConfig.scheduledTransaction == true,
-						"flex": 1,
-						"enableKeyEvents": true,
-						"emptyText": BuddiLive.translate("DATE")
+						xtype: "datefield",
+						itemId: "date",
+						hidden: this.initialConfig.scheduledTransaction == true,
+						flex: 1,
+						enableKeyEvents: true,
+						emptyText: BuddiLive.translate("DATE")
 					},
 					{
-						"xtype": "descriptioncombobox",
-						"itemId": "description",
-						"flex": 2,
-						"emptyText": BuddiLive.translate("DESCRIPTION"),
-						"enableKeyEvents": true
+						xtype: "descriptioncombobox",
+						itemId: "description",
+						flex: 2,
+						emptyText: BuddiLive.translate("DESCRIPTION"),
+						enableKeyEvents: true
 					},
 					{
-						"xtype": "textfield",
-						"itemId": "number",
-						"flex": 1,
-						"emptyText": BuddiLive.translate("NUMBER"),
-						"padding": (this.initialConfig.scheduledTransaction ? "1 0 5 5" : "5 5 5 5")
+						xtype: "textfield",
+						itemId: "number",
+						flex: 1,
+						emptyText: BuddiLive.translate("NUMBER"),
+						padding: (this.initialConfig.scheduledTransaction ? "1 0 5 5" : "5 5 5 5")
 					}
 				]
 			},
 			{
-				"xtype": "toolbar",
-				"hidden": this.initialConfig.scheduledTransaction == true,
-				"dock": "bottom",
-				"items": [
+				xtype: "toolbar",
+				hidden: this.initialConfig.scheduledTransaction == true,
+				dock: "bottom",
+				items: [
 					{
-						"text": BuddiLive.translate("DELETE_TRANSACTION"),
-						"tooltip": BuddiLive.translate("HELP_DELETE_TRANSACTION"),
-						"icon": "img/minus-circle.png",
-						"itemId": "deleteTransaction",
-						"disabled": true
+						text: BuddiLive.translate("DELETE_TRANSACTION"),
+						tooltip: BuddiLive.translate("HELP_DELETE_TRANSACTION"),
+						icon: "img/minus-circle.png",
+						itemId: "deleteTransaction",
+						disabled: true
 					},
 					"->",
 					{
-						"text": BuddiLive.translate("CLEAR_TRANSACTION"),
-						"tooltip": BuddiLive.translate("HELP_CLEAR_TRANSACTION"),
-						"icon": "img/exclamation-circle.png",
-						"itemId": "clearTransaction"
+						text: BuddiLive.translate("CLEAR_TRANSACTION"),
+						tooltip: BuddiLive.translate("HELP_CLEAR_TRANSACTION"),
+						icon: "img/exclamation-circle.png",
+						itemId: "clearTransaction"
 					},
 					{
-						"text": BuddiLive.translate("RECORD_UPDATE_TRANSACTION"),
-						"tooltip": BuddiLive.translate("HELP_RECORD_UPDATE_TRANSACTION"),
-						"icon": "img/tick-circle.png",
-						"itemId": "recordTransaction",
-						"disabled": true
+						text: BuddiLive.translate("RECORD_UPDATE_TRANSACTION"),
+						tooltip: BuddiLive.translate("HELP_RECORD_UPDATE_TRANSACTION"),
+						icon: "img/tick-circle.png",
+						itemId: "recordTransaction",
+						disabled: true
 					}
 				]
 			}
@@ -89,7 +89,7 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 		this.setTransaction(this.initialConfig.transaction);
 	},
 	
-	"getTransaction": function(transaction){
+	getTransaction: function(transaction){
 		var t = {};
 		t.id = this.down("hidden[itemId='id']").getValue();
 		t.date = Ext.Date.format(this.down("datefield[itemId='date']").getValue(), "Y-m-d");
@@ -107,7 +107,7 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 	//loadFromDescription is true if we are loading this transaction from the saved transactions via description pulldown.  When true, we do not update 
 	// any transaction-specific details, only the splits info.
 	//preserveDate is true if we want to keep the date.  This is used when we have just recorded a transaction, and want to keep it for the next one.
-	"setTransaction": function(transaction, loadFromDescription, preserveDate){
+	setTransaction: function(transaction, loadFromDescription, preserveDate){
 		Ext.suspendLayouts();
 		
 		//Save this so that we can check in the controller what has changed.
@@ -178,12 +178,12 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 						}
 					}
 				}
-				this.add({"xtype": "spliteditor", "source": this.source, "value": split, "scheduledTransaction": this.initialConfig.scheduledTransaction});
+				this.add({xtype: "spliteditor", source: this.source, value: split, scheduledTransaction: this.initialConfig.scheduledTransaction});
 			}
 		}
 		else {
 			//If the passed in splits are empty, add an empty editor
-			this.add({"xtype": "spliteditor", "source": this.source, "scheduledTransaction": this.initialConfig.scheduledTransaction});
+			this.add({xtype: "spliteditor", source: this.source, scheduledTransaction: this.initialConfig.scheduledTransaction});
 		}
 		
 		Ext.resumeLayouts(true);
@@ -191,11 +191,11 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 		this.fireEvent("change", this);
 	},
 	
-	"setSource": function(source){
+	setSource: function(source){
 		this.source = source;
 	},
 	
-	"validate": function(){
+	validate: function(){
 		if (!this.initialConfig.scheduledTransaction && !Ext.isDate(this.down("datefield[itemId='date']").getValue())) return false;
 		var description = this.down("combobox[itemId='description']").getValue();
 		if (description == null || description.length == 0) return false;

@@ -1,9 +1,9 @@
 Ext.define("Login.view.TransientLabel", {
-	"extend": "Ext.form.Label",
-	"alias": "widget.transientlabel",
-	"text": "\xA0",	//non breaking space to reserve space for text and not collapse empty label
+	extend: "Ext.form.Label",
+	alias: "widget.transientlabel",
+	text: "\xA0",	//non breaking space to reserve space for text and not collapse empty label
 	
-	"setDisappearingHtml": function(value, timeout){
+	setDisappearingHtml: function(value, timeout){
 		var label = this;
 		label.setHtml(value);
 		if (!timeout){

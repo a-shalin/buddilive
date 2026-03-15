@@ -1,7 +1,7 @@
 Ext.define("BuddiLive.store.budget.TreeStore", {
-	"extend": "Ext.data.TreeStore",
-	"requires": [],
-	"fields": [
+	extend: "Ext.data.TreeStore",
+	requires: [],
+	fields: [
 		"id",
 		"name",
 		"nameStyle",
@@ -17,15 +17,15 @@ Ext.define("BuddiLive.store.budget.TreeStore", {
 		"difference",
 		"differenceStyle"
 	],
-	"autoLoad": true,
-	"constructor": function(config){
+	autoLoad: true,
+	constructor: function(config){
 		config.proxy = {
-			"type": "ajax",
-			"url": "data/categories.json?periodType=" + config.periodType,
-			"reader": {
-				"type": "json",
-				"rootProperty": "children",
-				"transform": function(data){
+			type: "ajax",
+			url: "data/categories.json?periodType=" + config.periodType,
+			reader: {
+				type: "json",
+				rootProperty: "children",
+				transform: function(data){
 					budgetTree = Ext.ComponentQuery.query('viewport')[0].down("budgettree[itemId='" + config.periodType + "']");
 					budgetTree.down("textfield[itemId='currentPeriod']").setValue(data.period);
 					var columns = budgetTree.getView().headerCt.items.items;

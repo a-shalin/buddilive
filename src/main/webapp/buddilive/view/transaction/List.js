@@ -1,11 +1,11 @@
 Ext.define('BuddiLive.view.transaction.List', {
-	"extend": "Ext.grid.Panel",
-	"alias": "widget.transactionlist",
-	"requires": [
+	extend: "Ext.grid.Panel",
+	alias: "widget.transactionlist",
+	requires: [
 		"BuddiLive.store.transaction.ListStore"
 	],
 	
-	"initComponent": function(){
+	initComponent: function(){
 		var transactionList = this;
 		this.layout = "fit";
 		this.store = Ext.create("BuddiLive.store.transaction.ListStore");
@@ -13,12 +13,12 @@ Ext.define('BuddiLive.view.transaction.List', {
 		this.stateId = "transactionlist";
 		this.stateful = true;
 		this.disabled = true;
-		this.viewConfig = {"stripeRows": true};
-		this.plugins = [{"ptype": "bufferedrenderer"}];
+		this.viewConfig = {stripeRows: true};
+		this.plugins = [{ptype: "bufferedrenderer"}];
 		this.features = [
 			{
-				"ftype": "rowbody",
-				"getAdditionalData": function(data, rowIndex, record, orig){
+				ftype: "rowbody",
+				getAdditionalData: function(data, rowIndex, record, orig){
 					var rowBody = "";
 					var s = record.data.splits;
 					var headerCt = this.view.headerCt, colspan = headerCt.getColumnCount();
@@ -32,9 +32,9 @@ Ext.define('BuddiLive.view.transaction.List', {
 								+ "</div>";
 					}
 					return {
-						"rowBody": rowBody,
-						"rowBodyCls": "",
-						"rowBodyColspan": colspan
+						rowBody: rowBody,
+						rowBodyCls: "",
+						rowBodyColspan: colspan
 					};
 				}
 			}
@@ -42,62 +42,62 @@ Ext.define('BuddiLive.view.transaction.List', {
 		
 		this.columns = [
 			{
-				"text": BuddiLive.translate("DATE"),
-				"dataIndex": "date",
-				"hideable": false,
-				"sortable": false,
-				"flex": 20
+				text: BuddiLive.translate("DATE"),
+				dataIndex: "date",
+				hideable: false,
+				sortable: false,
+				flex: 20
 			},
 			{
-				"text": BuddiLive.translate("DESCRIPTION"),
-				"dataIndex": "description",
-				"hideable": false,
-				"sortable": false,
-				"flex": 30,
-				"renderer": function(value, metadata, record){
+				text: BuddiLive.translate("DESCRIPTION"),
+				dataIndex: "description",
+				hideable: false,
+				sortable: false,
+				flex: 30,
+				renderer: function(value, metadata, record){
 					return "<b>" + value + "</b>";
 				}
 			},
 			{
-				"text": BuddiLive.translate("AMOUNT_FROM"),
-				"hideable": false,
-				"sortable": false,
-				"flex": 15,
-				"align": "right"
+				text: BuddiLive.translate("AMOUNT_FROM"),
+				hideable: false,
+				sortable: false,
+				flex: 15,
+				align: "right"
 			},
 			{
-				"text": BuddiLive.translate("AMOUNT_TO"),
-				"hideable": false,
-				"sortable": false,
-				"flex": 15,
-				"align": "right"
+				text: BuddiLive.translate("AMOUNT_TO"),
+				hideable: false,
+				sortable: false,
+				flex: 15,
+				align: "right"
 			},
 			{
-				"text": BuddiLive.translate("BALANCE"),
-				"hideable": false,
-				"sortable": false,
-				"flex": 20,
-				"align": "right"
+				text: BuddiLive.translate("BALANCE"),
+				hideable: false,
+				sortable: false,
+				flex: 20,
+				align: "right"
 			}
 		];
 		
 		this.dockedItems = [
 			{
-				"xtype": "toolbar",
-				"dock": "bottom",
-				"items": [
+				xtype: "toolbar",
+				dock: "bottom",
+				items: [
 					"->",
 					{
-						"xtype": "textfield",
-						"width": 200,
-						"itemId": "search",
-						"emptyText": BuddiLive.translate("SEARCH")
+						xtype: "textfield",
+						width: 200,
+						itemId: "search",
+						emptyText: BuddiLive.translate("SEARCH")
 					}
 				]
 			},
 			{
-				"xtype": "transactioneditor",
-				"dock": "top"
+				xtype: "transactioneditor",
+				dock: "top"
 			}
 		];
 		
@@ -109,7 +109,7 @@ Ext.define('BuddiLive.view.transaction.List', {
 		});
 	},
 	
-	"reload": function(){
+	reload: function(){
 		this.getView().refresh();					//This forces the scroll bar to move back to the top
 		this.getStore().load();
 	}

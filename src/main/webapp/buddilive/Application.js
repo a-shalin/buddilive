@@ -1,9 +1,9 @@
 Ext.Loader.setConfig({
-	"enabled": true,
-	"disableCaching": true,
-	"paths": {
-		"BuddiLive": "buddilive",
-		"Login": "authentication"
+	enabled: true,
+	disableCaching: true,
+	paths: {
+		BuddiLive: "buddilive",
+		Login: "authentication"
 	}
 });
 
@@ -16,14 +16,14 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 	Login.translate = function(key) { return Login.util.I18n.translate(key); };
 
 	Ext.application({
-		"name": "BuddiLive",
-		"appFolder": "buddilive",
+		name: "BuddiLive",
+		appFolder: "buddilive",
 
-		"requires": [
+		requires: [
 			"BuddiLive.view.Viewport"
 		],
 
-		"controllers": [
+		controllers: [
 			"Reports",
 			"Viewport",
 			"account.Tree",
@@ -40,7 +40,7 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 			"transaction.Editor",
 			"transaction.split.Editor"
 		],
-		"launch": function() {
+		launch: function() {
 			var viewport = Ext.create("BuddiLive.view.Viewport");
 			BuddiLive.app = this;
 			BuddiLive.app.viewport = viewport;
@@ -52,21 +52,21 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 			});
 
 			Ext.util.TaskManager.start({
-				"interval": 1000 * 60 * 60,
-				"run": function(){
+				interval: 1000 * 60 * 60,
+				run: function(){
 					var conn = Ext.create("Ext.data.Connection");
 					conn.request({
-						"url": "data/scheduledtransactions/execute",
-						"method": "POST",
-						"jsonData": Ext.Date.format(new Date(), "Y-m-d"),
-						"success": function(response){
+						url: "data/scheduledtransactions/execute",
+						method: "POST",
+						jsonData: Ext.Date.format(new Date(), "Y-m-d"),
+						success: function(response){
 							var messages = Ext.decode(response.responseText, true);
 							if (messages != null && messages.messages != null){
 								if (messages.messages.length > 0){
 									Ext.MessageBox.show({
-										"title": BuddiLive.translate("SCHEDULED_TRANSACTION_MESSAGES"),
-										"msg": messages.messages,
-										"buttons": Ext.Msg.OK
+										title: BuddiLive.translate("SCHEDULED_TRANSACTION_MESSAGES"),
+										msg: messages.messages,
+										buttons: Ext.Msg.OK
 									});
 								}
 								BuddiLive.app.controllers.get("transaction.Editor").getTransactionDescriptionComboboxStoreStore().load();
@@ -80,7 +80,7 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 				}
 			});
 		},
-		"error": function(error){
+		error: function(error){
 			var message;
 			var title;
 			if (Ext.isString(error)){
@@ -103,14 +103,14 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 			}
 
 			Ext.MessageBox.show({
-				"title": title,
-				"msg": message,
-				"buttons": Ext.Msg.OK
+				title: title,
+				msg: message,
+				buttons: Ext.Msg.OK
 			});
 		}
 	});
 
 	Ext.override(Ext.form.DateField, {
-		"format": BuddiLive.util.UserConfig.get('extDateFormat') || 'Y-m-d'
+		format: BuddiLive.util.UserConfig.get('extDateFormat') || 'Y-m-d'
 	});
 });

@@ -1,7 +1,7 @@
 Ext.define("BuddiLive.controller.Reports", {
-	"extend": "Ext.app.Controller",
+	extend: "Ext.app.Controller",
 
-	"requires": [
+	requires: [
 		"BuddiLive.view.report.picker.Interval",
 		"BuddiLive.view.report.PieTotalsByCategory",
 		"BuddiLive.view.report.IncomeAndExpensesByCategory",
@@ -12,58 +12,43 @@ Ext.define("BuddiLive.controller.Reports", {
 		"BuddiLive.view.report.NetWorthOverTime"
 	],
 
-	"init": function() {
+	init: function() {
 		this.control({
-			"buddiviewport menuitem[itemId='showIncomeByCategoryPie']": {"click": this.showIncomeByCategoryPie},
-			"buddiviewport menuitem[itemId='showExpensesByCategoryPie']": {"click": this.showExpensesByCategoryPie},
-			"buddiviewport menuitem[itemId='showIncomeAndExpensesByCategoryTable']": {"click": this.showIncomeAndExpensesByCategoryTable},
-			"buddiviewport menuitem[itemId='showAverageIncomeAndExpensesByCategoryTable']": {"click": this.showAverageIncomeAndExpensesByCategoryTable},
-			"buddiviewport menuitem[itemId='showInflowAndOutflowByAccountTable']": {"click": this.showInflowAndOutflowByAccountTable},
-			"buddiviewport menuitem[itemId='showInflowAndOutflowByPayeeTable']": {"click": this.showInflowAndOutflowByPayeeTable},
-			"buddiviewport menuitem[itemId='showAccountBalancesOverTimeLine']": {"click": this.showAccountBalancesOverTimeLine},
-			"buddiviewport menuitem[itemId='showNetWorthOverTimeLine']": {"click": this.showNetWorthOverTimeLine}
+			"buddiviewport menuitem[itemId='showIncomeByCategoryPie']": {click: this.showIncomeByCategoryPie},
+			"buddiviewport menuitem[itemId='showExpensesByCategoryPie']": {click: this.showExpensesByCategoryPie},
+			"buddiviewport menuitem[itemId='showIncomeAndExpensesByCategoryTable']": {click: this.showIncomeAndExpensesByCategoryTable},
+			"buddiviewport menuitem[itemId='showAverageIncomeAndExpensesByCategoryTable']": {click: this.showAverageIncomeAndExpensesByCategoryTable},
+			"buddiviewport menuitem[itemId='showInflowAndOutflowByAccountTable']": {click: this.showInflowAndOutflowByAccountTable},
+			"buddiviewport menuitem[itemId='showInflowAndOutflowByPayeeTable']": {click: this.showInflowAndOutflowByPayeeTable},
+			"buddiviewport menuitem[itemId='showAccountBalancesOverTimeLine']": {click: this.showAccountBalancesOverTimeLine},
+			"buddiviewport menuitem[itemId='showNetWorthOverTimeLine']": {click: this.showNetWorthOverTimeLine}
 		});
 	},
 
-	"showIncomeByCategoryPie": function(component){
+	showIncomeByCategoryPie: function(component){
 		Ext.widget({
-			"xtype": "reportpickerinterval",
-			"callback": function(options){
+			xtype: "reportpickerinterval",
+			callback: function(options){
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
-					"xtype": "reportpietotalsbycategory",
-					"options": options,
-					"type": "I"
+					xtype: "reportpietotalsbycategory",
+					options: options,
+					type: "I"
 				});
 				tabPanel.add(report);
 				tabPanel.setActiveTab(report);
 			}
 		}).show();
 	},
-	"showExpensesByCategoryPie": function(component){
+	showExpensesByCategoryPie: function(component){
 		Ext.widget({
-			"xtype": "reportpickerinterval",
-			"callback": function(options){
+			xtype: "reportpickerinterval",
+			callback: function(options){
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
-					"xtype": "reportpietotalsbycategory",
-					"options": options,
-					"type": "E"
-				});
-				tabPanel.add(report);
-				tabPanel.setActiveTab(report);
-			}
-		}).show();
-	},
-
-	"showIncomeAndExpensesByCategoryTable": function(component){
-		Ext.widget({
-			"xtype": "reportpickerinterval",
-			"callback": function(options){
-				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-				var report = Ext.widget({
-					"xtype": "reportincomeandexpensesbycategory",
-					"options": options
+					xtype: "reportpietotalsbycategory",
+					options: options,
+					type: "E"
 				});
 				tabPanel.add(report);
 				tabPanel.setActiveTab(report);
@@ -71,14 +56,14 @@ Ext.define("BuddiLive.controller.Reports", {
 		}).show();
 	},
 
-	"showAverageIncomeAndExpensesByCategoryTable": function(component){
+	showIncomeAndExpensesByCategoryTable: function(component){
 		Ext.widget({
-			"xtype": "reportpickerinterval",
-			"callback": function(options){
+			xtype: "reportpickerinterval",
+			callback: function(options){
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
-					"xtype": "reportaverageincomeandexpensesbycategory",
-					"options": options
+					xtype: "reportincomeandexpensesbycategory",
+					options: options
 				});
 				tabPanel.add(report);
 				tabPanel.setActiveTab(report);
@@ -86,22 +71,37 @@ Ext.define("BuddiLive.controller.Reports", {
 		}).show();
 	},
 
-	"showInflowAndOutflowByAccountTable": function(component){
+	showAverageIncomeAndExpensesByCategoryTable: function(component){
+		Ext.widget({
+			xtype: "reportpickerinterval",
+			callback: function(options){
+				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+				var report = Ext.widget({
+					xtype: "reportaverageincomeandexpensesbycategory",
+					options: options
+				});
+				tabPanel.add(report);
+				tabPanel.setActiveTab(report);
+			}
+		}).show();
+	},
+
+	showInflowAndOutflowByAccountTable: function(component){
 		if (!BuddiLive.util.UserConfig.get('premium')) {
 			Ext.MessageBox.show({
-				"title": BuddiLive.translate("PREMIUM_TITLE"),
-				"msg": BuddiLive.translate("PREMIUM_MESSAGE"),
-				"buttons": Ext.Msg.OK
+				title: BuddiLive.translate("PREMIUM_TITLE"),
+				msg: BuddiLive.translate("PREMIUM_MESSAGE"),
+				buttons: Ext.Msg.OK
 			});
 		}
 		else {
 			Ext.widget({
-				"xtype": "reportpickerinterval",
-				"callback": function(options){
+				xtype: "reportpickerinterval",
+				callback: function(options){
 					var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 					var report = Ext.widget({
-						"xtype": "reportinflowandoutflowbyaccount",
-						"options": options
+						xtype: "reportinflowandoutflowbyaccount",
+						options: options
 					});
 					tabPanel.add(report);
 					tabPanel.setActiveTab(report);
@@ -110,22 +110,22 @@ Ext.define("BuddiLive.controller.Reports", {
 		}
 	},
 
-	"showInflowAndOutflowByPayeeTable": function(component){
+	showInflowAndOutflowByPayeeTable: function(component){
 		if (!BuddiLive.util.UserConfig.get('premium')) {
 			Ext.MessageBox.show({
-				"title": BuddiLive.translate("PREMIUM_TITLE"),
-				"msg": BuddiLive.translate("PREMIUM_MESSAGE"),
-				"buttons": Ext.Msg.OK
+				title: BuddiLive.translate("PREMIUM_TITLE"),
+				msg: BuddiLive.translate("PREMIUM_MESSAGE"),
+				buttons: Ext.Msg.OK
 			});
 		}
 		else {
 			Ext.widget({
-				"xtype": "reportpickerinterval",
-				"callback": function(options){
+				xtype: "reportpickerinterval",
+				callback: function(options){
 					var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 					var report = Ext.widget({
-						"xtype": "reportinflowandoutflowbypayee",
-						"options": options
+						xtype: "reportinflowandoutflowbypayee",
+						options: options
 					});
 					tabPanel.add(report);
 					tabPanel.setActiveTab(report);
@@ -134,14 +134,14 @@ Ext.define("BuddiLive.controller.Reports", {
 		}
 	},
 
-	"showAccountBalancesOverTimeLine": function(component){
+	showAccountBalancesOverTimeLine: function(component){
 		Ext.widget({
-			"xtype": "reportpickerinterval",
-			"callback": function(options){
+			xtype: "reportpickerinterval",
+			callback: function(options){
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
-					"xtype": "reportaccountbalancesovertime",
-					"options": options
+					xtype: "reportaccountbalancesovertime",
+					options: options
 				});
 				tabPanel.add(report);
 				tabPanel.setActiveTab(report);
@@ -149,14 +149,14 @@ Ext.define("BuddiLive.controller.Reports", {
 		}).show();
 	},
 
-	"showNetWorthOverTimeLine": function(component){
+	showNetWorthOverTimeLine: function(component){
 		Ext.widget({
-			"xtype": "reportpickerinterval",
-			"callback": function(options){
+			xtype: "reportpickerinterval",
+			callback: function(options){
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
-					"xtype": "reportnetworthovertime",
-					"options": options
+					xtype: "reportnetworthovertime",
+					options: options
 				});
 				tabPanel.add(report);
 				tabPanel.setActiveTab(report);

@@ -1,13 +1,13 @@
 Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
-	"extend": "Ext.panel.Panel",
-	"alias": "widget.reportinflowandoutflowbyaccount",
+	extend: "Ext.panel.Panel",
+	alias: "widget.reportinflowandoutflowbyaccount",
 	
-	"requires": [
+	requires: [
 	],
 	
-	"closable": true,
-	"layout": "fit",
-	"initComponent": function(){
+	closable: true,
+	layout: "fit",
+	initComponent: function(){
 		var me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
@@ -19,24 +19,24 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 
 		this.items = [
 			{
-				"xtype": "grid",
-				"store": Ext.create("Ext.data.Store", {
-					"autoLoad": true,
-					"fields": ["source", "inflow", "outflow", "difference", "transactions"],
-					"proxy": {
-						"type": "ajax",
-						"url": "data/report/inflowandoutflowbyaccount.json?" + this.initialConfig.options.query,
-						"reader": {
-							"type": "json",
-							"rootProperty": "data"
+				xtype: "grid",
+				store: Ext.create("Ext.data.Store", {
+					autoLoad: true,
+					fields: ["source", "inflow", "outflow", "difference", "transactions"],
+					proxy: {
+						type: "ajax",
+						url: "data/report/inflowandoutflowbyaccount.json?" + this.initialConfig.options.query,
+						reader: {
+							type: "json",
+							rootProperty: "data"
 						}
 					}
 				}),
-				"plugins": [
+				plugins: [
 					{
-						"ptype": "rowexpander",
-						"expandOnEnter": false,
-						"rowBodyTpl": [
+						ptype: "rowexpander",
+						expandOnEnter: false,
+						rowBodyTpl: [
 							"<table class='x-grid-table' style='width: 100%;'>",
 							"<tpl if='transactions.length &gt; 0'>",
 								"<tr>",
@@ -60,44 +60,44 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 							"</tpl>",
 							"</table>"
 						],
-						"toggleRow" : function(rowIdx, record) {
+						toggleRow: function(rowIdx, record) {
 							if (record.get("source") == BuddiLive.translate("TOTAL")) return false;
 							Ext.grid.plugin.RowExpander.prototype.toggleRow.apply(this, arguments);
 						}
 					}
 				],
-				"columns": [
+				columns: [
 					{
-						"text": BuddiLive.translate("ACCOUNT_NAME"),
-						"dataIndex": "source",
-						"hideable": false,
-						"sortable": false,
-						"flex": 3,
-						"renderer": styledRenderer
+						text: BuddiLive.translate("ACCOUNT_NAME"),
+						dataIndex: "source",
+						hideable: false,
+						sortable: false,
+						flex: 3,
+						renderer: styledRenderer
 					},
 					{
-						"text": BuddiLive.translate("INFLOW"),
-						"dataIndex": "inflow",
-						"hideable": false,
-						"sortable": false,
-						"flex": 2,
-						"renderer": styledRenderer
+						text: BuddiLive.translate("INFLOW"),
+						dataIndex: "inflow",
+						hideable: false,
+						sortable: false,
+						flex: 2,
+						renderer: styledRenderer
 					},
 					{
-						"text": BuddiLive.translate("OUTFLOW"),
-						"dataIndex": "outflow",
-						"hideable": false,
-						"sortable": false,
-						"flex": 2,
-						"renderer": styledRenderer
+						text: BuddiLive.translate("OUTFLOW"),
+						dataIndex: "outflow",
+						hideable: false,
+						sortable: false,
+						flex: 2,
+						renderer: styledRenderer
 					},
 					{
-						"text": BuddiLive.translate("DIFFERENCE"),
-						"dataIndex": "difference",
-						"hideable": false,
-						"sortable": false,
-						"flex": 2,
-						"renderer": styledRenderer
+						text: BuddiLive.translate("DIFFERENCE"),
+						dataIndex: "difference",
+						hideable: false,
+						sortable: false,
+						flex: 2,
+						renderer: styledRenderer
 					}
 				]
 			}

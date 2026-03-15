@@ -1,17 +1,17 @@
 Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
-	"extend": "Ext.form.field.Tag",
-	"alias": "widget.lazycombomultiselect",
-	"requires": [
+	extend: "Ext.form.field.Tag",
+	alias: "widget.lazycombomultiselect",
+	requires: [
 		
 	],
 
-	"listeners": {
-		"beforedeselect": function(component, record, index){
+	listeners: {
+		beforedeselect: function(component, record, index){
 			if (!component.initialConfig.allowBlank && component.getValue().length <= 1){
 				return false;		//Prevent deselection of last item
 			}
 		},
-		"select": function(component, records){
+		select: function(component, records){
 			if (component.sorted && Ext.isArray(records)){
 				records.sort(function(a, b){
 					return component.getStore().indexOf(a) - component.getStore().indexOf(b);
@@ -25,8 +25,8 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 		}
 	},
 
-	"minChars": 1,
-	"initComponent": function(){
+	minChars: 1,
+	initComponent: function(){
 		var combo = this;
 
 		//We want the initial value to be an array...
@@ -38,13 +38,13 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 		var staticData = false;
 		if (this.initialConfig.storeData) {
 			this.store = Ext.create("Ext.data.Store", {
-				"data": {"data": this.initialConfig.storeData},
-				"fields": [this.valueField, this.displayField],
-				"proxy": {
-					"type": "memory",
-					"reader": {
-						"type": "json",
-						"rootProperty": "data"
+				data: {data: this.initialConfig.storeData},
+				fields: [this.valueField, this.displayField],
+				proxy: {
+					type: "memory",
+					reader: {
+						type: "json",
+						rootProperty: "data"
 					}
 				}
 			});
@@ -52,13 +52,13 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 		}
 		else if (this.initialConfig.getStoreData) {
 			this.store = Ext.create("Ext.data.Store", {
-				"data": {"data": this.initialConfig.getStoreData()},
-				"fields": [this.valueField, this.displayField],
-				"proxy": {
-					"type": "memory",
-					"reader": {
-						"type": "json",
-						"rootProperty": "data"
+				data: {data: this.initialConfig.getStoreData()},
+				fields: [this.valueField, this.displayField],
+				proxy: {
+					type: "memory",
+					reader: {
+						type: "json",
+						rootProperty: "data"
 					}
 				}
 			});
@@ -66,30 +66,30 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 		}
 		
 		this.store = this.store || {
-			"autoLoad": (this.value != null),
-			"fields": [this.valueField, this.displayField],
-			"remoteFilter": false,	//This is not the same as a searchable combo box
-			"proxy": {
-				"type": "ajax",
-				"timeout": Ext.Ajax.timeout,
-				"url": this.url,
-				"pageParam": undefined,
-				"startParam": undefined,
-				"limitParam": undefined,
-				"reader": {
-					"type": "json",
-					"rootProperty": "data"
+			autoLoad: (this.value != null),
+			fields: [this.valueField, this.displayField],
+			remoteFilter: false,	//This is not the same as a searchable combo box
+			proxy: {
+				type: "ajax",
+				timeout: Ext.Ajax.timeout,
+				url: this.url,
+				pageParam: undefined,
+				startParam: undefined,
+				limitParam: undefined,
+				reader: {
+					type: "json",
+					rootProperty: "data"
 				}
 			},
-			"listeners": {
-				"beforeload": function(store, operation){
+			listeners: {
+				beforeload: function(store, operation){
 					var proxy = store.getProxy()
 					if (proxy && proxy.ebieLastRequest){
 						proxy.ebieLastRequest.options.callback = null;
 						Ext.Ajax.abort(proxy.ebieLastRequest);
 					}
 				},
-				"load": function(store, records, successful){
+				load: function(store, records, successful){
 					if (successful){
 						//Once the store is initially loaded, set the default value.
 						if (combo.initialSetValue && combo.store){
@@ -135,7 +135,7 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 		}
 	},
 	
-	"setValue": function(value){
+	setValue: function(value){
 		if (value != null && !Ext.isArray(value)){
 			value = ("" + value).split(/,/g);
 		}

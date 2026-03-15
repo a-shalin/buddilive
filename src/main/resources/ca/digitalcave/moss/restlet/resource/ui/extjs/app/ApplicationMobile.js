@@ -1,14 +1,14 @@
 var __ac = window.__authConfig || {};
 
-var loaderPaths = {"Login": __ac.routerAttachPoint || "authentication"};
+var loaderPaths = {Login: __ac.routerAttachPoint || "authentication"};
 if (__ac.applicationLoaderPaths) {
 	for (var key in __ac.applicationLoaderPaths) {
 		loaderPaths[key] = __ac.applicationLoaderPaths[key];
 	}
 }
 Ext.Loader.setConfig({
-	"enabled": true,
-	"paths": loaderPaths
+	enabled: true,
+	paths: loaderPaths
 });
 
 Ext.require(["Login.util.I18n"], function(){
@@ -29,12 +29,12 @@ Ext.require(["Login.util.I18n"], function(){
 	}
 
 	Ext.application({
-		"extend": "Ext.app.Application",
-		"name": "Login",
-		"appFolder": __ac.routerAttachPoint || "authentication",
-		"views": views,
-		"controllers": controllers,
-		"models": models,
-		"mainView": "Login.view.LoginPanelMobile"
+		extend: "Ext.app.Application",
+		name: "Login",
+		appFolder: __ac.routerAttachPoint || "authentication",
+		views: views,
+		controllers: controllers,
+		models: models,
+		mainView: "Login.view.LoginPanelMobile"
 	});
 });

@@ -1,35 +1,35 @@
 Ext.define("BuddiLive.view.component.PasswordField", {
-	"extend": "Ext.form.FieldContainer",
-	"alias": "widget.passwordfield",
+	extend: "Ext.form.FieldContainer",
+	alias: "widget.passwordfield",
 	
-	"layout": {
-		"type": "form"
+	layout: {
+		type: "form"
 	},
 
-	"getValue": function(){
+	getValue: function(){
 		return this.down("textfield[itemId='password']").getValue();
 	},
 	
-	"isValid": function(){
+	isValid: function(){
 		return this.down("textfield[itemId='password']").isValid() && this.down("textfield[itemId='confirm']").isValid();
 	},
 	
-	"initComponent": function(){
+	initComponent: function(){
 		this.items = [
 			{
-				"xtype": "container",
-				"layout": "hbox",
-				"items": [
+				xtype: "container",
+				layout: "hbox",
+				items: [
 					{
-						"xtype": "textfield",
-						"inputType": "password",
-						"name": this.name,
-						"enableKeyEvents": true,
-						"itemId": "password",
-						"options": this,
-						"flex": 1,
-						"minPasswordStrength": (this.minPasswordStrength ? this.minPasswordStrength : 20),
-						"passwordStrength": function(password){
+						xtype: "textfield",
+						inputType: "password",
+						name: this.name,
+						enableKeyEvents: true,
+						itemId: "password",
+						options: this,
+						flex: 1,
+						minPasswordStrength: (this.minPasswordStrength ? this.minPasswordStrength : 20),
+						passwordStrength: function(password){
 							var factor = 0;
 							
 							//Determine factor, based on character class
@@ -42,13 +42,13 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 							
 							return Math.pow(password.length, 3) * factor / 100;
 						},
-						"validator": function(value){
+						validator: function(value){
 							this.ownerCt.getComponent(1).validate();
 							if (value.length == 0 || this.passwordStrength(value) > this.initialConfig.minPasswordStrength) return true;
 							else return "Password too weak.";
 						},
-						"listeners": {
-							"keyup": function(field){
+						listeners: {
+							keyup: function(field){
 								var color;
 								var value = field.getValue();
 								var strength = field.passwordStrength(value);
@@ -70,23 +70,23 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 								var sprite = surface.items.get(0);
 								sprite.stopAnimation();
 								sprite.animate({
-									"to": {
-										"width": strength * draw.getWidth() / 100,
-										"fill": color
+									to: {
+										width: strength * draw.getWidth() / 100,
+										fill: color
 									},
-									"duration": 500
+									duration: 500
 								});
 							}
 						}
 					},
 					{
-						"xtype": "textfield",
-						"inputType": "password",
-						"itemId": "confirm",
-						"flex": 1,
-						"margin": "0 0 0 5",
-						"submitValue": false,
-						"validator": function(value){
+						xtype: "textfield",
+						inputType: "password",
+						itemId: "confirm",
+						flex: 1,
+						margin: "0 0 0 5",
+						submitValue: false,
+						validator: function(value){
 							if (this.ownerCt.getComponent(0).getValue() != value) {
 								return "Passwords must match";
 							} else {
@@ -97,18 +97,18 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 				]
 			},
 			{
-				"xtype": "draw",
-				"height": 7,
-				"itemId": "passwordbar",
-				"viewBox": false,
-				"items": [
+				xtype: "draw",
+				height: 7,
+				itemId: "passwordbar",
+				viewBox: false,
+				items: [
 					{
-						"type": "rect",
-						"width": 0,
-						"height": 5,
-						"fill": "#000",
-						"stroke": "#666",
-						"strokeWidth": 1
+						type: "rect",
+						width: 0,
+						height: 5,
+						fill: "#000",
+						stroke: "#666",
+						strokeWidth: 1
 					}
 				]
 			}

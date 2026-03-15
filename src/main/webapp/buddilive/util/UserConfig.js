@@ -1,13 +1,13 @@
 Ext.define("BuddiLive.util.UserConfig", {
-	"singleton": true,
+	singleton: true,
 
-	"config": {},
+	config: {},
 
-	"init": function(config) {
+	init: function(config) {
 		this.config = config || {};
 	},
 
-	"get": function(key) {
+	get: function(key) {
 		return this.config[key];
 	}
 });

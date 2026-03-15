@@ -1,10 +1,10 @@
 Ext.define("Login.view.PasswordField", {
-	"extend": "Ext.form.FieldContainer",
-	"alias": "widget.passwordfield",
+	extend: "Ext.form.FieldContainer",
+	alias: "widget.passwordfield",
 
-	"layout": "vbox",
+	layout: "vbox",
 
-	"getValue": function(){
+	getValue: function(){
 		var password = this.down("textfield[itemId='password']");
 		if (password){
 			return password.getValue();
@@ -12,68 +12,68 @@ Ext.define("Login.view.PasswordField", {
 		return null;
 	},
 
-	"isValid": function(){
+	isValid: function(){
 		return this.down("textfield[itemId='password']").isValid() && this.down("textfield[itemId='confirm']").isValid();
 	},
 
-	"getErrors": function(){
+	getErrors: function(){
 		return this.errors;
 	},
 
-	"required": true,
+	required: true,
 
-	"initComponent": function(){
+	initComponent: function(){
 		this.items = [
 			{
-				"xtype": "fieldcontainer",
-				"layout": "hbox",
-				"width": "100%",
-				"items": [
+				xtype: "fieldcontainer",
+				layout: "hbox",
+				width: "100%",
+				items: [
 					{
-						"xtype": "textfield",
-						"inputType": "password",
-						"name": this.name,
-						"itemId": "password",
-						"options": this,
-						"flex": 1,
-						"validators": [
+						xtype: "textfield",
+						inputType: "password",
+						name: this.name,
+						itemId: "password",
+						options: this,
+						flex: 1,
+						validators: [
 							function(){
 								return this.errors == null ? true : this.errors;
 							}
 						],
-						"connection": Ext.create('Ext.data.Connection', {
-							"autoAbort": true,
-							"method": "POST"
+						connection: Ext.create('Ext.data.Connection', {
+							autoAbort: true,
+							method: "POST"
 						})
 					},
 					{
-						"xtype": "textfield",
-						"inputType": "password",
-						"itemId": "confirm",
-						"flex": 1,
-						"validators": [
+						xtype: "textfield",
+						inputType: "password",
+						itemId: "confirm",
+						flex: 1,
+						validators: [
 							function(){
 								var passwordField = this.up("rsgpasswordfield").down("textfield[itemId='password']");
 								return passwordField.errors == null ? true : passwordField.errors;
 							}
 						],
-						"margin": "0 0 0 7",
-						"submitValue": false
+						margin: "0 0 0 7",
+						submitValue: false
 					}
 				]
 			},
 			{
-				"xtype": "label",
-				"height": 10,
-				"itemId": "passwordbar",
-				"width": "100%",
-				"html": ""
+				xtype: "label",
+				height: 10,
+				itemId: "passwordbar",
+				width: "100%",
+				html: ""
 			},
 			{
-				"xtype": "label",
-				"margin": 10,
-				"itemId": "passworderrors",
-				"html": ""
+				xtype: "label",
+				margin: 10,
+				itemId: "passworderrors",
+				html: ""
 			}
 		];
 
@@ -87,15 +87,15 @@ Ext.define("Login.view.PasswordField", {
 		this.down("textfield[itemId='confirm']").addListener("change", this.checkPassword);
 	},
 
-	"checkPassword": function(field){
+	checkPassword: function(field){
 		Ext.Ajax.request({
-			"url": (window.__authConfig && window.__authConfig.routerAttachPoint || "authentication") + "/checkPassword",
-			"params": {
-				"identifier": field.up("passwordfield").identifier ? field.up("passwordfield").identifier : field.up("passwordfield").up("form").down("component[name=identifier]") ? field.up("passwordfield").up("form").down("component[name=identifier]").getValue() : "anonymous",
-				"secret": field.up("passwordfield").getValue()
+			url: (window.__authConfig && window.__authConfig.routerAttachPoint || "authentication") + "/checkPassword",
+			params: {
+				identifier: field.up("passwordfield").identifier ? field.up("passwordfield").identifier : field.up("passwordfield").up("form").down("component[name=identifier]") ? field.up("passwordfield").up("form").down("component[name=identifier]").getValue() : "anonymous",
+				secret: field.up("passwordfield").getValue()
 			},
-			"scope": field.up("passwordfield"),
-			"success": function(response){
+			scope: field.up("passwordfield"),
+			success: function(response){
 				var lastCheck = Ext.decode(response.responseText, true);
 				if (lastCheck == null) return;
 

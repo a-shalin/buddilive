@@ -1,7 +1,7 @@
 Ext.define("BuddiLive.store.account.TreeStore", {
-	"extend": "Ext.data.TreeStore",
-	"requires": [],
-	"fields": [
+	extend: "Ext.data.TreeStore",
+	requires: [],
+	fields: [
 		"id", 
 		"name", 
 		"type", 
@@ -11,12 +11,12 @@ Ext.define("BuddiLive.store.account.TreeStore", {
 		"balance", 
 		"nodeType"
 	],
-	"proxy": {
-		"type": "ajax",
-		"url": "data/accounts.json",
-		"reader": {
-			"type": "json",
-			"rootProperty": "children"
+	proxy: {
+		type: "ajax",
+		url: "data/accounts.json",
+		reader: {
+			type: "json",
+			rootProperty: "children"
 		}
 	}
 });

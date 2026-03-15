@@ -1,13 +1,13 @@
 Ext.define("BuddiLive.util.I18n", {
-	"singleton": true,
+	singleton: true,
 
-	"translations": {},
+	translations: {},
 
-	"init": function(translations) {
+	init: function(translations) {
 		this.translations = translations || {};
 	},
 
-	"translate": function(key) {
+	translate: function(key) {
 		return this.translations[key] || key;
 	}
 });

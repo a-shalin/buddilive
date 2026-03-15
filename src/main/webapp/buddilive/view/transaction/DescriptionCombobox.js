@@ -1,11 +1,11 @@
 Ext.define("BuddiLive.view.transaction.DescriptionCombobox", {
-	"extend": "Ext.form.field.ComboBox",
-	"alias": "widget.descriptioncombobox",
-	"requires": [
+	extend: "Ext.form.field.ComboBox",
+	alias: "widget.descriptioncombobox",
+	requires: [
 	],
 	
-	"store": "transaction.DescriptionComboboxStore",
-	"initComponent": function(){
+	store: "transaction.DescriptionComboboxStore",
+	initComponent: function(){
 		var combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
@@ -34,7 +34,7 @@ Ext.define("BuddiLive.view.transaction.DescriptionCombobox", {
 			}
 			else {
 				combo.getStore().clearFilter(true);	//Clear filter without updating UI
-				combo.getStore().filter({"property": "value", "value": combo.getRawValue(), "anyMatch": true, "caseSensitive": false});
+				combo.getStore().filter({property: "value", value: combo.getRawValue(), anyMatch: true, caseSensitive: false});
 			}
 		});
 		this.addListener("blur", function(combo){

@@ -1,7 +1,7 @@
 Ext.define("BuddiLive.view.transaction.split.SourceCombobox", {
-	"extend": "Ext.form.field.ComboBox",
+	extend: "Ext.form.field.ComboBox",
 	
-	"initComponent": function(){
+	initComponent: function(){
 		var combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
@@ -16,8 +16,8 @@ Ext.define("BuddiLive.view.transaction.split.SourceCombobox", {
 		this.matchFieldWidth = false;
 
 		this.listConfig = {
-			"itemTpl": "<div style='{style}'>{text}</div>",
-			"width": 300
+			itemTpl: "<div style='{style}'>{text}</div>",
+			width: 300
 		};
 	
 		this.callParent(arguments);
@@ -33,9 +33,9 @@ Ext.define("BuddiLive.view.transaction.split.SourceCombobox", {
 			else {
 				combo.getStore().clearFilter(true);	//Clear filter without updating UI
 				combo.getStore().filter([
-					{"property": "text", "value": Ext.String.trim(this.getRawValue()), "anyMatch": true, "caseSensitive": false},
+					{property: "text", value: Ext.String.trim(this.getRawValue()), anyMatch: true, caseSensitive: false},
 					{
-						"filterFn": function(item){
+						filterFn: function(item){
 							return combo.getRawValue().length == 0 || item.data.type != null;
 						}
 					}
@@ -80,7 +80,7 @@ Ext.define("BuddiLive.view.transaction.split.SourceCombobox", {
 				thisCombo.setValue();
 			}
 
-			var otherCombo = thisCombo.up("spliteditor").down(thisCombo.xtype == "fromcombobox" ? "tocombobox" : "fromcombobox");
+			var otherCombo = thisCombo.up("spliteditor").down(thisCombo.xtype == "fromcombobox" ? tocombobox: "fromcombobox");
 			var source = thisCombo.initialConfig.source;
 			if (source != null){
 				//If we have a source, it will be an account; thus we guarantee that there will be at most one category.

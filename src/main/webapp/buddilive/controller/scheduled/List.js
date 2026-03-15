@@ -1,13 +1,13 @@
 Ext.define("BuddiLive.controller.scheduled.List", {
-	"extend": "Ext.app.Controller",
+	extend: "Ext.app.Controller",
 
-	"init": function() {
+	init: function() {
 		this.control({
-			"scheduledlist grid": { "selectionchange": this.selectionChange }
+			"scheduledlist grid": { selectionchange: this.selectionChange }
 		});
 	},
 
-	"selectionChange": function(selectionModel, selected){
+	selectionChange: function(selectionModel, selected){
 		var enabled = selected && selected.length > 0;
 
 		var viewport = selectionModel.view.panel.up("buddiviewport");

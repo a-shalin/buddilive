@@ -1,30 +1,30 @@
 Ext.define("BuddiLive.controller.transaction.Editor", {
-	"extend": "Ext.app.Controller",
-	"stores": [
+	extend: "Ext.app.Controller",
+	stores: [
 		"transaction.DescriptionComboboxStore"
 	],
-	"onLaunch": function(){
+	onLaunch: function(){
 		this.getTransactionDescriptionComboboxStoreStore().load();
 	},
 
-	"init": function() {
+	init: function() {
 		this.control({
-			"transactionlist button[itemId='recordTransaction']": {"click": this.recordTransaction},
-			"transactionlist button[itemId='clearTransaction']": {"click": this.clearTransaction},
-			"transactionlist button[itemId='deleteTransaction']": {"click": this.deleteTransaction},
-			"transactioneditor": {
-				"change": this.validateFields
+			"transactionlist button[itemId='recordTransaction']": {click: this.recordTransaction},
+			"transactionlist button[itemId='clearTransaction']": {click: this.clearTransaction},
+			"transactionlist button[itemId='deleteTransaction']": {click: this.deleteTransaction},
+			transactioneditor: {
+				change: this.validateFields
 			},
 			"transactioneditor field": {
-				"blur": this.validateFields,
-				"select": this.validateFields,
-				"keypress": this.validateFields,
-				"specialkey": this.checkKeys
+				blur: this.validateFields,
+				select: this.validateFields,
+				keypress: this.validateFields,
+				specialkey: this.checkKeys
 			}
 		});
 	},
 	
-	"checkKeys": function(component, e){
+	checkKeys: function(component, e){
 		this.validateFields(component);
 		var editor = component.up("transactioneditor");
 		var record = editor.down("button[itemId='recordTransaction']");
@@ -33,16 +33,16 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 		}
 	},
 	
-	"validateFields": function(component){
+	validateFields: function(component){
 		var editor = (component.xtype == "transactioneditor" ? component : component.up("transactioneditor"));
 		var enabled = editor.validate();
 		editor.down("button[itemId='recordTransaction']").setDisabled(!enabled);
 	},
 	
-	"recordTransaction": function(component){
+	recordTransaction: function(component){
 		var me = this;
 		var editor = component.up("transactioneditor");
-		var mask = new Ext.LoadMask({"msg": BuddiLive.translate("PROCESSING"), "target": editor});
+		var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: editor});
 		mask.show();
 		
 		var lastTransaction = editor.lastTransaction;
@@ -52,7 +52,7 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 			mask.hide();
 			return;
 		}
-		request.action = (request.id ? "update" : "insert");
+		request.action = (request.id ? update: "insert");
 		
 		//Disable the button before submitting to prevent double clicks
 		editor.down("button[itemId='recordTransaction']").disable();
@@ -60,13 +60,13 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 		var doPost = function(){
 			var conn = new Ext.data.Connection();
 			conn.request({
-				"url": "data/transactions",
-				"headers": {
-					"Accept": "application/json"
+				url: "data/transactions",
+				headers: {
+					Accept: "application/json"
 				},
-				"method": "POST",
-				"jsonData": request,
-				"success": function(response){
+				method: "POST",
+				jsonData: request,
+				success: function(response){
 					mask.hide();
 					me.getTransactionDescriptionComboboxStoreStore().load();
 					editor.setTransaction(null, false, true);
@@ -74,7 +74,7 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 					editor.up("transactionlist").reload();
 					editor.down("datefield[itemId='date']").focus(false, 500);
 				},
-				"failure": function(response){
+				failure: function(response){
 					mask.hide();
 					BuddiLive.app.error(response);
 				}
@@ -87,10 +87,10 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 		if (d < validBeginDate || d > validEndDate){
 			var msg = d < validBeginDate ? BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_BEFORE") : BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_AFTER");
 			Ext.MessageBox.show({
-				"title": BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_TITLE"),
-				"msg": msg,
-				"buttons": Ext.MessageBox.YESNO,
-				"fn": function(buttonId){
+				title: BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_TITLE"),
+				msg: msg,
+				buttons: Ext.MessageBox.YESNO,
+				fn: function(buttonId){
 					if (buttonId == "yes"){
 						doPost();
 					}
@@ -108,10 +108,10 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 				lastTransaction.number != request.number ||
 				lastTransaction.splits.length != request.splits.length)){
 			Ext.MessageBox.show({
-				"title": BuddiLive.translate("CONFIRM_CHANGE_EXISTING_TRANSACTION_TITLE"),
-				"msg": BuddiLive.translate("CONFIRM_CHANGE_EXISTING_TRANSACTION"),
-				"buttons": Ext.MessageBox.YESNO,
-				"fn": function(buttonId){
+				title: BuddiLive.translate("CONFIRM_CHANGE_EXISTING_TRANSACTION_TITLE"),
+				msg: BuddiLive.translate("CONFIRM_CHANGE_EXISTING_TRANSACTION"),
+				buttons: Ext.MessageBox.YESNO,
+				fn: function(buttonId){
 					if (buttonId == "yes"){
 						doPost();
 					}
@@ -128,7 +128,7 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 		}
 	},
 	
-	"clearTransaction": function(component){
+	clearTransaction: function(component){
 		//TODO Possibly check if there is data here... if so, verify that we really want to clear it?  This may be excessive...
 		var editor = component.up("transactioneditor");
 		var list = component.up("transactionlist");
@@ -136,33 +136,33 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 		list.getSelectionModel().deselectAll();
 	},
 	
-	"deleteTransaction": function(component){
+	deleteTransaction: function(component){
 		var editor = component.up("transactioneditor");
 		var list = editor.up("transactionlist");
 		var selection = list.getSelectionModel().getSelection();
 		if (selection.length > 0){
 			Ext.MessageBox.show({
-				"title": BuddiLive.translate("DELETE_TRANSACTION"),
-				"msg": BuddiLive.translate("CONFIRM_DELETE_TRANSACTION"),
-				"buttons": Ext.MessageBox.YESNO,
-				"fn": function(buttonId){
+				title: BuddiLive.translate("DELETE_TRANSACTION"),
+				msg: BuddiLive.translate("CONFIRM_DELETE_TRANSACTION"),
+				buttons: Ext.MessageBox.YESNO,
+				fn: function(buttonId){
 					if (buttonId == "yes"){
 						var id = selection[0].data.id;
 						
 						var conn = new Ext.data.Connection();
 						conn.request({
-							"url": "data/transactions",
-							"headers": {
-								"Accept": "application/json"
+							url: "data/transactions",
+							headers: {
+								Accept: "application/json"
 							},
-							"method": "POST",
-							"jsonData": {"action": "delete", "id": id},
-							"success": function(response){
+							method: "POST",
+							jsonData: {action: "delete", id: id},
+							success: function(response){
 								editor.setTransaction();
 								editor.up("transactionlist").reload();
 								editor.up("panel[itemId='myAccounts']").down("accounttree").getStore().reload();
 							},
-							"failure": function(response){
+							failure: function(response){
 								BuddiLive.app.error(response);
 							}
 						});

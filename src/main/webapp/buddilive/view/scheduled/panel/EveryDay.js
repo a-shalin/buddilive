@@ -1,10 +1,10 @@
 Ext.define("BuddiLive.view.scheduled.panel.EveryDay", {
-	"extend": "Ext.panel.Panel",
-	"alias": "widget.scheduledpaneleveryday",
-	"requires": [
+	extend: "Ext.panel.Panel",
+	alias: "widget.scheduledpaneleveryday",
+	requires: [
 	],
 	
-	"initComponent": function(){
+	initComponent: function(){
 		var s = this.initialConfig.selected;
 		this.itemId = "SCHEDULE_FREQUENCY_EVERY_DAY";
 		this.border = false;
@@ -13,13 +13,13 @@ Ext.define("BuddiLive.view.scheduled.panel.EveryDay", {
 		this.height = 0;
 	},
 	
-	"getScheduleDay": function(){
+	getScheduleDay: function(){
 		return 0;
 	},
-	"getScheduleWeek": function(){
+	getScheduleWeek: function(){
 		return 0;
 	},
-	"getScheduleMonth": function(){
+	getScheduleMonth: function(){
 		return 0;
 	}
 });

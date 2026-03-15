@@ -1,17 +1,17 @@
 Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
-	"extend": "Ext.form.field.ComboBox",
-	"alias": "widget.lazycombosingleselect",
-	"requires": [
+	extend: "Ext.form.field.ComboBox",
+	alias: "widget.lazycombosingleselect",
+	requires: [
 		
 	],
 
-	"onTriggerClick": function(){
+	onTriggerClick: function(){
 		if (this.initialConfig.clearOnTrigger) this.setValue();
 		this.callParent();
 	},
 
-	"minChars": 1,
-	"initComponent": function(){
+	minChars: 1,
+	initComponent: function(){
 		var combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
@@ -24,49 +24,49 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 		
 		if (this.initialConfig.storeData) {
 			this.store = Ext.create("Ext.data.Store", {
-				"data": {"data": this.initialConfig.storeData},
-				"fields": [this.valueField, this.displayField],
-				"proxy": {
-					"type": "memory",
-					"reader": {
-						"type": "json",
-						"rootProperty": "data"
+				data: {data: this.initialConfig.storeData},
+				fields: [this.valueField, this.displayField],
+				proxy: {
+					type: "memory",
+					reader: {
+						type: "json",
+						rootProperty: "data"
 					}
 				}
 			});
 		}
 		else if (this.initialConfig.getStoreData) {
 			this.store = Ext.create("Ext.data.Store", {
-				"data": {"data": this.initialConfig.getStoreData()},
-				"fields": [this.valueField, this.displayField],
-				"proxy": {
-					"type": "memory",
-					"reader": {
-						"type": "json",
-						"rootProperty": "data"
+				data: {data: this.initialConfig.getStoreData()},
+				fields: [this.valueField, this.displayField],
+				proxy: {
+					type: "memory",
+					reader: {
+						type: "json",
+						rootProperty: "data"
 					}
 				}
 			});
 		}
 		
 		this.store = this.store || {
-			"autoLoad": (this.value != null),
-			"fields": [this.valueField, this.displayField],
-			"remoteFilter": false,	//This is not the same as a searchable combo box
-			"proxy": {
-				"type": "ajax",
-				"timeout": Ext.Ajax.timeout,
-				"url": this.url,
-				"pageParam": undefined,
-				"startParam": undefined,
-				"limitParam": undefined,
-				"reader": {
-					"type": "json",
-					"rootProperty": "data"
+			autoLoad: (this.value != null),
+			fields: [this.valueField, this.displayField],
+			remoteFilter: false,	//This is not the same as a searchable combo box
+			proxy: {
+				type: "ajax",
+				timeout: Ext.Ajax.timeout,
+				url: this.url,
+				pageParam: undefined,
+				startParam: undefined,
+				limitParam: undefined,
+				reader: {
+					type: "json",
+					rootProperty: "data"
 				}
 			},
-			"listeners": {
-				"beforeload": function(store, operation){
+			listeners: {
+				beforeload: function(store, operation){
 					var proxy = store.getProxy()
 					if (proxy && proxy.ebieLastRequest){
 						proxy.ebieLastRequest.options.callback = null;
@@ -94,7 +94,7 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 					delete params.query;	//No reason to send this...
 					operation.setParams(params);
 				},
-				"load": function(store, records, successful){
+				load: function(store, records, successful){
 					if (successful){
 						//Once the store is initially loaded, set the default value.
 						if (combo.initialSetValue && combo.store){
@@ -127,7 +127,7 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 		});
 	},
 	
-	"setValue": function(value){
+	setValue: function(value){
 		if (this.getStore().isLoaded() || value == null){
 			this.callParent(arguments);
 		}

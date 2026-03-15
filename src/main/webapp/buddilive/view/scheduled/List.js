@@ -1,43 +1,43 @@
 Ext.define("BuddiLive.view.scheduled.List", {
-	"extend": "Ext.panel.Panel",
-	"alias": "widget.scheduledlist",
-	"requires": [
+	extend: "Ext.panel.Panel",
+	alias: "widget.scheduledlist",
+	requires: [
 		"BuddiLive.store.scheduled.ListStore",
 		"BuddiLive.view.scheduled.Editor"
 	],
 	
-	"title": BuddiLive.translate("SCHEDULED_TRANSACTIONS"),
-	"layout": "fit",
-	"closable": true,
-	"initComponent": function(){
+	title: BuddiLive.translate("SCHEDULED_TRANSACTIONS"),
+	layout: "fit",
+	closable: true,
+	initComponent: function(){
 		var d = this.initialConfig.data
 
 		this.items = [
 			{
-				"xtype": "grid",
-				"itemId": "scheduledTransactions",
-				"store": Ext.create("BuddiLive.store.scheduled.ListStore"),
-				"columns": [
+				xtype: "grid",
+				itemId: "scheduledTransactions",
+				store: Ext.create("BuddiLive.store.scheduled.ListStore"),
+				columns: [
 					{
-						"text": BuddiLive.translate("SCHEDULED_TRANSACTION_NAME"),
-						"dataIndex": "name",
-						"flex": 1
+						text: BuddiLive.translate("SCHEDULED_TRANSACTION_NAME"),
+						dataIndex: "name",
+						flex: 1
 					},
 					{
-						"text": BuddiLive.translate("SCHEDULED_TRANSACTION_REPEAT"),
-						"dataIndex": "repeat",
-						"flex": 2,
-						"renderer": function(value, metadata, record){
+						text: BuddiLive.translate("SCHEDULED_TRANSACTION_REPEAT"),
+						dataIndex: "repeat",
+						flex: 2,
+						renderer: function(value, metadata, record){
 							var frequencyLookup = {
-								"SCHEDULE_FREQUENCY_MONTHLY_BY_DATE": BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DATE"),
-								"SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK": BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK"),
-								"SCHEDULE_FREQUENCY_WEEKLY": BuddiLive.translate("SCHEDULE_FREQUENCY_WEEKLY"),
-								"SCHEDULE_FREQUENCY_BIWEEKLY": BuddiLive.translate("SCHEDULE_FREQUENCY_BIWEEKLY"),
-								"SCHEDULE_FREQUENCY_EVERY_DAY": BuddiLive.translate("SCHEDULE_FREQUENCY_EVERY_DAY"),
-								"SCHEDULE_FREQUENCY_EVERY_X_DAYS": BuddiLive.translate("SCHEDULE_FREQUENCY_EVERY_X_DAYS"),
-								"SCHEDULE_FREQUENCY_EVERY_WEEKDAY": BuddiLive.translate("SCHEDULE_FREQUENCY_EVERY_WEEKDAY"),
-								"SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH": BuddiLive.translate("SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH"),
-								"SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR": BuddiLive.translate("SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR")
+								SCHEDULE_FREQUENCY_MONTHLY_BY_DATE: BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DATE"),
+								SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK: BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK"),
+								SCHEDULE_FREQUENCY_WEEKLY: BuddiLive.translate("SCHEDULE_FREQUENCY_WEEKLY"),
+								SCHEDULE_FREQUENCY_BIWEEKLY: BuddiLive.translate("SCHEDULE_FREQUENCY_BIWEEKLY"),
+								SCHEDULE_FREQUENCY_EVERY_DAY: BuddiLive.translate("SCHEDULE_FREQUENCY_EVERY_DAY"),
+								SCHEDULE_FREQUENCY_EVERY_X_DAYS: BuddiLive.translate("SCHEDULE_FREQUENCY_EVERY_X_DAYS"),
+								SCHEDULE_FREQUENCY_EVERY_WEEKDAY: BuddiLive.translate("SCHEDULE_FREQUENCY_EVERY_WEEKDAY"),
+								SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH: BuddiLive.translate("SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH"),
+								SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR: BuddiLive.translate("SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR")
 							};
 
 							var result = frequencyLookup[value] || value;
@@ -207,20 +207,20 @@ Ext.define("BuddiLive.view.scheduled.List", {
 						}
 					},
 					{
-						"text": BuddiLive.translate("SCHEDULED_TRANSACTION_LAST_TRIGGERED_DATE"),
-						"dataIndex": "lastCreatedDate",
-						"width": 120
+						text: BuddiLive.translate("SCHEDULED_TRANSACTION_LAST_TRIGGERED_DATE"),
+						dataIndex: "lastCreatedDate",
+						width: 120
 					},
 					{
-						"text": BuddiLive.translate("SCHEDULED_TRANSACTION_END_DATE"),
-						"dataIndex": "end",
-						"width": 120
+						text: BuddiLive.translate("SCHEDULED_TRANSACTION_END_DATE"),
+						dataIndex: "end",
+						width: 120
 					},
 					{
-						"text": BuddiLive.translate("AMOUNT"),
-						"dataIndex": "splits",
-						"width": 100,
-						"renderer": function(value, metadata, record){
+						text: BuddiLive.translate("AMOUNT"),
+						dataIndex: "splits",
+						width: 100,
+						renderer: function(value, metadata, record){
 							var result = "";
 							for (var i = 0; i < value.length; i++){
 								if (i > 0){
@@ -232,9 +232,9 @@ Ext.define("BuddiLive.view.scheduled.List", {
 						}
 					},
 					{
-						"text": BuddiLive.translate("SCHEDULED_TRANSACTION_MESSAGE"),
-						"dataIndex": "message",
-						"flex": 2
+						text: BuddiLive.translate("SCHEDULED_TRANSACTION_MESSAGE"),
+						dataIndex: "message",
+						flex: 2
 					}
 				]
 			}
