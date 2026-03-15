@@ -116,7 +116,7 @@ public class IndexResource extends ServerResource {
 			final JsonGenerator g = new JsonFactory().createGenerator(sw);
 			g.writeStartObject();
 			g.writeStringField("extDateFormat", user.getExtDateFormat());
-			g.writeBooleanField("premium", user.isPremium());
+			g.writeBooleanField("premium", true);
 			g.writeBooleanField("encrypted", user.isEncrypted());
 			g.writeStringField("decimalSeparator", user.getDecimalSeparator());
 			g.writeStringField("thousandSeparator", user.getThousandSeparator());
