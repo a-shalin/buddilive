@@ -57,14 +57,14 @@ Ext.define('BuddiLive.view.budget.Tree', {
 		]
 	}],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var budgetTree = this;
 		this.itemId = this.initialConfig.periodValue;
 		this.stateId = "budgettree" + this.initialConfig.periodValue;
 		this.store = Ext.create("BuddiLive.store.budget.TreeStore", {periodType: this.initialConfig.periodValue});
 		this.title = this.initialConfig.periodText;
 		
-		var styledRenderer = function(value, metaData, record){
+		var styledRenderer = function(value, metaData, record) {
 			metaData.style = record.data[metaData.column.dataIndex + "Style"];
 			return value;
 		};
@@ -77,7 +77,8 @@ Ext.define('BuddiLive.view.budget.Tree', {
 				xtype: "treecolumn",
 				sortable: false,
 				hideable: false,
-				renderer: function(value, metaData, record){
+
+				renderer: function(value, metaData, record) {
 					metaData.style = record.data.nameStyle;
 					return value;
 				}
@@ -103,12 +104,14 @@ Ext.define('BuddiLive.view.budget.Tree', {
 					fieldStyle: "text-align: right;",
 					formatText: "0.00",
 					listeners: {
-						focus: function(component){
+
+						focus: function(component) {
 							component.selectText();
 						}
 					}
 				},
-				renderer: function(value, metaData, record){
+
+				renderer: function(value, metaData, record) {
 					metaData.style = record.data.currentStyle;
 					if (record.data.currentAmount == 0) {
 						return BuddiLive.translate("CLICK_TO_ENTER_BUDGETED_AMOUNT");

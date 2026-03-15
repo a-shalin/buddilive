@@ -4,11 +4,13 @@ Ext.define("Login.controller.LoginController", {
 	init: function() {
 		this.control({
 			"login button[itemId=back]": {
+
 				click: function(button) {
 					button.up('form').up('panel').getLayout().setActiveItem(0);
 				}
 			},
 			"login button[itemId=forward]": {
+
 				click: function(button) {
 					button.up('form').up('panel').getLayout().next();
 				}
@@ -53,9 +55,11 @@ Ext.define("Login.controller.LoginController", {
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/login",
+
 				success: function() {
 					window.location.reload();
 				},
+
 				failure: function(form, action) {
 					var response = action.result;
 					if (response && response.next == "passwordExpired") {
@@ -63,11 +67,11 @@ Ext.define("Login.controller.LoginController", {
 						card.down('hiddenfield[name=identifier]').setValue(response.key);
 						cmp.up("panel[itemId='authenticate']").up("panel").down("transientlabel[itemId='messagePasswordExpired']").setDisappearingHtml(Login.translate("FORCED_PASSWORD_CHANGE_MESSAGE"), 30000);
 					}
-					else if (response && response.next == "totpToken"){
+					else if (response && response.next == "totpToken") {
 						cmp.up("panel[itemId='authenticate']").up('panel').getLayout().setActiveItem("totpToken");
 						cmp.up("panel[itemId='authenticate']").up('panel').down('transientlabel[itemId=messageTwoFactorToken]').setDisappearingHtml(Login.translate("TWO_FACTOR_MESSAGE"), 30000);
 					}
-					else if (response && response.next == "totpSetup"){
+					else if (response && response.next == "totpSetup") {
 						cmp.up("panel[itemId='authenticate']").up('panel').getLayout().setActiveItem("totpSetup");
 					}
 					else {
@@ -84,9 +88,11 @@ Ext.define("Login.controller.LoginController", {
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/passwordExpired",
+
 				success: function() {
 					window.location.reload();
 				},
+
 				failure: function(form, action) {
 					cmp.up('form').down('transientlabel[itemId=messagePasswordExpired]').setDisappearingHtml(Login.translate("FORCED_PASSWORD_CHANGE_ERROR_MESSAGE"));
 				}
@@ -100,9 +106,11 @@ Ext.define("Login.controller.LoginController", {
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/totpToken",
+
 				success: function() {
 					window.location.reload();
 				},
+
 				failure: function(form, action) {
 					var response = action.result;
 
@@ -120,33 +128,37 @@ Ext.define("Login.controller.LoginController", {
 		}
 	},
 
-	totpLoadSecret: function(component){
+	totpLoadSecret: function(component) {
 		var panel = component.xtype == "form" ? component : component.up('form');
 		Ext.Ajax.request({
 			url: "authentication/totpSetup",
 			method: "GET",
-			success: function(response, options){
+
+			success: function(response, options) {
 				var data = Ext.decode(response.responseText, true);
-				if (data){
+				if (data) {
 					this.down("panel[itemId='qrCodeSecret']").setHtml("<div style='width: 100%;'><img src='" + data["totpSharedSecretQr"] + "' style='display: block; margin-left: auto; margin-right: auto;'></img></div>");
 					this.down("textfield[itemId='textSecret']").setValue(data["totpSharedSecret"]);
 				}
 			},
-			failure: function(form, action){
+
+			failure: function(form, action) {
 			},
 			scope: panel
 		});
 	},
 
-	totpDisable: function(component){
+	totpDisable: function(component) {
 		var panel = component.xtype == "form" ? component : component.up('form');
 		Ext.Ajax.request({
 			url: "authentication/totpSetup",
 			method: "DELETE",
-			success: function(response, options){
+
+			success: function(response, options) {
 				window.location.reload();
 			},
-			failure: function(form, action){
+
+			failure: function(form, action) {
 				window.location.reload();
 			},
 			scope: panel
@@ -159,9 +171,11 @@ Ext.define("Login.controller.LoginController", {
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/totpSetup",
+
 				success: function() {
 					cmp.up("panel[itemId='totpSetup']").up('panel').getLayout().setActiveItem("totpBackupCodes");
 				},
+
 				failure: function(form, action) {
 					cmp.up('form').down('transientlabel[itemId=messageTwoFactorSetup]').setDisappearingHtml(Login.translate("INVALID_TWO_FACTOR_MESSAGE"));
 				}
@@ -169,31 +183,33 @@ Ext.define("Login.controller.LoginController", {
 		}
 	},
 
-	loadTotpBackupCodes: function(panel){
+	loadTotpBackupCodes: function(panel) {
 		Ext.Ajax.request({
 			url: "authentication/generateBackupCodes",
 			method: "POST",
-			success: function(response, options){
+
+			success: function(response, options) {
 				var data = response.responseText;
-				if (data){
+				if (data) {
 					this.down("textarea[itemId='totpBackupCodes']").setValue(response.responseText);
 				}
 			},
-			failure: function(form, action){
+
+			failure: function(form, action) {
 			},
 			scope: panel
 		});
 	},
 
-	printBackupCodes: function(button){
+	printBackupCodes: function(button) {
 		var totpBackupCodes = button.up("form").down("textarea[itemId='totpBackupCodes']").getValue();
 		var winPrint = window.open();
-		winPrint.document.write("<html><head><script type='text/javascript'>setTimeout(function(){window.print();}, 100);</script></head><body><pre>" + totpBackupCodes + "</pre></body></html>");
+		winPrint.document.write("<html><head><script type='text/javascript'>setTimeout(function() {window.print();}, 100);</script></head><body><pre>" + totpBackupCodes + "</pre></body></html>");
 		winPrint.document.close();
 		winPrint.focus();
 	},
 
-	reloadPage: function(){
+	reloadPage: function() {
 		window.location.reload();
 	},
 
@@ -203,10 +219,12 @@ Ext.define("Login.controller.LoginController", {
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/register",
+
 				success: function() {
 					cmp.up('form').up('panel').getLayout().next();
 					cmp.up('form').up('panel').down('transientlabel[itemId=messageRegister2]').setDisappearingHtml(Login.translate("ACTIVATION_KEY_SENT"), 30000);
 				},
+
 				failure: function(form, action) {
 					var response = Ext.decode(action.response.responseText, true);
 					var message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");
@@ -222,10 +240,12 @@ Ext.define("Login.controller.LoginController", {
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/forgotPassword",
+
 				success: function() {
 					cmp.up('form').up('panel').getLayout().next();
 					cmp.up('form').up('panel').down('transientlabel[itemId=messageForgotPassword2]').setDisappearingHtml(Login.translate("ACTIVATION_KEY_SENT"), 30000);
 				},
+
 				failure: function(form, action) {
 					var response = Ext.decode(action.response.responseText, true);
 					var message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");
@@ -241,9 +261,11 @@ Ext.define("Login.controller.LoginController", {
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/resetPassword",
+
 				success: function() {
 					window.location.reload();
 				},
+
 				failure: function(form, action) {
 					cmp.up('form').down('transientlabel[itemId=messageForgotPassword2]').setDisappearingHtml(Login.translate("UNKNOWN_ERROR_MESSAGE"));
 				}
@@ -257,9 +279,11 @@ Ext.define("Login.controller.LoginController", {
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/forgotUsername",
+
 				success: function() {
 					cmp.up('form').up('panel').down('transientlabel[itemId=messageForgotUsername1]').setDisappearingHtml(Login.translate("USER_NAMES_SENT"), 30000);
 				},
+
 				failure: function(form, action) {
 					var response = Ext.decode(action.response.responseText, true);
 					var message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");

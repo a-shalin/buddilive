@@ -22,11 +22,11 @@ Ext.define("BuddiLive.controller.budget.Editor", {
 		});
 	},
 	
-	cancel: function(component){
+	cancel: function(component) {
 		component.up("budgeteditor").close();
 	},
 	
-	ok: function(component){
+	ok: function(component) {
 		var me = this;
 		var window = component.up("budgeteditor");
 		var panel = window.initialConfig.panel;
@@ -48,19 +48,21 @@ Ext.define("BuddiLive.controller.budget.Editor", {
 			},
 			method: "POST",
 			jsonData: request,
-			success: function(response){
+
+			success: function(response) {
 				window.close();
 				panel.fireEvent("reload", panel);
 				me.getTransactionSplitFromComboboxStoreStore().load();
 				me.getTransactionSplitToComboboxStoreStore().load();
 			},
-			failure: function(response){
+
+			failure: function(response) {
 				BuddiLive.app.error(response);
 			}
 		});
 	},
 	
-	updateButtons: function(component, foo, bar, baz){
+	updateButtons: function(component, foo, bar, baz) {
 		var window = component.up("budgeteditor");
 		var ok = window.down("button[itemId='ok']");
 		var name = window.down("textfield[itemId='name']");

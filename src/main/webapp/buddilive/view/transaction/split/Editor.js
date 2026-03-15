@@ -15,12 +15,14 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 	defaults: {
 		padding: "0 0 5 5"
 	},
-	initComponent: function(){
+
+	initComponent: function() {
 		var v = this.initialConfig.value ? this.initialConfig.value : {};
 		var splitEditor = this;
 		
 		this.listeners = {
-			boxready: function(){
+
+			boxready: function() {
 				//Needed when there are multiple splits loaded from setTransaction()
 				splitEditor.fireEvent("updateButtons", splitEditor.up("transactioneditor"));
 			}
@@ -92,7 +94,7 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 		this.down("tocombobox").getStore().clearFilter();
 		
 		if (this.down("currencyfield").getValue() != "" 
-				&& (this.down("fromcombobox").getValue() == null || this.down("tocombobox").getValue() == null)){
+				&& (this.down("fromcombobox").getValue() == null || this.down("tocombobox").getValue() == null)) {
 			Ext.MessageBox.show({
 				title: BuddiLive.translate("INFO_LOADING_DELETED_SOURCE_TITLE"),
 				msg: BuddiLive.translate("INFO_LOADING_DELETED_SOURCE"),
@@ -101,7 +103,7 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 		}
 	},
 	
-	getSplit: function(){
+	getSplit: function() {
 		var s = {};
 		s.amount = this.down("currencyfield[itemId='amount']").getValue();
 		s.fromId = this.down("combo[itemId='from']").getValue();

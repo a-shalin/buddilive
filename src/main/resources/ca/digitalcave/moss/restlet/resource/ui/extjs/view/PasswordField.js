@@ -4,25 +4,25 @@ Ext.define("Login.view.PasswordField", {
 
 	layout: "vbox",
 
-	getValue: function(){
+	getValue: function() {
 		var password = this.down("textfield[itemId='password']");
-		if (password){
+		if (password) {
 			return password.getValue();
 		}
 		return null;
 	},
 
-	isValid: function(){
+	isValid: function() {
 		return this.down("textfield[itemId='password']").isValid() && this.down("textfield[itemId='confirm']").isValid();
 	},
 
-	getErrors: function(){
+	getErrors: function() {
 		return this.errors;
 	},
 
 	required: true,
 
-	initComponent: function(){
+	initComponent: function() {
 		this.items = [
 			{
 				xtype: "fieldcontainer",
@@ -37,7 +37,7 @@ Ext.define("Login.view.PasswordField", {
 						options: this,
 						flex: 1,
 						validators: [
-							function(){
+							function() {
 								return this.errors == null ? true : this.errors;
 							}
 						],
@@ -52,7 +52,7 @@ Ext.define("Login.view.PasswordField", {
 						itemId: "confirm",
 						flex: 1,
 						validators: [
-							function(){
+							function() {
 								var passwordField = this.up("rsgpasswordfield").down("textfield[itemId='password']");
 								return passwordField.errors == null ? true : passwordField.errors;
 							}
@@ -87,7 +87,7 @@ Ext.define("Login.view.PasswordField", {
 		this.down("textfield[itemId='confirm']").addListener("change", this.checkPassword);
 	},
 
-	checkPassword: function(field){
+	checkPassword: function(field) {
 		Ext.Ajax.request({
 			url: (window.__authConfig && window.__authConfig.routerAttachPoint || "authentication") + "/checkPassword",
 			params: {
@@ -95,7 +95,8 @@ Ext.define("Login.view.PasswordField", {
 				secret: field.up("passwordfield").getValue()
 			},
 			scope: field.up("passwordfield"),
-			success: function(response){
+
+			success: function(response) {
 				var lastCheck = Ext.decode(response.responseText, true);
 				if (lastCheck == null) return;
 

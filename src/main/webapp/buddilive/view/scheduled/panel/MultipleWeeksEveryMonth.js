@@ -4,7 +4,7 @@ Ext.define("BuddiLive.view.scheduled.panel.MultipleWeeksEveryMonth", {
 	requires: [
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var s = this.initialConfig.selected;
 		this.itemId = "SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH";
 		this.border = false;
@@ -82,10 +82,11 @@ Ext.define("BuddiLive.view.scheduled.panel.MultipleWeeksEveryMonth", {
 		this.callParent(arguments);
 	},
 	
-	getScheduleDay: function(){
+	getScheduleDay: function() {
 		return this.down("combobox").getValue();
 	},
-	getScheduleWeek: function(){
+
+	getScheduleWeek: function() {
 		var result = 0;
 		if (this.down("checkbox[itemId='SCHEDULE_WEEK_FIRST']").getValue()) result += 1;
 		if (this.down("checkbox[itemId='SCHEDULE_WEEK_SECOND']").getValue()) result += 2;
@@ -93,7 +94,8 @@ Ext.define("BuddiLive.view.scheduled.panel.MultipleWeeksEveryMonth", {
 		if (this.down("checkbox[itemId='SCHEDULE_WEEK_FOURTH']").getValue()) result += 8;
 		return result;
 	},
-	getScheduleMonth: function(){
+
+	getScheduleMonth: function() {
 		return 0;
 	}
 });

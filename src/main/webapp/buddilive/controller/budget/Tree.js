@@ -13,7 +13,7 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 		});
 	},
 	
-	edit: function(editor, data){
+	edit: function(editor, data) {
 		//If nothing has changed, no point in reloading
 		if (data.originalValue == data.value) return;
 		if (data.value == "") data.value = 0;
@@ -37,9 +37,10 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 			},
 			method: "POST",
 			jsonData: request,
-			success: function(response){
+
+			success: function(response) {
 				var v = Ext.decode(response.responseText);
-				if (v && v.data){
+				if (v && v.data) {
 					v = v.data;
 					data.record.set("current", v.current);
 					data.record.set("currentStyle", v.currentStyle);
@@ -50,20 +51,21 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 				}
 				data.record.commit();
 			},
-			failure: function(response){
+
+			failure: function(response) {
 				data.record.reject();
 				BuddiLive.app.error(response);
 			}
 		});
 	},
 	
-	selectionChange: function(selectionModel, selected){
+	selectionChange: function(selectionModel, selected) {
 		var enabled = selected && selected.length > 0;
 
 		var viewport = selectionModel.view.panel.up("buddiviewport");
 		viewport.down("button[itemId='editCategory']").setDisabled(!enabled);
 		viewport.down("button[itemId='deleteCategory']").setDisabled(!enabled);
-		if (selected && selected.length > 0 && selected[0].data.deleted){
+		if (selected && selected.length > 0 && selected[0].data.deleted) {
 			viewport.down("button[itemId='deleteCategory']").setText(BuddiLive.translate("UNDELETE_BUDGET_CATEGORY"));
 		}
 		else {
@@ -71,7 +73,7 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 		}
 	},
 
-	clickCopyFromPreviousPeriod: function(component){
+	clickCopyFromPreviousPeriod: function(component) {
 		var budgetTree = component.up("budgettree");
 		var request = {action: "copyFromPrevious"};
 		request.type = budgetTree.periodValue;
@@ -86,18 +88,20 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 			},
 			method: "POST",
 			jsonData: request,
-			success: function(response){
+
+			success: function(response) {
 				mask.hide();
 				budgetTree.getStore().reload();
 			},
-			failure: function(response){
+
+			failure: function(response) {
 				mask.hide();
 				BuddiLive.app.error(response);
 			}
 		});
 	},
 		
-	clickChangePeriod: function(component){
+	clickChangePeriod: function(component) {
 		var budgetTree = component.up("budgettree");
 		var offset = (component.itemId == "previousPeriod" ? -1 : 1);
 		budgetTree.getStore().load({params: {date: budgetTree.currentDate, offset: offset}});

@@ -2,7 +2,7 @@ Ext.define('Login.view.SelfDocumentingField', {
 	extend: "Ext.form.FieldContainer",
 	alias: "widget.selfdocumentingfield",
 
-	initComponent: function(){
+	initComponent: function() {
 		this.layout = "hbox";
 		this.childItemId = this.itemId;
 		var component = Ext.applyIf({
@@ -28,7 +28,8 @@ Ext.define('Login.view.SelfDocumentingField', {
 				tooltip: (this.initialConfig.helpButtonTooltip ? this.initialConfig.helpButtonTooltip : Login.translate("WHAT_IS_THIS")),
 				tabIndex: -1,
 				listeners: {
-					click: function(){
+
+					click: function() {
 						Ext.MessageBox.show({
 							title: messageTitle,
 							msg: messageBody,

@@ -7,12 +7,13 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 	
 	closable: true,
 	layout: "fit",
-	initComponent: function(){
+
+	initComponent: function() {
 		var me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
 		this.title = BuddiLive.translate("REPORT_TABLE_INFLOW_AND_OUTFLOW_BY_ACCOUNT") + " - " + this.initialConfig.options.dateRange;
-		var styledRenderer = function(value, metaData, record){
+		var styledRenderer = function(value, metaData, record) {
 			metaData.style = record.data[metaData.column.dataIndex + "Style"];
 			return value;
 		};
@@ -60,6 +61,7 @@ Ext.define('BuddiLive.view.report.InflowAndOutflowByAccount', {
 							"</tpl>",
 							"</table>"
 						],
+
 						toggleRow: function(rowIdx, record) {
 							if (record.get("source") == BuddiLive.translate("TOTAL")) return false;
 							Ext.grid.plugin.RowExpander.prototype.toggleRow.apply(this, arguments);

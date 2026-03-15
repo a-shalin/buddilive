@@ -6,14 +6,15 @@ Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
 	
 	closable: true,
 	layout: "fit",
-	initComponent: function(){
+
+	initComponent: function() {
 		var me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
 		var fields = ["date"];
 		var series = [];
-		BuddiLive.app.viewport.down("accounttree").getStore().getRootNode().cascadeBy(function(node){
-			if (node.data.nodeType == "account"){
+		BuddiLive.app.viewport.down("accounttree").getStore().getRootNode().cascadeBy(function(node) {
+			if (node.data.nodeType == "account") {
 				fields.push("a" + node.data.id);
 				series.push({
 					type: "line",
@@ -46,10 +47,12 @@ Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
 						}
 					},
 					listeners: {
-						beforeload: function(store, operation, eOpts){
+
+						beforeload: function(store, operation, eOpts) {
 							me.mask(BuddiLive.translate("LOADING"));
 						},
-						load: function(store, records, successful, operation, eOpts){
+
+						load: function(store, records, successful, operation, eOpts) {
 							me.unmask();
 						}
 					}

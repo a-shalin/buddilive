@@ -4,7 +4,7 @@ Ext.define("BuddiLive.view.scheduled.panel.EveryXDays", {
 	requires: [
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var s = this.initialConfig.selected;
 		this.itemId = "SCHEDULE_FREQUENCY_EVERY_X_DAYS";
 		this.border = false;
@@ -39,13 +39,15 @@ Ext.define("BuddiLive.view.scheduled.panel.EveryXDays", {
 		this.callParent(arguments);
 	},
 	
-	getScheduleDay: function(){
+	getScheduleDay: function() {
 		return this.down("numberfield").getValue();
 	},
-	getScheduleWeek: function(){
+
+	getScheduleWeek: function() {
 		return 0;
 	},
-	getScheduleMonth: function(){
+
+	getScheduleMonth: function() {
 		return 0;
 	}
 });

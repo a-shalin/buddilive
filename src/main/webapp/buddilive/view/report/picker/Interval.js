@@ -4,7 +4,7 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 	requires: [
 	],
 
-	initComponent: function(){
+	initComponent: function() {
 		var me = this;
 		var s = this.initialConfig.selected
 		var extDateFormat = BuddiLive.util.UserConfig.get('extDateFormat') || 'Y-m-d';
@@ -48,7 +48,8 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 							]
 						}),
 						listeners: {
-							select: function(combo){
+
+							select: function(combo) {
 								combo.up("form").down("selfdocumentingfield[childItemId='startDate']").setVisible(combo.getValue() == "PLUGIN_FILTER_OTHER");
 								combo.up("form").down("selfdocumentingfield[childItemId='endDate']").setVisible(combo.getValue() == "PLUGIN_FILTER_OTHER");
 							}
@@ -68,7 +69,8 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 						value: new Date(),
 						maxValue: new Date(),
 						listeners: {
-							change: function(field){
+
+							change: function(field) {
 								field.up("form").down("datefield[itemId='endDate']").setMinValue(field.getValue());
 							}
 						}
@@ -85,7 +87,8 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 						value: new Date(),
 						minValue: new Date(),
 						listeners: {
-							change: function(field){
+
+							change: function(field) {
 								field.up("form").down("datefield[itemId='startDate']").setMaxValue(field.getValue());
 							}
 						}
@@ -98,11 +101,12 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 				text: BuddiLive.translate("OK"),
 				itemId: "ok",
 				listeners: {
-					click: function(){
+
+					click: function() {
 						var interval = me.down("combobox[itemId='interval']").getValue();
 						var dateRange = me.down("combobox[itemId='interval']").getRawValue();
 						var query = "interval=" + interval;
-						if (interval == "PLUGIN_FILTER_OTHER"){
+						if (interval == "PLUGIN_FILTER_OTHER") {
 							var startValid = me.down("datefield[itemId='startDate']").validate();
 							var endValid = me.down("datefield[itemId='endDate']").validate();
 							if (!startValid || !endValid) return;
@@ -127,7 +131,8 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 				text: BuddiLive.translate("CANCEL"),
 				itemId: "cancel",
 				listeners: {
-					click: function(){
+
+					click: function() {
 						me.close();
 					}
 				}

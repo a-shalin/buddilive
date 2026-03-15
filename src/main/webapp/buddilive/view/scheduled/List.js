@@ -9,7 +9,8 @@ Ext.define("BuddiLive.view.scheduled.List", {
 	title: BuddiLive.translate("SCHEDULED_TRANSACTIONS"),
 	layout: "fit",
 	closable: true,
-	initComponent: function(){
+
+	initComponent: function() {
 		var d = this.initialConfig.data
 
 		this.items = [
@@ -27,7 +28,8 @@ Ext.define("BuddiLive.view.scheduled.List", {
 						text: BuddiLive.translate("SCHEDULED_TRANSACTION_REPEAT"),
 						dataIndex: "repeat",
 						flex: 2,
-						renderer: function(value, metadata, record){
+
+						renderer: function(value, metadata, record) {
 							var frequencyLookup = {
 								SCHEDULE_FREQUENCY_MONTHLY_BY_DATE: BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DATE"),
 								SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK: BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK"),
@@ -41,7 +43,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 							};
 
 							var result = frequencyLookup[value] || value;
-							if (value == "SCHEDULE_FREQUENCY_MONTHLY_BY_DATE"){
+							if (value == "SCHEDULE_FREQUENCY_MONTHLY_BY_DATE") {
 								var monthlyByDateLookup = {
 									1: BuddiLive.translate("SCHEDULE_DATE_FIRST"),
 									2: BuddiLive.translate("SCHEDULE_DATE_SECOND"),
@@ -78,7 +80,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 								};
 								result += " " + monthlyByDateLookup[record.get("scheduleDay")];
 							}
-							else if (value == "SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK"){
+							else if (value == "SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK") {
 								var monthlyByDayOfWeekLookup = {
 									0: BuddiLive.translate("SCHEDULE_DAY_FIRST_SUNDAY"),
 									1: BuddiLive.translate("SCHEDULE_DAY_FIRST_MONDAY"),
@@ -90,7 +92,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 								};
 								result += " " + monthlyByDayOfWeekLookup[record.get("scheduleDay")];
 							}
-							else if (value == "SCHEDULE_FREQUENCY_WEEKLY"){
+							else if (value == "SCHEDULE_FREQUENCY_WEEKLY") {
 								var weekLookup = {
 									0: BuddiLive.translate("SCHEDULE_DAY_SUNDAY"),
 									1: BuddiLive.translate("SCHEDULE_DAY_MONDAY"),
@@ -102,7 +104,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 								};
 								result += " " + weekLookup[record.get("scheduleDay")];
 							}
-							else if (value == "SCHEDULE_FREQUENCY_BIWEEKLY"){
+							else if (value == "SCHEDULE_FREQUENCY_BIWEEKLY") {
 								var biWeeklyLookup = {
 									0: BuddiLive.translate("SCHEDULE_DAY_EVERY_OTHER_SUNDAY"),
 									1: BuddiLive.translate("SCHEDULE_DAY_EVERY_OTHER_MONDAY"),
@@ -114,19 +116,19 @@ Ext.define("BuddiLive.view.scheduled.List", {
 								};
 								result += " " + biWeeklyLookup[record.get("scheduleDay")];
 							}
-							else if (value == "SCHEDULE_FREQUENCY_EVERY_DAY"){
+							else if (value == "SCHEDULE_FREQUENCY_EVERY_DAY") {
 								//Nothing to do here - no configuration
 							}
-							else if (value == "SCHEDULE_FREQUENCY_EVERY_X_DAYS"){
+							else if (value == "SCHEDULE_FREQUENCY_EVERY_X_DAYS") {
 								result = BuddiLive.translate("REPEATING_EVERY_X_DAYS") + " " + record.get("scheduleDay") + " " + BuddiLive.translate("DAYS");
 							}
-							else if (value == "SCHEDULE_FREQUENCY_EVERY_WEEKDAY"){
+							else if (value == "SCHEDULE_FREQUENCY_EVERY_WEEKDAY") {
 								//Nothing to do here - no configuration
 							}
-							else if (value == "SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH"){
+							else if (value == "SCHEDULE_FREQUENCY_MULTIPLE_WEEKS_EVERY_MONTH") {
 							
 							}
-							else if (value == "SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR"){
+							else if (value == "SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR") {
 								var multipleMonthsEveryYearLookup = {
 									1: BuddiLive.translate("SCHEDULE_DATE_MONTHS_FIRST"),
 									2: BuddiLive.translate("SCHEDULE_DATE_MONTHS_SECOND"),
@@ -163,40 +165,40 @@ Ext.define("BuddiLive.view.scheduled.List", {
 								};
 								result += " " + multipleMonthsEveryYearLookup[record.get("scheduleDay")] + " (";
 								var month = record.get("scheduleMonth");
-								if (month & 1){
+								if (month & 1) {
 									result += BuddiLive.translate("MONTH_JANUARY") + ", ";
 								}
-								if (month & 2){
+								if (month & 2) {
 									result += BuddiLive.translate("MONTH_FEBRUARY") + ", ";
 								}
-								if (month & 4){
+								if (month & 4) {
 									result += BuddiLive.translate("MONTH_MARCH") + ", ";
 								}
-								if (month & 8){
+								if (month & 8) {
 									result += BuddiLive.translate("MONTH_APRIL") + ", ";
 								}
-								if (month & 16){
+								if (month & 16) {
 									result += BuddiLive.translate("MONTH_MAY") + ", ";
 								}
-								if (month & 32){
+								if (month & 32) {
 									result += BuddiLive.translate("MONTH_JUNE") + ", ";
 								}
-								if (month & 64){
+								if (month & 64) {
 									result += BuddiLive.translate("MONTH_JULY") + ", ";
 								}
-								if (month & 128){
+								if (month & 128) {
 									result += BuddiLive.translate("MONTH_AUGUST") + ", ";
 								}
-								if (month & 256){
+								if (month & 256) {
 									result += BuddiLive.translate("MONTH_SEPTEMBER") + ", ";
 								}
-								if (month & 512){
+								if (month & 512) {
 									result += BuddiLive.translate("MONTH_OCTOBER") + ", ";
 								}
-								if (month & 1024){
+								if (month & 1024) {
 									result += BuddiLive.translate("MONTH_NOVEMBER") + ", ";
 								}
-								if (month & 2048){
+								if (month & 2048) {
 									result += BuddiLive.translate("MONTH_DECEMBER") + ", ";
 								}
 								result = result.slice(0, result.length - 2);	//Remove the trailing comma and space
@@ -220,10 +222,11 @@ Ext.define("BuddiLive.view.scheduled.List", {
 						text: BuddiLive.translate("AMOUNT"),
 						dataIndex: "splits",
 						width: 100,
-						renderer: function(value, metadata, record){
+
+						renderer: function(value, metadata, record) {
 							var result = "";
-							for (var i = 0; i < value.length; i++){
-								if (i > 0){
+							for (var i = 0; i < value.length; i++) {
+								if (i > 0) {
 									result += "<br/>";
 								}
 								result += value[i].amount;

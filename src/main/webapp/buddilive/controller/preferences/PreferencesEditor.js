@@ -4,7 +4,8 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 		"preferences.CurrenciesComboboxStore",
 		"preferences.LocalesComboboxStore"
 	],
-	onLaunch: function(){
+
+	onLaunch: function() {
 		this.getPreferencesCurrenciesComboboxStoreStore().load();
 		this.getPreferencesLocalesComboboxStoreStore().load();
 	},
@@ -20,7 +21,7 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 		});
 	},
 	
-	regenerateTwoFactorBackup: function(component){
+	regenerateTwoFactorBackup: function(component) {
 		Ext.Ajax.request({
 			url: "data/userpreferences",
 			headers: {
@@ -30,25 +31,27 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 			jsonData: {
 				action: "invalidatetotpbackups"
 			},
-			success: function(response){
+
+			success: function(response) {
 				window.location.reload();
 			},
-			failure: function(response){
+
+			failure: function(response) {
 				BuddiLive.app.error(response);
 			}
 		});
 	},
 	
-	cancel: function(component){
+	cancel: function(component) {
 		component.up("preferenceseditor").close();
 	},
 	
-	ok: function(component){
+	ok: function(component) {
 		var window = component.up("preferenceseditor");
 		var panel = window.initialConfig.panel;
 		var originalData = window.initialConfig.data;
 
-		if (window.down("checkbox[itemId='encrypt']").getValue() != originalData.encrypt && window.down("textfield[itemId='password']").getValue().length == 0){
+		if (window.down("checkbox[itemId='encrypt']").getValue() != originalData.encrypt && window.down("textfield[itemId='password']").getValue().length == 0) {
 			Ext.MessageBox.show({
 				title: BuddiLive.translate("INVALID"),
 				msg: BuddiLive.translate("ENTER_PASSWORD_TO_CHANGE_ENCRYPTION"),
@@ -84,32 +87,34 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 			},
 			method: "POST",
 			jsonData: request,
-			success: function(response){
+
+			success: function(response) {
 				mask.hide();
 				window.close();
 				panel.reload();
 			},
-			failure: function(response){
+
+			failure: function(response) {
 				mask.hide();
 				BuddiLive.app.error(response);
 			}
 		});
 	},
 
-	getCurrencySymbol: function(currencyCode, localeCode){
+	getCurrencySymbol: function(currencyCode, localeCode) {
 		if (!currencyCode) return "$";
 		try {
 			var locale = (localeCode || "en_US").replace("_", "-");
 			var parts = new Intl.NumberFormat(locale, {style: "currency", currency: currencyCode}).formatToParts(1);
-			for (var i = 0; i < parts.length; i++){
+			for (var i = 0; i < parts.length; i++) {
 				if (parts[i].type == "currency") return parts[i].value;
 			}
 		}
-		catch (e){}
+		catch (e) {}
 		return currencyCode;
 	},
 
-	updateCurrencySymbolLabel: function(component){
+	updateCurrencySymbolLabel: function(component) {
 		var window = (component.xtype == "preferenceseditor" ? component : component.up("preferenceseditor"));
 		if (!window) return;
 		var checkbox = window.down("checkbox[itemId='showCurrencySymbol']");

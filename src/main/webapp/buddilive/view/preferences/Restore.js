@@ -5,7 +5,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 		
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var d = this.initialConfig.data
 
 		this.title = BuddiLive.translate("PREFERENCES");
@@ -26,7 +26,8 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 						checked: d.encrypt,
 						boxLabel: BuddiLive.translate("ENCRYPT_DATA"),
 						listeners: {
-							change: function(checkbox){
+
+							change: function(checkbox) {
 								checkbox.up("form").down("textfield[itemId='password']").setVisible(d.encrypt != checkbox.getValue());
 								checkbox.up("form").down("textfield[itemId='password']").focus(true);
 							}
@@ -81,7 +82,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 						forceSelection: true,
 						store: new Ext.data.Store({
 							fields: ["text", "value"],
-							data: (function(){
+							data: (function() {
 								var now = new Date();
 								return [
 									{text: Ext.Date.format(now, "Y-m-d"), value: "yyyy-MM-dd"},
@@ -110,8 +111,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 								{text: "p."},			//Russian Ruble
 								{text: "\u00a5"},		//Yen
 								{text: "\u20a3"},		//French Franc
-								{text: "SFr"}, 		//Swiss Franc (?)
-								{text: "Rs"}, 		//Indian Rupees
+								{text: "SFr"}, 		//Swiss Franc (?) {text: "Rs"}, 		//Indian Rupees
 								{text: "Kr"}, 		//Norwegian
 								{text: "Bs"}, 		//Venezuela
 								{text: "S/."}, 		//Peru

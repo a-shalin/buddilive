@@ -6,15 +6,15 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 		type: "form"
 	},
 
-	getValue: function(){
+	getValue: function() {
 		return this.down("textfield[itemId='password']").getValue();
 	},
 	
-	isValid: function(){
+	isValid: function() {
 		return this.down("textfield[itemId='password']").isValid() && this.down("textfield[itemId='confirm']").isValid();
 	},
 	
-	initComponent: function(){
+	initComponent: function() {
 		this.items = [
 			{
 				xtype: "container",
@@ -29,7 +29,8 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 						options: this,
 						flex: 1,
 						minPasswordStrength: (this.minPasswordStrength ? this.minPasswordStrength : 20),
-						passwordStrength: function(password){
+
+						passwordStrength: function(password) {
 							var factor = 0;
 							
 							//Determine factor, based on character class
@@ -42,13 +43,15 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 							
 							return Math.pow(password.length, 3) * factor / 100;
 						},
-						validator: function(value){
+
+						validator: function(value) {
 							this.ownerCt.getComponent(1).validate();
 							if (value.length == 0 || this.passwordStrength(value) > this.initialConfig.minPasswordStrength) return true;
 							else return "Password too weak.";
 						},
 						listeners: {
-							keyup: function(field){
+
+							keyup: function(field) {
 								var color;
 								var value = field.getValue();
 								var strength = field.passwordStrength(value);
@@ -86,7 +89,8 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 						flex: 1,
 						margin: "0 0 0 5",
 						submitValue: false,
-						validator: function(value){
+
+						validator: function(value) {
 							if (this.ownerCt.getComponent(0).getValue() != value) {
 								return "Passwords must match";
 							} else {

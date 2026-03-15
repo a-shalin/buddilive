@@ -9,9 +9,10 @@ Ext.define("BuddiLive.view.component.LazyCombo", {
 	layout: "card",
 
 	listeners: {
-		afterrender: function(component){
-			Ext.defer(function(){
-				if (component.initialConfig.multiSelect){
+
+		afterrender: function(component) {
+			Ext.defer(function() {
+				if (component.initialConfig.multiSelect) {
 					component.setMultiSelect(component.initialConfig.multiSelect);
 				}
 			}, 100);
@@ -19,12 +20,13 @@ Ext.define("BuddiLive.view.component.LazyCombo", {
 	},
 
 	minChars: 1,
-	initComponent: function(){
+
+	initComponent: function() {
 		var lazycombo = this;
 		
 		//We use a custom function rather than separating arguments with || because false or 0 may be a valid argument for many of the below.
-		var notNull = function(){
-			for(var i = 0; i < arguments.length; i++){
+		var notNull = function() {
+			for(var i = 0; i < arguments.length; i++) {
 				if (arguments[i] != null) return arguments[i];
 			}
 			return undefined;
@@ -87,34 +89,34 @@ Ext.define("BuddiLive.view.component.LazyCombo", {
 		this.callParent(arguments);
 	},
 	
-	getValue: function(){
+	getValue: function() {
 		return this.getLayout().getActiveItem().getValue();
 	},
 	
-	setValue: function(value){
+	setValue: function(value) {
 		this.getLayout().getActiveItem().setValue(value);
 	},
 	
-	getRawValue: function(){
+	getRawValue: function() {
 		return this.getLayout().getActiveItem().getRawValue();
 	},
 	
-	setRawValue: function(value){
+	setRawValue: function(value) {
 		this.getLayout().getActiveItem().setRawValue(value);
 	},
 	
-	setMultiSelect: function(multiSelect){
-		if (!this.items || this.items.items.length != 2){
+	setMultiSelect: function(multiSelect) {
+		if (!this.items || this.items.items.length != 2) {
 			debugger;
 			var me = this;
-			Ext.defer(function(){
+			Ext.defer(function() {
 				//console.log("Delaying...");
 				me.setMultiSelect(multiSelect);
 			}, 100);
 			return;
 		}
 		
-		if (multiSelect){
+		if (multiSelect) {
 			this.getLayout().setActiveItem(this.down("lazycombomultiselect"));
 		}
 		else {
@@ -122,11 +124,11 @@ Ext.define("BuddiLive.view.component.LazyCombo", {
 		}
 	},
 	
-	getStore: function(){
+	getStore: function() {
 		return this.getLayout().getActiveItem().getStore();
 	},
 	
-	validate: function(){
+	validate: function() {
 		return this.getLayout().getActiveItem().validate();
 	}
 });

@@ -21,7 +21,8 @@ Ext.define('BuddiLive.view.account.Tree', {
 			flex: 3,
 			sortable: false,
 			xtype: "treecolumn",
-			renderer: function(value, metaData, record){
+
+			renderer: function(value, metaData, record) {
 				metaData.style = record.data.style;
 				return value;
 			}
@@ -33,14 +34,15 @@ Ext.define('BuddiLive.view.account.Tree', {
 			sortable: false,
 			hideable: false,
 			align: "right",
-			renderer: function(value, metaData, record){
+
+			renderer: function(value, metaData, record) {
 				metaData.style = record.data.balanceStyle 
 				return value;
 			}
 		}
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		this.store = Ext.create("BuddiLive.store.account.TreeStore");
 	
 		this.callParent(arguments);

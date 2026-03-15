@@ -54,13 +54,14 @@ Ext.define('Login.view.LoginPanelMobile', {
 
 		if (__ac.showCookieWarning) {
 			this.listeners = {
-				afterrender: function(){
+
+				afterrender: function() {
 					var url = window.location.href;
 					var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
 					var allowCookies = allowCookiesStorage.getItem(url);
 					allowCookiesStorage.release();
-					if (allowCookies != "true"){
-						var showMessage = function(){
+					if (allowCookies != "true") {
+						var showMessage = function() {
 							var win = Ext.create({
 								xtype: "panel",
 								modal: true,
@@ -76,10 +77,12 @@ Ext.define('Login.view.LoginPanelMobile', {
 											{
 												text: "Yes",
 												listeners: {
-													afterrender: function(button){
+
+													afterrender: function(button) {
 														button.focus();
 													},
-													click: function(button){
+
+													click: function(button) {
 														var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
 														allowCookiesStorage.setItem(url, "true");
 														allowCookiesStorage.release();
@@ -96,7 +99,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 							win.show();
 						};
 
-						Ext.defer(function(){
+						Ext.defer(function() {
 							showMessage();
 						}, 10);
 					}
@@ -106,7 +109,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 
 		if (__ac.showLogin !== false) {
 			var loginFormItems = [
-				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "identifier", inputAttrTpl: "autocapitalize='off'", listeners: { afterrender: function(component){ component.focus(); } } },
+				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "identifier", inputAttrTpl: "autocapitalize='off'", listeners: { afterrender: function(component) { component.focus(); } } },
 				{ fieldLabel: Login.translate("PASSWORD_LABEL"), inputType: "password", inputAttrTpl: "autocapitalize='off'", name: "password" }
 			];
 			if (__ac.showRemember !== false) {

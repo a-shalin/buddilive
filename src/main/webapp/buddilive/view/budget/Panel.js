@@ -6,7 +6,7 @@ Ext.define('BuddiLive.view.budget.Panel', {
 		"BuddiLive.view.budget.Editor"
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		this.layout = "fill";
 		this.stateId = "budgetpanel";
 		this.stateful = true;

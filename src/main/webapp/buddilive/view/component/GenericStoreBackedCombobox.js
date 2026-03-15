@@ -1,7 +1,7 @@
 Ext.define("BuddiLive.view.component.GenericStoreBackedCombobox", {
 	extend: "Ext.form.field.ComboBox",
 	
-	initComponent: function(){
+	initComponent: function() {
 		var combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
@@ -19,14 +19,14 @@ Ext.define("BuddiLive.view.component.GenericStoreBackedCombobox", {
 	
 		this.callParent(arguments);
 		
-		this.addListener("select", function(){
+		this.addListener("select", function() {
 			//Don't let users select the separators.
-			if (combo.getValue() == ""){
+			if (combo.getValue() == "") {
 				combo.setValue();
 			}
 		});
 		
-		this.addListener("afterrender", function(){
+		this.addListener("afterrender", function() {
 			combo.setValue(this.initialConfig.value);
 		});
 	}

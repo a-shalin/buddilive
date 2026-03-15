@@ -9,7 +9,7 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 
 	formatText: "0,000.00",
 
-	initComponent: function(){
+	initComponent: function() {
 		var decimalSeparator = BuddiLive.util.UserConfig.get('decimalSeparator') || '.';
 		var thousandSeparator = BuddiLive.util.UserConfig.get('thousandSeparator') || ',';
 
@@ -23,7 +23,7 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 		this.callParent(arguments);
 	},
 
-	parseValue: function(value){
+	parseValue: function(value) {
 		var me = this;
 		if (!isNaN(value)) return value;
 		var currencySymbol = BuddiLive.util.UserConfig.get('currencySymbol') || '';
@@ -36,7 +36,7 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 	valueToRaw: function(value) {
 		var me = this;
 		value = me.parseValue(value);
-		if (isNaN(value)){
+		if (isNaN(value)) {
 			return "";
 		}
 		else {
@@ -49,11 +49,11 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 		return me.parseValue(raw);
 	},
 
-	validate: function(){
+	validate: function() {
 		return !isNaN(this.rawToValue(this.getRawValue()));
 	},
 
-	getValue: function(){
+	getValue: function() {
 		var me = this;
 		return me.parseValue(me.rawValue);
 	}

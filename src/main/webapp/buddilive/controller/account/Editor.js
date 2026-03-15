@@ -18,17 +18,17 @@ Ext.define("BuddiLive.controller.account.Editor", {
 		});
 	},
 	
-	specialKey: function(component, e){
-		if (e.getKey() == e.ENTER){
+	specialKey: function(component, e) {
+		if (e.getKey() == e.ENTER) {
 			this.ok(component);
 		}
 	},
 	
-	cancel: function(component){
+	cancel: function(component) {
 		component.up("accounteditor").close();
 	},
 	
-	ok: function(component){
+	ok: function(component) {
 		var me = this;
 		var window = component.up("accounteditor");
 		var grid = window.initialConfig.grid;
@@ -54,19 +54,21 @@ Ext.define("BuddiLive.controller.account.Editor", {
 			},
 			method: "POST",
 			jsonData: request,
-			success: function(response){
+
+			success: function(response) {
 				mask.hide();
 				window.close();
 				location.reload();
 			},
-			failure: function(response){
+
+			failure: function(response) {
 				mask.hide();
 				BuddiLive.app.error(response);
 			}
 		});
 	},
 	
-	updateButtons: function(component){
+	updateButtons: function(component) {
 		var window = component.up("accounteditor");
 		var ok = window.down("button[itemId='ok']");
 		var name = window.down("textfield[itemId='name']");

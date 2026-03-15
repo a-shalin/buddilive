@@ -4,7 +4,7 @@ Ext.define("BuddiLive.view.scheduled.panel.MonthlyByDayOfWeek", {
 	requires: [
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var s = this.initialConfig.selected;
 		this.itemId = "SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK";
 		this.border = false;
@@ -41,13 +41,15 @@ Ext.define("BuddiLive.view.scheduled.panel.MonthlyByDayOfWeek", {
 		this.callParent(arguments);
 	},
 	
-	getScheduleDay: function(){
+	getScheduleDay: function() {
 		return this.down("combobox").getValue();
 	},
-	getScheduleWeek: function(){
+
+	getScheduleWeek: function() {
 		return 0;
 	},
-	getScheduleMonth: function(){
+
+	getScheduleMonth: function() {
 		return 0;
 	}
 });

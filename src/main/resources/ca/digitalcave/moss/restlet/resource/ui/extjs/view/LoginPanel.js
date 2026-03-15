@@ -40,19 +40,21 @@ Ext.define('Login.view.LoginPanel', {
 
 		if (__ac.showCookieWarning) {
 			this.listeners = {
-				afterrender: function(loginPanel){
+
+				afterrender: function(loginPanel) {
 					var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
 					var allowCookies = allowCookiesStorage.getItem(window.location.href);
 					allowCookiesStorage.release();
-					if (allowCookies != "true"){
-						var showMessage = function(){
+					if (allowCookies != "true") {
+						var showMessage = function() {
 							Ext.Msg.show({
 								title: Login.translate("COOKIES_USED_TITLE"),
 								msg: Login.translate("COOKIES_USED_MESSAGE"),
 								buttons: Ext.Msg.YESNO,
 								modal: true,
-								fn: function(buttonId){
-									if (buttonId == "yes"){
+
+								fn: function(buttonId) {
+									if (buttonId == "yes") {
 										var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
 										allowCookiesStorage.setItem(window.location.href, "true");
 										allowCookiesStorage.release();
@@ -64,7 +66,7 @@ Ext.define('Login.view.LoginPanel', {
 							});
 						};
 
-						Ext.defer(function(){
+						Ext.defer(function() {
 							showMessage();
 						}, 10);
 					}
@@ -74,7 +76,7 @@ Ext.define('Login.view.LoginPanel', {
 
 		if (__ac.showLogin !== false) {
 			var loginItems = [
-				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "identifier", listeners: { afterrender: function(component){ component.focus(); } } },
+				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "identifier", listeners: { afterrender: function(component) { component.focus(); } } },
 				{ fieldLabel: Login.translate("PASSWORD_LABEL"), name: "password", inputType: "password" }
 			];
 			if (__ac.showRemember !== false) {
@@ -146,7 +148,7 @@ Ext.define('Login.view.LoginPanel', {
 						items: [
 							{ xtype: "panel", itemId: "qrCodeSecret", height: 350, border: false},
 							{ xtype: "textfield", editable: false, fieldLabel: Login.translate("TWO_FACTOR_SECRET_LABEL"), itemId: "textSecret", height: 25, hidden: true},
-							{ xtype: "button", text: Login.translate("SHOW_SECRET_BUTTON"), fieldLabel: " ", labelSeparator: "", listeners: {click: function(button){button.up("component[itemId=totpSetup]").down("component[itemId=textSecret]").setVisible(true); button.setVisible(false);}}},
+							{ xtype: "button", text: Login.translate("SHOW_SECRET_BUTTON"), fieldLabel: " ", labelSeparator: "", listeners: {click: function(button) {button.up("component[itemId=totpSetup]").down("component[itemId=textSecret]").setVisible(true); button.setVisible(false);}}},
 							{ xtype: "label", html: Login.translate("TWO_FACTOR_SETUP_INSTRUCTIONS")},
 							{ fieldLabel: Login.translate("TWO_FACTOR_LABEL"), name: "totpToken" },
 							{ xtype: "transientlabel", itemId: "messageTwoFactorSetup" }

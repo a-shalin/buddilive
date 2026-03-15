@@ -4,7 +4,7 @@ Ext.define('BuddiLive.view.restore.Form', {
 	requires: [
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		this.title = BuddiLive.translate("RESTORE"),
 		this.layout = "fit";
 		this.modal = true;

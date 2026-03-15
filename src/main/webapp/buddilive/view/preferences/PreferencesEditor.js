@@ -6,7 +6,7 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 		"BuddiLive.view.component.LocalesCombobox"
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var d = this.initialConfig.data
 
 		this.title = BuddiLive.translate("PREFERENCES");
@@ -29,7 +29,8 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						checked: d.encrypt,
 						boxLabel: BuddiLive.translate("ENCRYPT_DATA"),
 						listeners: {
-							change: function(checkbox){
+
+							change: function(checkbox) {
 								checkbox.up("form").down("textfield[itemId='password']").up("selfdocumentingfield").setVisible(d.encrypt != checkbox.getValue());
 								checkbox.up("form").down("textfield[itemId='password']").focus(true);
 							}
@@ -190,7 +191,7 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						forceSelection: true,
 						store: new Ext.data.Store({
 							fields: ["text", "value"],
-							data: (function(){
+							data: (function() {
 								var now = new Date();
 								return [
 									{text: BuddiLive.translate("USE_LOCALE_DEFAULTS"), value: ""},

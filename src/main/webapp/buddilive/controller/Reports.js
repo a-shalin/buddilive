@@ -25,10 +25,11 @@ Ext.define("BuddiLive.controller.Reports", {
 		});
 	},
 
-	showIncomeByCategoryPie: function(component){
+	showIncomeByCategoryPie: function(component) {
 		Ext.widget({
 			xtype: "reportpickerinterval",
-			callback: function(options){
+
+			callback: function(options) {
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
 					xtype: "reportpietotalsbycategory",
@@ -40,10 +41,12 @@ Ext.define("BuddiLive.controller.Reports", {
 			}
 		}).show();
 	},
-	showExpensesByCategoryPie: function(component){
+
+	showExpensesByCategoryPie: function(component) {
 		Ext.widget({
 			xtype: "reportpickerinterval",
-			callback: function(options){
+
+			callback: function(options) {
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
 					xtype: "reportpietotalsbycategory",
@@ -56,10 +59,11 @@ Ext.define("BuddiLive.controller.Reports", {
 		}).show();
 	},
 
-	showIncomeAndExpensesByCategoryTable: function(component){
+	showIncomeAndExpensesByCategoryTable: function(component) {
 		Ext.widget({
 			xtype: "reportpickerinterval",
-			callback: function(options){
+
+			callback: function(options) {
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
 					xtype: "reportincomeandexpensesbycategory",
@@ -71,10 +75,11 @@ Ext.define("BuddiLive.controller.Reports", {
 		}).show();
 	},
 
-	showAverageIncomeAndExpensesByCategoryTable: function(component){
+	showAverageIncomeAndExpensesByCategoryTable: function(component) {
 		Ext.widget({
 			xtype: "reportpickerinterval",
-			callback: function(options){
+
+			callback: function(options) {
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
 					xtype: "reportaverageincomeandexpensesbycategory",
@@ -86,7 +91,7 @@ Ext.define("BuddiLive.controller.Reports", {
 		}).show();
 	},
 
-	showInflowAndOutflowByAccountTable: function(component){
+	showInflowAndOutflowByAccountTable: function(component) {
 		if (!BuddiLive.util.UserConfig.get('premium')) {
 			Ext.MessageBox.show({
 				title: BuddiLive.translate("PREMIUM_TITLE"),
@@ -97,7 +102,8 @@ Ext.define("BuddiLive.controller.Reports", {
 		else {
 			Ext.widget({
 				xtype: "reportpickerinterval",
-				callback: function(options){
+
+				callback: function(options) {
 					var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 					var report = Ext.widget({
 						xtype: "reportinflowandoutflowbyaccount",
@@ -110,7 +116,7 @@ Ext.define("BuddiLive.controller.Reports", {
 		}
 	},
 
-	showInflowAndOutflowByPayeeTable: function(component){
+	showInflowAndOutflowByPayeeTable: function(component) {
 		if (!BuddiLive.util.UserConfig.get('premium')) {
 			Ext.MessageBox.show({
 				title: BuddiLive.translate("PREMIUM_TITLE"),
@@ -121,7 +127,8 @@ Ext.define("BuddiLive.controller.Reports", {
 		else {
 			Ext.widget({
 				xtype: "reportpickerinterval",
-				callback: function(options){
+
+				callback: function(options) {
 					var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 					var report = Ext.widget({
 						xtype: "reportinflowandoutflowbypayee",
@@ -134,10 +141,11 @@ Ext.define("BuddiLive.controller.Reports", {
 		}
 	},
 
-	showAccountBalancesOverTimeLine: function(component){
+	showAccountBalancesOverTimeLine: function(component) {
 		Ext.widget({
 			xtype: "reportpickerinterval",
-			callback: function(options){
+
+			callback: function(options) {
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
 					xtype: "reportaccountbalancesovertime",
@@ -149,10 +157,11 @@ Ext.define("BuddiLive.controller.Reports", {
 		}).show();
 	},
 
-	showNetWorthOverTimeLine: function(component){
+	showNetWorthOverTimeLine: function(component) {
 		Ext.widget({
 			xtype: "reportpickerinterval",
-			callback: function(options){
+
+			callback: function(options) {
 				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 				var report = Ext.widget({
 					xtype: "reportnetworthovertime",

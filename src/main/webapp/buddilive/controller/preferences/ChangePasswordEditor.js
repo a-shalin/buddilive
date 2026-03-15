@@ -8,11 +8,11 @@ Ext.define("BuddiLive.controller.preferences.ChangePasswordEditor", {
 		});
 	},
 
-	cancel: function(component){
+	cancel: function(component) {
 		component.up("changepasswordeditor").close();
 	},
 
-	ok: function(component){
+	ok: function(component) {
 		var window = component.up("changepasswordeditor");
 		var panel = window.initialConfig.panel;
 
@@ -31,7 +31,8 @@ Ext.define("BuddiLive.controller.preferences.ChangePasswordEditor", {
 			},
 			method: "POST",
 			jsonData: request,
-			success: function(response){
+
+			success: function(response) {
 				mask.hide();
 				window.close();
 				var connLogin = new Ext.data.Connection();
@@ -39,13 +40,15 @@ Ext.define("BuddiLive.controller.preferences.ChangePasswordEditor", {
 					url: "index",
 					method: "POST",
 					params: { action: "login", identifier: BuddiLive.util.UserConfig.get('plaintextIdentifier'), secret: request.newPassword },
-					failure: function(response){
+
+					failure: function(response) {
 						mask.hide();
 						BuddiLive.app.error(response);
 					}
 				});
 			},
-			failure: function(response){
+
+			failure: function(response) {
 				mask.hide();
 				BuddiLive.app.error(response);
 			}

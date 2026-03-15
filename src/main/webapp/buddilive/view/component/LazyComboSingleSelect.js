@@ -5,13 +5,14 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 		
 	],
 
-	onTriggerClick: function(){
+	onTriggerClick: function() {
 		if (this.initialConfig.clearOnTrigger) this.setValue();
 		this.callParent();
 	},
 
 	minChars: 1,
-	initComponent: function(){
+
+	initComponent: function() {
 		var combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
@@ -66,16 +67,17 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 				}
 			},
 			listeners: {
-				beforeload: function(store, operation){
+
+				beforeload: function(store, operation) {
 					var proxy = store.getProxy()
-					if (proxy && proxy.ebieLastRequest){
+					if (proxy && proxy.ebieLastRequest) {
 						proxy.ebieLastRequest.options.callback = null;
 						Ext.Ajax.abort(proxy.ebieLastRequest);
 					}
 
 					var params = Ext.apply({}, operation.getParams());
 					
-					if (combo.initialSetValue && combo.initialConfig){
+					if (combo.initialSetValue && combo.initialConfig) {
 						if (combo.initialConfig.value != null) {
 							params.filter = "";
 						}
@@ -84,7 +86,7 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 							return false;
 						}
 					}
-					else if (!combo.initialSetValue){
+					else if (!combo.initialSetValue) {
 						var value = (combo.getRawValue() ? combo.getRawValue() : "");
 						params.filter="* co '" + value + "'";
 					}
@@ -94,18 +96,19 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 					delete params.query;	//No reason to send this...
 					operation.setParams(params);
 				},
-				load: function(store, records, successful){
-					if (successful){
+
+				load: function(store, records, successful) {
+					if (successful) {
 						//Once the store is initially loaded, set the default value.
-						if (combo.initialSetValue && combo.store){
+						if (combo.initialSetValue && combo.store) {
 							combo.setValue(combo.initialConfig.value);
-							if (combo.getValue() == null && combo.initialConfig.defaultValue){
+							if (combo.getValue() == null && combo.initialConfig.defaultValue) {
 								combo.setValue(combo.initialConfig.defaultValue);
 							}
 							combo.initialSetValue = false;
 						}
 					}
-					else if (combo.initialConfig.errorHandler != null){
+					else if (combo.initialConfig.errorHandler != null) {
 						combo.initialConfig.errorHandler();
 					}
 				}
@@ -113,22 +116,22 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 		};
 		this.callParent(arguments);
 		
-		this.getStore().addListener("beforeload", function(){
+		this.getStore().addListener("beforeload", function() {
 			try {
 				combo.mask("Loading...");
 			}
-			catch (err){}
+			catch (err) {}
 		});
-		this.getStore().addListener("load", function(){
+		this.getStore().addListener("load", function() {
 			try {
 				combo.unmask();
 			}
-			catch (err){}
+			catch (err) {}
 		});
 	},
 	
-	setValue: function(value){
-		if (this.getStore().isLoaded() || value == null){
+	setValue: function(value) {
+		if (this.getStore().isLoaded() || value == null) {
 			this.callParent(arguments);
 		}
 		else {

@@ -5,7 +5,7 @@ Ext.define('BuddiLive.view.account.Editor', {
 		"BuddiLive.view.component.CurrencyField"
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var s = this.initialConfig.selected
 
 		this.title = (s ? BuddiLive.translate("EDIT_ACCOUNT") : BuddiLive.translate("ADD_ACCOUNT"));
@@ -34,6 +34,7 @@ Ext.define('BuddiLive.view.account.Editor', {
 						enableKeyEvents: true,
 						emptyText: BuddiLive.translate("ACCOUNT_EDITOR_NAME_EXAMPLES"),
 						listeners: {
+
 							afterrender: function(field) {
 								field.focus(false, 500);
 							}

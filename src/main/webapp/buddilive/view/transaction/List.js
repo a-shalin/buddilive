@@ -5,7 +5,7 @@ Ext.define('BuddiLive.view.transaction.List', {
 		"BuddiLive.store.transaction.ListStore"
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var transactionList = this;
 		this.layout = "fit";
 		this.store = Ext.create("BuddiLive.store.transaction.ListStore");
@@ -18,11 +18,12 @@ Ext.define('BuddiLive.view.transaction.List', {
 		this.features = [
 			{
 				ftype: "rowbody",
-				getAdditionalData: function(data, rowIndex, record, orig){
+
+				getAdditionalData: function(data, rowIndex, record, orig) {
 					var rowBody = "";
 					var s = record.data.splits;
 					var headerCt = this.view.headerCt, colspan = headerCt.getColumnCount();
-					for (var i = 0; i < s.length; i++){
+					for (var i = 0; i < s.length; i++) {
 						rowBody += "<div style='padding: 2px; height: 20px; width: 100%;'>"
 								+ "<span style='display: inline-block; width: 23%;'></span>"
 								+ "<span style='display: inline-block; width: 26%;'><i>" + s[i].from + " &rarr; " + s[i].to + "</i></span>" 
@@ -54,7 +55,8 @@ Ext.define('BuddiLive.view.transaction.List', {
 				hideable: false,
 				sortable: false,
 				flex: 30,
-				renderer: function(value, metadata, record){
+
+				renderer: function(value, metadata, record) {
 					return "<b>" + value + "</b>";
 				}
 			},
@@ -103,13 +105,13 @@ Ext.define('BuddiLive.view.transaction.List', {
 		
 		this.callParent(arguments);
 		
-		this.getStore().addListener("load", function(store, records){
+		this.getStore().addListener("load", function(store, records) {
 			//We start the transaction list disabled, for now.  Unsure if this will stay.
 			transactionList.enable();
 		});
 	},
 	
-	reload: function(){
+	reload: function() {
 		this.getView().refresh();					//This forces the scroll bar to move back to the top
 		this.getStore().load();
 	}

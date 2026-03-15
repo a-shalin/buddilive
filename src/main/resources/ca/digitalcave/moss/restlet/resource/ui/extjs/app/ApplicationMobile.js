@@ -11,7 +11,7 @@ Ext.Loader.setConfig({
 	paths: loaderPaths
 });
 
-Ext.require(["Login.util.I18n"], function(){
+Ext.require(["Login.util.I18n"], function() {
 	Login.util.I18n.init(window.__authI18n);
 
 	var views = ["LoginPanelMobile"];

@@ -10,7 +10,7 @@ Ext.define("BuddiLive.controller.budget.Panel", {
 		});
 	},
 	
-	reload: function(component){
+	reload: function(component) {
 		var budgetPanel = (component.xtype == "budgetpanel" ? component : component.up("budgetpanel"));
 		var conn = new Ext.data.Connection();
 		conn.request({
@@ -19,12 +19,13 @@ Ext.define("BuddiLive.controller.budget.Panel", {
 				Accept: "application/json"
 			},
 			method: "GET",
-			success: function(response){
+
+			success: function(response) {
 				var json = Ext.decode(response.responseText, true);
 				Ext.suspendLayouts();
 				budgetPanel.removeAll();
-				if (json != null){
-					for (var i = 0; i < json.data.length; i++){
+				if (json != null) {
+					for (var i = 0; i < json.data.length; i++) {
 						budgetPanel.add(
 							{
 								xtype: "budgettree",
@@ -37,7 +38,8 @@ Ext.define("BuddiLive.controller.budget.Panel", {
 				budgetPanel.setActiveTab(budgetPanel.child("budgettree[itemId='MONTH']") || 1);
 				Ext.resumeLayouts(true);
 			},
-			failure: function(response){
+
+			failure: function(response) {
 				BuddiLive.app.error(response);
 			}
 		});

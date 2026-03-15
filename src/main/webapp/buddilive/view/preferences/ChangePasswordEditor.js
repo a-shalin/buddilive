@@ -5,7 +5,7 @@ Ext.define('BuddiLive.view.preferences.ChangePasswordEditor', {
 		"Login.view.PasswordField"
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var d = this.initialConfig.data
 
 		this.title = BuddiLive.translate("CHANGE_PASSWORD");

@@ -4,7 +4,7 @@ Ext.define("BuddiLive.view.scheduled.panel.BiWeekly", {
 	requires: [
 	],
 	
-	initComponent: function(){
+	initComponent: function() {
 		var s = this.initialConfig.selected;
 		this.itemId = "SCHEDULE_FREQUENCY_BIWEEKLY";
 		this.border = false;
@@ -41,13 +41,15 @@ Ext.define("BuddiLive.view.scheduled.panel.BiWeekly", {
 		this.callParent(arguments);
 	},
 	
-	getScheduleDay: function(){
+	getScheduleDay: function() {
 		return this.down("combobox").getValue();
 	},
-	getScheduleWeek: function(){
+
+	getScheduleWeek: function() {
 		return 0;
 	},
-	getScheduleMonth: function(){
+
+	getScheduleMonth: function() {
 		return 0;
 	}
 });

@@ -6,14 +6,16 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 	],
 
 	listeners: {
-		beforedeselect: function(component, record, index){
-			if (!component.initialConfig.allowBlank && component.getValue().length <= 1){
+
+		beforedeselect: function(component, record, index) {
+			if (!component.initialConfig.allowBlank && component.getValue().length <= 1) {
 				return false;		//Prevent deselection of last item
 			}
 		},
-		select: function(component, records){
-			if (component.sorted && Ext.isArray(records)){
-				records.sort(function(a, b){
+
+		select: function(component, records) {
+			if (component.sorted && Ext.isArray(records)) {
+				records.sort(function(a, b) {
 					return component.getStore().indexOf(a) - component.getStore().indexOf(b);
 				});
 				//Setting the same records in a different order doesn't actually change anything - you need to clear the store first to register a change.
@@ -26,11 +28,12 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 	},
 
 	minChars: 1,
-	initComponent: function(){
+
+	initComponent: function() {
 		var combo = this;
 
 		//We want the initial value to be an array...
-		if (this.value != null && !Ext.isArray(this.value)){
+		if (this.value != null && !Ext.isArray(this.value)) {
 			this.value = ("" + this.value).split(/,/g);
 		}
 		this.initialSetValue = (this.value != null);	//If there is a default value, set it once the store is loaded.
@@ -82,52 +85,54 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 				}
 			},
 			listeners: {
-				beforeload: function(store, operation){
+
+				beforeload: function(store, operation) {
 					var proxy = store.getProxy()
-					if (proxy && proxy.ebieLastRequest){
+					if (proxy && proxy.ebieLastRequest) {
 						proxy.ebieLastRequest.options.callback = null;
 						Ext.Ajax.abort(proxy.ebieLastRequest);
 					}
 				},
-				load: function(store, records, successful){
-					if (successful){
+
+				load: function(store, records, successful) {
+					if (successful) {
 						//Once the store is initially loaded, set the default value.
-						if (combo.initialSetValue && combo.store){
+						if (combo.initialSetValue && combo.store) {
 							//debugger;
 							combo.setValue(combo.initialConfig.value);
-							if (combo.getValue() == null && combo.initialConfig.defaultValue){
+							if (combo.getValue() == null && combo.initialConfig.defaultValue) {
 								combo.setValue(combo.initialConfig.defaultValue);
 							}
 							combo.initialSetValue = false;
 						}
 					}
-					else if (combo.initialConfig.errorHandler != null){
+					else if (combo.initialConfig.errorHandler != null) {
 						combo.initialConfig.errorHandler();
 					}
 				}
 			}
 		};
 		
-		if (staticData){
+		if (staticData) {
 			//debugger;
 		}
 		
 		this.callParent(arguments);
 		
-		this.getStore().addListener("beforeload", function(){
+		this.getStore().addListener("beforeload", function() {
 			try {
 				combo.mask("Loading...");
 			}
-			catch (err){}
+			catch (err) {}
 		});
-		this.getStore().addListener("load", function(){
+		this.getStore().addListener("load", function() {
 			try {
 				combo.unmask();
 			}
-			catch (err){}
+			catch (err) {}
 		});
 		
-		if (staticData){
+		if (staticData) {
 			//debugger;
 			//var value = this.value;
 			//this.setValue();
@@ -135,11 +140,11 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 		}
 	},
 	
-	setValue: function(value){
-		if (value != null && !Ext.isArray(value)){
+	setValue: function(value) {
+		if (value != null && !Ext.isArray(value)) {
 			value = ("" + value).split(/,/g);
 		}
-		if (this.getStore().isLoaded()){
+		if (this.getStore().isLoaded()) {
 			this.suspendEvent("beforedeselect");
 			this.callParent();
 			this.resumeEvent("beforedeselect");

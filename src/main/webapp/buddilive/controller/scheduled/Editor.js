@@ -13,7 +13,7 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 		});
 	},
 	
-	updateButtons: function(component){
+	updateButtons: function(component) {
 		var window = component.up("schedulededitor");
 		var ok = window.down("button[itemId='ok']");
 		var name = window.down("textfield[itemId='name']");
@@ -23,11 +23,11 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 		ok.setDisabled(name.getValue().length == 0 || startDate.getValue() == null || !transaction.validate());
 	},
 	
-	cancel: function(component){
+	cancel: function(component) {
 		component.up("schedulededitor").close();
 	},
 	
-	ok: function(component){
+	ok: function(component) {
 		var window = component.up("schedulededitor");
 		var panel = window.initialConfig.panel;
 		var selected = window.initialConfig.selected;
@@ -58,13 +58,15 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 			},
 			method: "POST",
 			jsonData: request,
-			success: function(response){
+
+			success: function(response) {
 				mask.hide();
 				window.close();
 				panel.getStore().load();
 				panel.getSelectionModel().deselectAll()
 			},
-			failure: function(response){
+
+			failure: function(response) {
 				mask.hide();
 				BuddiLive.app.error(response);
 			}

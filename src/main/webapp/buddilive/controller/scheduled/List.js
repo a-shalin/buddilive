@@ -7,7 +7,7 @@ Ext.define("BuddiLive.controller.scheduled.List", {
 		});
 	},
 
-	selectionChange: function(selectionModel, selected){
+	selectionChange: function(selectionModel, selected) {
 		var enabled = selected && selected.length > 0;
 
 		var viewport = selectionModel.view.panel.up("buddiviewport");

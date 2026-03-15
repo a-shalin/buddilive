@@ -36,8 +36,9 @@ Ext.define("BuddiLive.view.Viewport", {
 
 		if (!isPremium) {
 			northConfig.listeners = {
-				afterrender: function(){
-					window.setInterval(function(){
+
+				afterrender: function() {
+					window.setInterval(function() {
 						var iframe = document.getElementById('adsensetop');
 						if (iframe != null) iframe.src += "";
 					}, 1000 * 60 * 20);
@@ -92,16 +93,16 @@ Ext.define("BuddiLive.view.Viewport", {
 		this.callParent();
 	},
 
-	reload: function(){
+	reload: function() {
 		location.reload();
 	},
 
-	getDockedItems: function(type){
+	getDockedItems: function(type) {
 		var isPremium = BuddiLive.util.UserConfig.get('premium');
 		var isEncrypted = BuddiLive.util.UserConfig.get('encrypted');
 		var items = [];
 
-		if (type == "accounts"){
+		if (type == "accounts") {
 			items.push(
 				{
 					text: BuddiLive.translate("NEW_ACCOUNT"),
@@ -122,7 +123,7 @@ Ext.define("BuddiLive.view.Viewport", {
 				}
 			);
 		}
-		else if (type == "categories"){
+		else if (type == "categories") {
 			items.push(
 				{
 					text: BuddiLive.translate("NEW_BUDGET_CATEGORY"),
@@ -143,7 +144,7 @@ Ext.define("BuddiLive.view.Viewport", {
 				}
 			);
 		}
-		else if (type == "scheduled"){
+		else if (type == "scheduled") {
 			items.push(
 				{
 					text: BuddiLive.translate("NEW_SCHEDULED_TRANSACTION"),
@@ -164,7 +165,7 @@ Ext.define("BuddiLive.view.Viewport", {
 				}
 			);
 		}
-		else if (type == "report"){
+		else if (type == "report") {
 			items.push(
 				{
 					text: BuddiLive.translate("REFRESH"),

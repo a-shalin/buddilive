@@ -5,7 +5,8 @@ Ext.define("BuddiLive.view.transaction.DescriptionCombobox", {
 	],
 	
 	store: "transaction.DescriptionComboboxStore",
-	initComponent: function(){
+
+	initComponent: function() {
 		var combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
@@ -18,18 +19,18 @@ Ext.define("BuddiLive.view.transaction.DescriptionCombobox", {
 
 		this.callParent(arguments);
 		
-		this.addListener("select", function(combo, record){
-			if (record != null > 0){
+		this.addListener("select", function(combo, record) {
+			if (record != null > 0) {
 				combo.up("transactioneditor").setTransaction(record.data.transaction, true);
 			}
 		});
 		
-		this.addListener("keyup", function(combo, e){
-			if (e.getKey() == e.ESC){
+		this.addListener("keyup", function(combo, e) {
+			if (e.getKey() == e.ESC) {
 				combo.setRawValue("");
 				combo.getStore().clearFilter();
 			}
-			else if (e.getKey() == e.DOWN || e.getKey() == e.UP){
+			else if (e.getKey() == e.DOWN || e.getKey() == e.UP) {
 				return;
 			}
 			else {
@@ -37,10 +38,10 @@ Ext.define("BuddiLive.view.transaction.DescriptionCombobox", {
 				combo.getStore().filter({property: "value", value: combo.getRawValue(), anyMatch: true, caseSensitive: false});
 			}
 		});
-		this.addListener("blur", function(combo){
+		this.addListener("blur", function(combo) {
 			combo.getStore().clearFilter();
 		});
-		this.addListener("focus", function(combo){
+		this.addListener("focus", function(combo) {
 			combo.getStore().clearFilter();
 		});
 	}

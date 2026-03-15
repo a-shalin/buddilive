@@ -6,12 +6,13 @@ Ext.define('BuddiLive.view.report.AverageIncomeAndExpensesByCategory', {
 	
 	closable: true,
 	layout: "fit",
-	initComponent: function(){
+
+	initComponent: function() {
 		var me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
 		this.title = BuddiLive.translate("REPORT_TABLE_AVERAGE_INCOME_AND_EXPENSES_BY_CATEGORY") + " - " + this.initialConfig.options.dateRange;
-		var styledRenderer = function(value, metaData, record){
+		var styledRenderer = function(value, metaData, record) {
 			metaData.style = record.data[metaData.column.dataIndex + "Style"];
 			return value;
 		};

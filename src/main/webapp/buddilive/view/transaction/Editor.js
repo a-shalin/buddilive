@@ -9,7 +9,8 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 	
 	layout: "vbox",
 	border: false,
-	initComponent: function(){
+
+	initComponent: function() {
 		this.items = [
 			{xtype: "spliteditor"}
 		];
@@ -89,7 +90,7 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 		this.setTransaction(this.initialConfig.transaction);
 	},
 	
-	getTransaction: function(transaction){
+	getTransaction: function(transaction) {
 		var t = {};
 		t.id = this.down("hidden[itemId='id']").getValue();
 		t.date = Ext.Date.format(this.down("datefield[itemId='date']").getValue(), "Y-m-d");
@@ -97,7 +98,7 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 		t.number = this.down("textfield[itemId='number']").getValue();
 		t.splits = [];
 		
-		for (var i = 0;  i < this.items.length; i++){
+		for (var i = 0;  i < this.items.length; i++) {
 			t.splits.push(this.items.get(i).getSplit());
 		}
 		return t;
@@ -107,18 +108,19 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 	//loadFromDescription is true if we are loading this transaction from the saved transactions via description pulldown.  When true, we do not update 
 	// any transaction-specific details, only the splits info.
 	//preserveDate is true if we want to keep the date.  This is used when we have just recorded a transaction, and want to keep it for the next one.
-	setTransaction: function(transaction, loadFromDescription, preserveDate){
+
+	setTransaction: function(transaction, loadFromDescription, preserveDate) {
 		Ext.suspendLayouts();
 		
 		//Save this so that we can check in the controller what has changed.
-		if (!loadFromDescription){
+		if (!loadFromDescription) {
 			this.lastTransaction = transaction;
 		}
 		
 		transaction = (transaction ? transaction : {});
 		
 		if (!loadFromDescription) {
-			if (!preserveDate){
+			if (!preserveDate) {
 				if (transaction && transaction.dateIso) this.down("datefield[itemId='date']").setValue(Ext.Date.parse(transaction.dateIso, "Y-m-d", true));
 				else this.down("datefield[itemId='date']").setValue();
 			}
@@ -132,45 +134,45 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 		var existingSplits = [];
 	
 		//Remove all the split editors
-		while (this.items.length > 0){
+		while (this.items.length > 0) {
 			existingSplits.push(this.items.get(0).getSplit());
 			this.remove(this.items.get(0));
 		}
 
 		var splits = (transaction.splits ? transaction.splits : []);
-		if (splits && splits.length > 0){
+		if (splits && splits.length > 0) {
 			//Add a new split editor for each split
-			for (var i = 0; i < splits.length; i++){
+			for (var i = 0; i < splits.length; i++) {
 				var split = Ext.apply(splits[i]);
-				if (loadFromDescription && existingSplits.length > i){
-					if (existingSplits[i].amount){
+				if (loadFromDescription && existingSplits.length > i) {
+					if (existingSplits[i].amount) {
 						split.amount = existingSplits[i].amount;
 						split.amountNumber = existingSplits[i].amount;	//We can treat the string as a number; the currencyField will parse it.
 					}
-					if (existingSplits[i].fromId){
+					if (existingSplits[i].fromId) {
 						split.fromId = existingSplits[i].fromId;
 						split.fromType = existingSplits[i].fromType;
 					}
-					if (existingSplits[i].toId){
+					if (existingSplits[i].toId) {
 						split.toId = existingSplits[i].toId;
 						split.toType = existingSplits[i].toType;
 					}
-					if (existingSplits[i].memo){
+					if (existingSplits[i].memo) {
 						split.memo = existingSplits[i].memo;
 					}
 				}
-				if (loadFromDescription && !this.initialConfig.scheduledTransaction){
+				if (loadFromDescription && !this.initialConfig.scheduledTransaction) {
 					//If this is being set from a description selection, we need to ensure that
 					// a) one of the sources is set to the selected source
 					// b) if not a), then the source we change to selected source should be an account, not a budget category.
-					if (this.source != split.fromId && this.source != split.toId){
-						if (split.fromType == "E" || split.fromType == "I"){
+					if (this.source != split.fromId && this.source != split.toId) {
+						if (split.fromType == "E" || split.fromType == "I") {
 							split.toId = this.source;
 						}
-						else if (split.toType == "E" || split.toType == "E"){
+						else if (split.toType == "E" || split.toType == "E") {
 							split.fromId = this.source;
 						}
-						else if (split.toType == "C"){
+						else if (split.toType == "C") {
 							split.fromId = this.source;
 						}
 						else {
@@ -191,17 +193,17 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 		this.fireEvent("change", this);
 	},
 	
-	setSource: function(source){
+	setSource: function(source) {
 		this.source = source;
 	},
 	
-	validate: function(){
+	validate: function() {
 		if (!this.initialConfig.scheduledTransaction && !Ext.isDate(this.down("datefield[itemId='date']").getValue())) return false;
 		var description = this.down("combobox[itemId='description']").getValue();
 		if (description == null || description.length == 0) return false;
 		if (this.items.length == 0) return false;
 		
-		for (var i = 0;  i < this.items.length; i++){
+		for (var i = 0;  i < this.items.length; i++) {
 			var split = this.items.get(i).getSplit();
 			if (split.amount == 0) return false;
 			if (!split.fromId || !split.toId) return false;
