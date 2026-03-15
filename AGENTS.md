@@ -11,7 +11,24 @@
 - Run only the smallest relevant verification for the edited area.
 - If a broader cleanup seems useful, propose it separately instead of bundling it into the change.
 
-## Architecture
+## Key architecture/conventions to follow
+- **Code documentation**: add only when behavior is non-obvious; avoid documenting variables, arguments, method names.
+- **Java**:
+    - Prefer `final` for method parameters and local variables unless mutation is required
+- **For newly written SQL**:
+    - Lowercase keywords, table names, column names, and aliases
+    - Snake_case identifiers
+    - Single quotes for strings
+    - Explicit aliases and readable indentation
+    - CTEs for deeply nested logic
+- **JavaScript, ExtJS**
+    - For local variables in new code use `const` by default, `let` if assignment is required.
+- **File Formatting**:
+    - avoid trailing blank lines at end of file.
+    - Java/JS
+        - keep a blank line before each method declaration;
+        - use one space after operators and commas (if not at end of line), and one space before `{`;
+        - no space between method name and opening parenthesis.
 - See [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md) for high-level architecture overview and design decisions.
 
 ## Commits
