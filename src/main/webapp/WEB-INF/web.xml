@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="https://jakarta.ee/xml/ns/jakartaee" xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd" id="WebApp_ID" version="5.0">
   <display-name>Buddi Live - @git@</display-name>
+  <context-param>
+    <param-name>org.eclipse.jetty.server.Request.maxFormContentSize</param-name>
+    <param-value>104857600</param-value>
+  </context-param>
   <servlet>
     <servlet-name>RestletServlet</servlet-name>
     <servlet-class>org.restlet.ext.servlet.ServerServlet</servlet-class>

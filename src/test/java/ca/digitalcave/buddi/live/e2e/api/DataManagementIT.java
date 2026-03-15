@@ -1,5 +1,7 @@
 package ca.digitalcave.buddi.live.e2e.api;
 
+import java.nio.charset.StandardCharsets;
+
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
@@ -121,6 +123,32 @@ public class DataManagementIT extends BaseIT {
 		assertThat(data).hasSize(1);
 		assertThat(data.getJSONObject(0).getString("description")).isEqualTo("active restore tx");
 		assertThat(data.getJSONObject(0).getBoolean("deleted")).isFalse();
+	}
+
+	@Test
+	@Order(3)
+	void testRestoreAcceptsLargeUpload() throws Exception {
+		JSONObject restoreData = new JSONObject();
+		restoreData.put("padding", "x".repeat(50 * 1024 * 1024));
+
+		byte[] restoreBytes = restoreData.toString().getBytes(StandardCharsets.UTF_8);
+		assertThat(restoreBytes.length).isGreaterThan(49 * 1024 * 1024);
+
+		RequestBody file = RequestBody.create(restoreBytes, MediaType.get("application/json"));
+		RequestBody multipart = new MultipartBody.Builder()
+			.setType(MultipartBody.FORM)
+			.addFormDataPart("file", "large-restore.json", file)
+			.build();
+		Request request = new Request.Builder()
+			.url(getBaseUrl() + "/data/restore")
+			.post(multipart)
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(200);
+			JSONObject result = new JSONObject(response.body().string());
+			assertThat(result.getBoolean("success")).isTrue();
+		}
 	}
 
 	private int findAccountIdByName(JSONObject accounts, String name) {
