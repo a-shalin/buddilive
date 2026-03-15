@@ -102,3 +102,16 @@
         hour: "3"
         day: "1,15"
         job: "cd ~/{{ app_name }} && docker compose run --rm certbot renew --webroot -w /var/www/certbot && docker compose exec nginx nginx -s reload"
+
+    - name: Install Postgres backup to S3 script
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/templates/pg_backup_to_s3.sh.j2"
+        dest: "~/pg_backup_to_s3.sh"
+        mode: "0700"
+
+    - name: Set up daily Postgres backup cron job
+      ansible.builtin.cron:
+        name: "Daily Postgres backup to S3"
+        minute: "15"
+        hour: "2"
+        job: "~/pg_backup_to_s3.sh >> ~/pg_backup_to_s3.log 2>&1"
