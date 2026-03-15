@@ -37,7 +37,6 @@ Ext.define('BuddiLive.view.budget.Editor', {
 						enableKeyEvents: true,
 						emptyText: BuddiLive.translate("BUDGET_CATEGORY_EXAMPLES"),
 						listeners: {
-
 							afterrender: function(field) {
 								field.focus(false, 500);
 							}
@@ -53,7 +52,6 @@ Ext.define('BuddiLive.view.budget.Editor', {
 						value: (s ? s.parent : null),
 						url: "data/categories/parents.json" + (s ? "?exclude=" + s.id : ""),
 						listeners: {
-
 							change: function() {
 								var parent = editor.down("parentcombobox[itemId='parent']");
 								if (parent.getValue() != null && (parent.getValue() + "").length > 0) {

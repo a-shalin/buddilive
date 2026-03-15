@@ -28,7 +28,6 @@ Ext.define('Login.view.SelfDocumentingField', {
 				tooltip: (this.initialConfig.helpButtonTooltip ? this.initialConfig.helpButtonTooltip : Login.translate("WHAT_IS_THIS")),
 				tabIndex: -1,
 				listeners: {
-
 					click: function() {
 						Ext.MessageBox.show({
 							title: messageTitle,

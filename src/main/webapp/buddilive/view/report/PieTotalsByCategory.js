@@ -27,7 +27,6 @@ Ext.define('BuddiLive.view.report.PieTotalsByCategory', {
 						}
 					},
 					listeners: {
-
 						beforeload: function(store, operation, eOpts) {
 							me.mask(BuddiLive.translate("LOADING"));
 						},

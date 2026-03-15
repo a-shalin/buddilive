@@ -26,7 +26,7 @@
 - **File Formatting**:
     - avoid trailing blank lines at end of file.
     - Java/JS
-        - keep a blank line before each method declaration;
+        - keep a blank line before each method declaration, except when it is the first method in a block;
         - use one space after operators and commas (if not at end of line), and one space before `{`;
         - no space between method name and opening parenthesis.
 - before submitting, verify all newly added/edited lines follow these rules.

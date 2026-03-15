@@ -50,7 +50,6 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 							else return "Password too weak.";
 						},
 						listeners: {
-
 							keyup: function(field) {
 								var color;
 								var value = field.getValue();

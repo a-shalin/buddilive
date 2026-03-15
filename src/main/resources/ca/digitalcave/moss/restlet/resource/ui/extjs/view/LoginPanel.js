@@ -40,7 +40,6 @@ Ext.define('Login.view.LoginPanel', {
 
 		if (__ac.showCookieWarning) {
 			this.listeners = {
-
 				afterrender: function(loginPanel) {
 					var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
 					var allowCookies = allowCookiesStorage.getItem(window.location.href);

@@ -4,13 +4,11 @@ Ext.define("Login.controller.LoginController", {
 	init: function() {
 		this.control({
 			"login button[itemId=back]": {
-
 				click: function(button) {
 					button.up('form').up('panel').getLayout().setActiveItem(0);
 				}
 			},
 			"login button[itemId=forward]": {
-
 				click: function(button) {
 					button.up('form').up('panel').getLayout().next();
 				}

@@ -26,7 +26,6 @@ Ext.define('BuddiLive.view.report.NetWorthOverTime', {
 						}
 					},
 					listeners: {
-
 						beforeload: function(store, operation, eOpts) {
 							me.mask(BuddiLive.translate("LOADING"));
 						},

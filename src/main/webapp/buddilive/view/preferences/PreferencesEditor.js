@@ -29,7 +29,6 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						checked: d.encrypt,
 						boxLabel: BuddiLive.translate("ENCRYPT_DATA"),
 						listeners: {
-
 							change: function(checkbox) {
 								checkbox.up("form").down("textfield[itemId='password']").up("selfdocumentingfield").setVisible(d.encrypt != checkbox.getValue());
 								checkbox.up("form").down("textfield[itemId='password']").focus(true);

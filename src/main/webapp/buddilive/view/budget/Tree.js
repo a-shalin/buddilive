@@ -104,7 +104,6 @@ Ext.define('BuddiLive.view.budget.Tree', {
 					fieldStyle: "text-align: right;",
 					formatText: "0.00",
 					listeners: {
-
 						focus: function(component) {
 							component.selectText();
 						}

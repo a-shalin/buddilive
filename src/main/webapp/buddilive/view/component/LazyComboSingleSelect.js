@@ -67,7 +67,6 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 				}
 			},
 			listeners: {
-
 				beforeload: function(store, operation) {
 					var proxy = store.getProxy()
 					if (proxy && proxy.ebieLastRequest) {

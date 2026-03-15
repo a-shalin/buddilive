@@ -21,7 +21,6 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 		var splitEditor = this;
 		
 		this.listeners = {
-
 			boxready: function() {
 				//Needed when there are multiple splits loaded from setTransaction()
 				splitEditor.fireEvent("updateButtons", splitEditor.up("transactioneditor"));

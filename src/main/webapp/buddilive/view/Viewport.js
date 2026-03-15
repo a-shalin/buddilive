@@ -36,7 +36,6 @@ Ext.define("BuddiLive.view.Viewport", {
 
 		if (!isPremium) {
 			northConfig.listeners = {
-
 				afterrender: function() {
 					window.setInterval(function() {
 						var iframe = document.getElementById('adsensetop');

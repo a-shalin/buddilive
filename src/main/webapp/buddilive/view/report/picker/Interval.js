@@ -48,7 +48,6 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 							]
 						}),
 						listeners: {
-
 							select: function(combo) {
 								combo.up("form").down("selfdocumentingfield[childItemId='startDate']").setVisible(combo.getValue() == "PLUGIN_FILTER_OTHER");
 								combo.up("form").down("selfdocumentingfield[childItemId='endDate']").setVisible(combo.getValue() == "PLUGIN_FILTER_OTHER");
@@ -69,7 +68,6 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 						value: new Date(),
 						maxValue: new Date(),
 						listeners: {
-
 							change: function(field) {
 								field.up("form").down("datefield[itemId='endDate']").setMinValue(field.getValue());
 							}
@@ -87,7 +85,6 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 						value: new Date(),
 						minValue: new Date(),
 						listeners: {
-
 							change: function(field) {
 								field.up("form").down("datefield[itemId='startDate']").setMaxValue(field.getValue());
 							}
@@ -101,7 +98,6 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 				text: BuddiLive.translate("OK"),
 				itemId: "ok",
 				listeners: {
-
 					click: function() {
 						var interval = me.down("combobox[itemId='interval']").getValue();
 						var dateRange = me.down("combobox[itemId='interval']").getRawValue();
@@ -131,7 +127,6 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 				text: BuddiLive.translate("CANCEL"),
 				itemId: "cancel",
 				listeners: {
-
 					click: function() {
 						me.close();
 					}

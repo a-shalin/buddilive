@@ -6,7 +6,6 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 	],
 
 	listeners: {
-
 		beforedeselect: function(component, record, index) {
 			if (!component.initialConfig.allowBlank && component.getValue().length <= 1) {
 				return false;		//Prevent deselection of last item
@@ -85,7 +84,6 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 				}
 			},
 			listeners: {
-
 				beforeload: function(store, operation) {
 					var proxy = store.getProxy()
 					if (proxy && proxy.ebieLastRequest) {

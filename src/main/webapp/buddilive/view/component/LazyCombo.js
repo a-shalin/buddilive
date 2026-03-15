@@ -9,7 +9,6 @@ Ext.define("BuddiLive.view.component.LazyCombo", {
 	layout: "card",
 
 	listeners: {
-
 		afterrender: function(component) {
 			Ext.defer(function() {
 				if (component.initialConfig.multiSelect) {

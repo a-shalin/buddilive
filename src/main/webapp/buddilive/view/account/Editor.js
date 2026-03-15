@@ -34,7 +34,6 @@ Ext.define('BuddiLive.view.account.Editor', {
 						enableKeyEvents: true,
 						emptyText: BuddiLive.translate("ACCOUNT_EDITOR_NAME_EXAMPLES"),
 						listeners: {
-
 							afterrender: function(field) {
 								field.focus(false, 500);
 							}

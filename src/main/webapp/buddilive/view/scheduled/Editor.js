@@ -47,7 +47,6 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 						fieldLabel: BuddiLive.translate("SCHEDULED_TRANSACTION_NAME"),
 						allowBlank: false,
 						listeners: {
-
 							afterrender: function(field) {
 								field.focus(false, 500);
 							}
@@ -83,7 +82,6 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 						queryMode: "local",
 						valueField: "value",
 						listeners: {
-
 							change: function(component) {
 								//Change the card layout to show the new item
 								component.up("form").down("panel[itemId='cardLayoutPanel']").getLayout().setActiveItem(component.getValue());
@@ -127,7 +125,6 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 							{xtype: "scheduledpanelmultiplemonthseveryyear", selected: s}
 						],
 						listeners: {
-
 							afterrender: function(component) {
 								//Change the card layout to show the selected item if this is an editor
 								if (s != null) {

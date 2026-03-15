@@ -54,7 +54,6 @@ Ext.define('Login.view.LoginPanelMobile', {
 
 		if (__ac.showCookieWarning) {
 			this.listeners = {
-
 				afterrender: function() {
 					var url = window.location.href;
 					var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
@@ -77,7 +76,6 @@ Ext.define('Login.view.LoginPanelMobile', {
 											{
 												text: "Yes",
 												listeners: {
-
 													afterrender: function(button) {
 														button.focus();
 													},
