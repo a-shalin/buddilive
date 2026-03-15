@@ -116,8 +116,10 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						"boxLabel": BuddiLive.translate("SPACE_BETWEEN_CURRENCY_AND_AMOUNT")
 					},
 					{
-						"xtype": "combobox",
+						"xtype": "selfdocumentingfield",
 						"anchor": "100%",
+						"messageBody": BuddiLive.translate("HELP_DECIMAL_SEPARATOR"),
+						"type": "combobox",
 						"itemId": "decimalSeparator",
 						"fieldLabel": BuddiLive.translate("DECIMAL_SEPARATOR"),
 						"editable": false,
@@ -135,8 +137,10 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						"valueField": "value"
 					},
 					{
-						"xtype": "combobox",
+						"xtype": "selfdocumentingfield",
 						"anchor": "100%",
+						"messageBody": BuddiLive.translate("HELP_THOUSAND_SEPARATOR"),
+						"type": "combobox",
 						"itemId": "thousandSeparator",
 						"fieldLabel": BuddiLive.translate("THOUSAND_SEPARATOR"),
 						"editable": false,
@@ -156,8 +160,10 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						"valueField": "value"
 					},
 					{
-						"xtype": "combobox",
+						"xtype": "selfdocumentingfield",
 						"anchor": "100%",
+						"messageBody": BuddiLive.translate("HELP_NEGATIVE_FORMAT"),
+						"type": "combobox",
 						"itemId": "negativeFormat",
 						"fieldLabel": BuddiLive.translate("NEGATIVE_FORMAT"),
 						"editable": false,
