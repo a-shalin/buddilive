@@ -8,6 +8,9 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 	
 	initComponent: function() {
 		let d = this.initialConfig.data
+		const separatorOptionLabel = function(symbol, descriptionKey) {
+			return symbol + " (" + BuddiLive.translate(descriptionKey) + ")";
+		};
 
 		this.title = BuddiLive.translate("PREFERENCES");
 		this.layout = "fit";
@@ -129,8 +132,8 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 							fields: ["text", "value"],
 							data: [
 								{text: BuddiLive.translate("USE_LOCALE_DEFAULTS"), value: ""},
-								{text: ".", value: "."},
-								{text: ",", value: ","}
+								{text: separatorOptionLabel(".", "SEPARATOR_DOT"), value: "."},
+								{text: separatorOptionLabel(",", "SEPARATOR_COMMA"), value: ","}
 							]
 						}),
 						queryMode: "local",
@@ -150,10 +153,10 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 							fields: ["text", "value"],
 							data: [
 								{text: BuddiLive.translate("USE_LOCALE_DEFAULTS"), value: ""},
-								{text: ",", value: ","},
-								{text: ".", value: "."},
-								{text: " ", value: " "},
-								{text: "'", value: "'"}
+								{text: separatorOptionLabel(",", "SEPARATOR_COMMA"), value: ","},
+								{text: separatorOptionLabel(".", "SEPARATOR_DOT"), value: "."},
+								{text: separatorOptionLabel(" ", "SEPARATOR_SPACE"), value: " "},
+								{text: separatorOptionLabel("'", "SEPARATOR_APOSTROPHE"), value: "'"}
 							]
 						}),
 						queryMode: "local",
