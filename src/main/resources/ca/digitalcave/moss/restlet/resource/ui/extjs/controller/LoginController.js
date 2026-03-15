@@ -49,7 +49,7 @@ Ext.define("Login.controller.LoginController", {
 
 	authenticate: function(cmp, e) {
 		if (!(e.getKey()) || e.getKey() == e.ENTER) {
-			var form = cmp.up('form').getForm();
+			let form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/login",
@@ -59,9 +59,9 @@ Ext.define("Login.controller.LoginController", {
 				},
 
 				failure: function(form, action) {
-					var response = action.result;
+					let response = action.result;
 					if (response && response.next == "passwordExpired") {
-						var card = cmp.up("panel[itemId='authenticate']").up('panel').getLayout().setActiveItem("passwordExpired");
+						let card = cmp.up("panel[itemId='authenticate']").up('panel').getLayout().setActiveItem("passwordExpired");
 						card.down('hiddenfield[name=identifier]').setValue(response.key);
 						cmp.up("panel[itemId='authenticate']").up("panel").down("transientlabel[itemId='messagePasswordExpired']").setDisappearingHtml(Login.translate("FORCED_PASSWORD_CHANGE_MESSAGE"), 30000);
 					}
@@ -82,7 +82,7 @@ Ext.define("Login.controller.LoginController", {
 
 	passwordExpired: function(cmp, e) {
 		if (!(e.getKey()) || e.getKey() == e.ENTER) {
-			var form = cmp.up('form').getForm();
+			let form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/passwordExpired",
@@ -100,7 +100,7 @@ Ext.define("Login.controller.LoginController", {
 
 	totpToken: function(cmp, e) {
 		if (!(e.getKey()) || e.getKey() == e.ENTER) {
-			var form = cmp.up('form').getForm();
+			let form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/totpToken",
@@ -110,7 +110,7 @@ Ext.define("Login.controller.LoginController", {
 				},
 
 				failure: function(form, action) {
-					var response = action.result;
+					let response = action.result;
 
 					if (response && response.next == "totpBackupCodesNeeded") {
 						cmp.up("panel[itemId='totpToken']").up('panel').getLayout().setActiveItem("totpBackupCodes");
@@ -127,13 +127,13 @@ Ext.define("Login.controller.LoginController", {
 	},
 
 	totpLoadSecret: function(component) {
-		var panel = component.xtype == "form" ? component : component.up('form');
+		let panel = component.xtype == "form" ? component : component.up('form');
 		Ext.Ajax.request({
 			url: "authentication/totpSetup",
 			method: "GET",
 
 			success: function(response, options) {
-				var data = Ext.decode(response.responseText, true);
+				let data = Ext.decode(response.responseText, true);
 				if (data) {
 					this.down("panel[itemId='qrCodeSecret']").setHtml("<div style='width: 100%;'><img src='" + data["totpSharedSecretQr"] + "' style='display: block; margin-left: auto; margin-right: auto;'></img></div>");
 					this.down("textfield[itemId='textSecret']").setValue(data["totpSharedSecret"]);
@@ -147,7 +147,7 @@ Ext.define("Login.controller.LoginController", {
 	},
 
 	totpDisable: function(component) {
-		var panel = component.xtype == "form" ? component : component.up('form');
+		let panel = component.xtype == "form" ? component : component.up('form');
 		Ext.Ajax.request({
 			url: "authentication/totpSetup",
 			method: "DELETE",
@@ -165,7 +165,7 @@ Ext.define("Login.controller.LoginController", {
 
 	totpStoreSecret: function(cmp, e) {
 		if (!(e.getKey()) || e.getKey() == e.ENTER) {
-			var form = cmp.up('form').getForm();
+			let form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/totpSetup",
@@ -187,7 +187,7 @@ Ext.define("Login.controller.LoginController", {
 			method: "POST",
 
 			success: function(response, options) {
-				var data = response.responseText;
+				let data = response.responseText;
 				if (data) {
 					this.down("textarea[itemId='totpBackupCodes']").setValue(response.responseText);
 				}
@@ -200,8 +200,8 @@ Ext.define("Login.controller.LoginController", {
 	},
 
 	printBackupCodes: function(button) {
-		var totpBackupCodes = button.up("form").down("textarea[itemId='totpBackupCodes']").getValue();
-		var winPrint = window.open();
+		let totpBackupCodes = button.up("form").down("textarea[itemId='totpBackupCodes']").getValue();
+		let winPrint = window.open();
 		winPrint.document.write("<html><head><script type='text/javascript'>setTimeout(function() {window.print();}, 100);</script></head><body><pre>" + totpBackupCodes + "</pre></body></html>");
 		winPrint.document.close();
 		winPrint.focus();
@@ -213,7 +213,7 @@ Ext.define("Login.controller.LoginController", {
 
 	register: function(cmp, e) {
 		if (!(e.getKey()) || e.getKey() == e.ENTER) {
-			var form = cmp.up('form').getForm();
+			let form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/register",
@@ -224,8 +224,8 @@ Ext.define("Login.controller.LoginController", {
 				},
 
 				failure: function(form, action) {
-					var response = Ext.decode(action.response.responseText, true);
-					var message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");
+					let response = Ext.decode(action.response.responseText, true);
+					let message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");
 					cmp.up('form').down('transientlabel[itemId=messageRegister1]').setDisappearingHtml(message);
 				}
 			});
@@ -234,7 +234,7 @@ Ext.define("Login.controller.LoginController", {
 
 	forgotPassword: function(cmp, e) {
 		if (!(e.getKey()) || e.getKey() == e.ENTER) {
-			var form = cmp.up('form').getForm();
+			let form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/forgotPassword",
@@ -245,8 +245,8 @@ Ext.define("Login.controller.LoginController", {
 				},
 
 				failure: function(form, action) {
-					var response = Ext.decode(action.response.responseText, true);
-					var message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");
+					let response = Ext.decode(action.response.responseText, true);
+					let message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");
 					cmp.up('form').down('transientlabel[itemId=messageForgotPassword1]').setDisappearingHtml(message);
 				}
 			});
@@ -255,7 +255,7 @@ Ext.define("Login.controller.LoginController", {
 
 	resetPassword: function(cmp, e) {
 		if (!(e.getKey()) || e.getKey() == e.ENTER) {
-			var form = cmp.up('form').getForm();
+			let form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/resetPassword",
@@ -273,7 +273,7 @@ Ext.define("Login.controller.LoginController", {
 
 	forgotUsername: function(cmp, e) {
 		if (!(e.getKey()) || e.getKey() == e.ENTER) {
-			var form = cmp.up('form').getForm();
+			let form = cmp.up('form').getForm();
 			if (form.isValid() == false) return;
 			form.submit({
 				url: "authentication/forgotUsername",
@@ -283,8 +283,8 @@ Ext.define("Login.controller.LoginController", {
 				},
 
 				failure: function(form, action) {
-					var response = Ext.decode(action.response.responseText, true);
-					var message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");
+					let response = Ext.decode(action.response.responseText, true);
+					let message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");
 					cmp.up('form').down('transientlabel[itemId=messageForgotUsername1]').setDisappearingHtml(message);
 				}
 			});

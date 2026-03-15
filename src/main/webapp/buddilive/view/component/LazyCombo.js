@@ -21,17 +21,17 @@ Ext.define("BuddiLive.view.component.LazyCombo", {
 	minChars: 1,
 
 	initComponent: function() {
-		var lazycombo = this;
+		let lazycombo = this;
 		
 		//We use a custom function rather than separating arguments with || because false or 0 may be a valid argument for many of the below.
-		var notNull = function() {
-			for(var i = 0; i < arguments.length; i++) {
+		let notNull = function() {
+			for(let i = 0; i < arguments.length; i++) {
 				if (arguments[i] != null) return arguments[i];
 			}
 			return undefined;
 		};
 		
-		var singleCombo = {
+		let singleCombo = {
 			xtype: "lazycombosingleselect",
 			allowBlank: notNull(this.initialConfig.allowBlank, this.allowBlank, true),
 			clearOnTrigger: notNull(this.initialConfig.clearOnTrigger, this.clearOnTrigger, true),
@@ -54,7 +54,7 @@ Ext.define("BuddiLive.view.component.LazyCombo", {
 			valueField: notNull(this.initialConfig.valueField, this.valueField, "value"),
 			width: "100%"
 		};
-		var multiCombo = {
+		let multiCombo = {
 			xtype: "lazycombomultiselect",
 			allowBlank: notNull(this.initialConfig.allowBlank, this.allowBlank, true),
 			autoSelect: false,
@@ -107,7 +107,7 @@ Ext.define("BuddiLive.view.component.LazyCombo", {
 	setMultiSelect: function(multiSelect) {
 		if (!this.items || this.items.items.length != 2) {
 			debugger;
-			var me = this;
+			let me = this;
 			Ext.defer(function() {
 				//console.log("Delaying...");
 				me.setMultiSelect(multiSelect);

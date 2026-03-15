@@ -11,7 +11,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 	closable: true,
 
 	initComponent: function() {
-		var d = this.initialConfig.data
+		let d = this.initialConfig.data
 
 		this.items = [
 			{
@@ -30,7 +30,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 						flex: 2,
 
 						renderer: function(value, metadata, record) {
-							var frequencyLookup = {
+							let frequencyLookup = {
 								SCHEDULE_FREQUENCY_MONTHLY_BY_DATE: BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DATE"),
 								SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK: BuddiLive.translate("SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK"),
 								SCHEDULE_FREQUENCY_WEEKLY: BuddiLive.translate("SCHEDULE_FREQUENCY_WEEKLY"),
@@ -42,9 +42,9 @@ Ext.define("BuddiLive.view.scheduled.List", {
 								SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR: BuddiLive.translate("SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR")
 							};
 
-							var result = frequencyLookup[value] || value;
+							let result = frequencyLookup[value] || value;
 							if (value == "SCHEDULE_FREQUENCY_MONTHLY_BY_DATE") {
-								var monthlyByDateLookup = {
+								let monthlyByDateLookup = {
 									1: BuddiLive.translate("SCHEDULE_DATE_FIRST"),
 									2: BuddiLive.translate("SCHEDULE_DATE_SECOND"),
 									3: BuddiLive.translate("SCHEDULE_DATE_THIRD"),
@@ -81,7 +81,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 								result += " " + monthlyByDateLookup[record.get("scheduleDay")];
 							}
 							else if (value == "SCHEDULE_FREQUENCY_MONTHLY_BY_DAY_OF_WEEK") {
-								var monthlyByDayOfWeekLookup = {
+								let monthlyByDayOfWeekLookup = {
 									0: BuddiLive.translate("SCHEDULE_DAY_FIRST_SUNDAY"),
 									1: BuddiLive.translate("SCHEDULE_DAY_FIRST_MONDAY"),
 									2: BuddiLive.translate("SCHEDULE_DAY_FIRST_TUESDAY"),
@@ -93,7 +93,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 								result += " " + monthlyByDayOfWeekLookup[record.get("scheduleDay")];
 							}
 							else if (value == "SCHEDULE_FREQUENCY_WEEKLY") {
-								var weekLookup = {
+								let weekLookup = {
 									0: BuddiLive.translate("SCHEDULE_DAY_SUNDAY"),
 									1: BuddiLive.translate("SCHEDULE_DAY_MONDAY"),
 									2: BuddiLive.translate("SCHEDULE_DAY_TUESDAY"),
@@ -105,7 +105,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 								result += " " + weekLookup[record.get("scheduleDay")];
 							}
 							else if (value == "SCHEDULE_FREQUENCY_BIWEEKLY") {
-								var biWeeklyLookup = {
+								let biWeeklyLookup = {
 									0: BuddiLive.translate("SCHEDULE_DAY_EVERY_OTHER_SUNDAY"),
 									1: BuddiLive.translate("SCHEDULE_DAY_EVERY_OTHER_MONDAY"),
 									2: BuddiLive.translate("SCHEDULE_DAY_EVERY_OTHER_TUESDAY"),
@@ -129,7 +129,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 							
 							}
 							else if (value == "SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR") {
-								var multipleMonthsEveryYearLookup = {
+								let multipleMonthsEveryYearLookup = {
 									1: BuddiLive.translate("SCHEDULE_DATE_MONTHS_FIRST"),
 									2: BuddiLive.translate("SCHEDULE_DATE_MONTHS_SECOND"),
 									3: BuddiLive.translate("SCHEDULE_DATE_MONTHS_THIRD"),
@@ -164,7 +164,7 @@ Ext.define("BuddiLive.view.scheduled.List", {
 									32: BuddiLive.translate("SCHEDULE_DATE_MONTHS_LAST_DAY")
 								};
 								result += " " + multipleMonthsEveryYearLookup[record.get("scheduleDay")] + " (";
-								var month = record.get("scheduleMonth");
+								let month = record.get("scheduleMonth");
 								if (month & 1) {
 									result += BuddiLive.translate("MONTH_JANUARY") + ", ";
 								}
@@ -224,8 +224,8 @@ Ext.define("BuddiLive.view.scheduled.List", {
 						width: 100,
 
 						renderer: function(value, metadata, record) {
-							var result = "";
-							for (var i = 0; i < value.length; i++) {
+							let result = "";
+							for (let i = 0; i < value.length; i++) {
 								if (i > 0) {
 									result += "<br/>";
 								}

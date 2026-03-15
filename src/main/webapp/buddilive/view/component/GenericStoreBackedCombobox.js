@@ -2,7 +2,7 @@ Ext.define("BuddiLive.view.component.GenericStoreBackedCombobox", {
 	extend: "Ext.form.field.ComboBox",
 	
 	initComponent: function() {
-		var combo = this;
+		let combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
 		this.forceSelection = true;

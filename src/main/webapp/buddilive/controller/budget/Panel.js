@@ -11,8 +11,8 @@ Ext.define("BuddiLive.controller.budget.Panel", {
 	},
 	
 	reload: function(component) {
-		var budgetPanel = (component.xtype == "budgetpanel" ? component : component.up("budgetpanel"));
-		var conn = new Ext.data.Connection();
+		let budgetPanel = (component.xtype == "budgetpanel" ? component : component.up("budgetpanel"));
+		let conn = new Ext.data.Connection();
 		conn.request({
 			url: "data/categories/periods",
 			headers: {
@@ -21,11 +21,11 @@ Ext.define("BuddiLive.controller.budget.Panel", {
 			method: "GET",
 
 			success: function(response) {
-				var json = Ext.decode(response.responseText, true);
+				let json = Ext.decode(response.responseText, true);
 				Ext.suspendLayouts();
 				budgetPanel.removeAll();
 				if (json != null) {
-					for (var i = 0; i < json.data.length; i++) {
+					for (let i = 0; i < json.data.length; i++) {
 						budgetPanel.add(
 							{
 								xtype: "budgettree",

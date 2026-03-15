@@ -8,7 +8,7 @@ Ext.define('BuddiLive.view.report.PieTotalsByCategory', {
 	layout: "fit",
 
 	initComponent: function() {
-		var me = this;
+		let me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
 		this.title = BuddiLive.translate("REPORT_PIE_INCOME_BY_CATEGORY") + " - " + this.initialConfig.options.dateRange;

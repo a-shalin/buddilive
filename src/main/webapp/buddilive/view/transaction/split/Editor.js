@@ -17,8 +17,8 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 	},
 
 	initComponent: function() {
-		var v = this.initialConfig.value ? this.initialConfig.value : {};
-		var splitEditor = this;
+		let v = this.initialConfig.value ? this.initialConfig.value : {};
+		let splitEditor = this;
 		
 		this.listeners = {
 			boxready: function() {
@@ -103,7 +103,7 @@ Ext.define('BuddiLive.view.transaction.split.Editor', {
 	},
 	
 	getSplit: function() {
-		var s = {};
+		let s = {};
 		s.amount = this.down("currencyfield[itemId='amount']").getValue();
 		s.fromId = this.down("combo[itemId='from']").getValue();
 		s.toId = this.down("combo[itemId='to']").getValue();

@@ -31,7 +31,7 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 						minPasswordStrength: (this.minPasswordStrength ? this.minPasswordStrength : 20),
 
 						passwordStrength: function(password) {
-							var factor = 0;
+							let factor = 0;
 							
 							//Determine factor, based on character class
 							if (/.*[a-z].*/.test(password)) factor = factor + 2.6;
@@ -51,9 +51,9 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 						},
 						listeners: {
 							keyup: function(field) {
-								var color;
-								var value = field.getValue();
-								var strength = field.passwordStrength(value);
+								let color;
+								let value = field.getValue();
+								let strength = field.passwordStrength(value);
 	
 								if (value.length == 0 || strength < 10) color = "#953131";
 								else if (strength < 20) color = "#ab5e4a";
@@ -67,9 +67,9 @@ Ext.define("BuddiLive.view.component.PasswordField", {
 								else if (strength < 100) color = "#4aa94a";
 								else { color = "#26a826"; strength = 100; }
 								
-								var draw = field.up("passwordfield").down("draw[itemId=passwordbar]");
-								var surface = draw.surface;
-								var sprite = surface.items.get(0);
+								let draw = field.up("passwordfield").down("draw[itemId=passwordbar]");
+								let surface = draw.surface;
+								let sprite = surface.items.get(0);
 								sprite.stopAnimation();
 								sprite.animate({
 									to: {

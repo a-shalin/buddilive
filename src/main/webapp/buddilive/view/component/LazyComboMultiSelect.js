@@ -29,7 +29,7 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 	minChars: 1,
 
 	initComponent: function() {
-		var combo = this;
+		let combo = this;
 
 		//We want the initial value to be an array...
 		if (this.value != null && !Ext.isArray(this.value)) {
@@ -37,7 +37,7 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 		}
 		this.initialSetValue = (this.value != null);	//If there is a default value, set it once the store is loaded.
 		
-		var staticData = false;
+		let staticData = false;
 		if (this.initialConfig.storeData) {
 			this.store = Ext.create("Ext.data.Store", {
 				data: {data: this.initialConfig.storeData},
@@ -85,7 +85,7 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 			},
 			listeners: {
 				beforeload: function(store, operation) {
-					var proxy = store.getProxy()
+					let proxy = store.getProxy()
 					if (proxy && proxy.ebieLastRequest) {
 						proxy.ebieLastRequest.options.callback = null;
 						Ext.Ajax.abort(proxy.ebieLastRequest);
@@ -132,7 +132,7 @@ Ext.define("BuddiLive.view.component.LazyComboMultiSelect", {
 		
 		if (staticData) {
 			//debugger;
-			//var value = this.value;
+			//let value = this.value;
 			//this.setValue();
 			//this.setValue(value);
 		}

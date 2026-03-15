@@ -5,7 +5,7 @@ Ext.define("Login.view.PasswordField", {
 	layout: "vbox",
 
 	getValue: function() {
-		var password = this.down("textfield[itemId='password']");
+		let password = this.down("textfield[itemId='password']");
 		if (password) {
 			return password.getValue();
 		}
@@ -53,7 +53,7 @@ Ext.define("Login.view.PasswordField", {
 						flex: 1,
 						validators: [
 							function() {
-								var passwordField = this.up("rsgpasswordfield").down("textfield[itemId='password']");
+								let passwordField = this.up("rsgpasswordfield").down("textfield[itemId='password']");
 								return passwordField.errors == null ? true : passwordField.errors;
 							}
 						],
@@ -97,17 +97,17 @@ Ext.define("Login.view.PasswordField", {
 			scope: field.up("passwordfield"),
 
 			success: function(response) {
-				var lastCheck = Ext.decode(response.responseText, true);
+				let lastCheck = Ext.decode(response.responseText, true);
 				if (lastCheck == null) return;
 
 				try {
-					var passwordField = this.down("textfield[itemId='password']");
-					var password = passwordField.getValue();
-					var confirmField = this.down("textfield[itemId=confirm]");
-					var confirmPassword = confirmField.getValue();
+					let passwordField = this.down("textfield[itemId='password']");
+					let password = passwordField.getValue();
+					let confirmField = this.down("textfield[itemId=confirm]");
+					let confirmPassword = confirmField.getValue();
 
-					var color;
-					var strength = lastCheck.score;
+					let color;
+					let strength = lastCheck.score;
 
 					if (password == null || password.length == 0 || strength < 10) color = "#953131";
 					else if (strength < 20) color = "#ab5e4a";
@@ -121,10 +121,10 @@ Ext.define("Login.view.PasswordField", {
 					else if (strength < 100) color = "#4aa94a";
 					else { color = "#26a826"; strength = 100; }
 
-					var passwordbar = this.down("label[itemId=passwordbar]");
+					let passwordbar = this.down("label[itemId=passwordbar]");
 					passwordbar.setHtml("<div style='width: " + strength + "%; background-color: " + color + ";'>&nbsp;</div>");
 
-					var passwordErrors = this.down("label[itemId='passworderrors']");
+					let passwordErrors = this.down("label[itemId='passworderrors']");
 
 					if (passwordField == null
 							|| (!passwordField.initialConfig.required && !password)
@@ -145,7 +145,7 @@ Ext.define("Login.view.PasswordField", {
 						return true;
 					}
 
-					var result = "<b>Problems</b>:<br/>";
+					let result = "<b>Problems</b>:<br/>";
 					if (lastCheck.length === false) result += Login.translate("PASSWORD_LENGTH") + "<br/>";
 					if (lastCheck.strength === false) result += Login.translate("PASSWORD_STRENGTH") + "<br/>";
 					if (lastCheck.variance === false) result += Login.translate("PASSWORD_VARIANCE") + "<br/>";

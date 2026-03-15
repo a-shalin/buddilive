@@ -8,9 +8,9 @@ Ext.define("BuddiLive.controller.account.Tree", {
 	},
 	
 	selectionChange: function(selectionModel, selected) {
-		var panel = selectionModel.view.panel.up("buddiviewport");
-		var selectedItem = selected[0].data;
-		var selectedType = selected.length > 0 ? selectedItem.nodeType : null;
+		let panel = selectionModel.view.panel.up("buddiviewport");
+		let selectedItem = selected[0].data;
+		let selectedType = selected.length > 0 ? selectedItem.nodeType : null;
 		panel.down("button[itemId='editAccount']").setDisabled(selectedType != "account");
 		panel.down("button[itemId='deleteAccount']").setDisabled(selectedType != "account");
 		if (selectedType == "account" && selected[0].data.deleted) {
@@ -21,7 +21,7 @@ Ext.define("BuddiLive.controller.account.Tree", {
 		}
 		
 		if (selectedType == "account") {
-			var transactionList = panel.down("transactionlist");
+			let transactionList = panel.down("transactionlist");
 			Ext.apply(transactionList.getStore().getProxy().extraParams, {
 				source: selectedItem.id
 			}); 

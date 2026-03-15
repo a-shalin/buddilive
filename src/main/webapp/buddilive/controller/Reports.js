@@ -30,8 +30,8 @@ Ext.define("BuddiLive.controller.Reports", {
 			xtype: "reportpickerinterval",
 
 			callback: function(options) {
-				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-				var report = Ext.widget({
+				let tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+				let report = Ext.widget({
 					xtype: "reportpietotalsbycategory",
 					options: options,
 					type: "I"
@@ -47,8 +47,8 @@ Ext.define("BuddiLive.controller.Reports", {
 			xtype: "reportpickerinterval",
 
 			callback: function(options) {
-				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-				var report = Ext.widget({
+				let tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+				let report = Ext.widget({
 					xtype: "reportpietotalsbycategory",
 					options: options,
 					type: "E"
@@ -64,8 +64,8 @@ Ext.define("BuddiLive.controller.Reports", {
 			xtype: "reportpickerinterval",
 
 			callback: function(options) {
-				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-				var report = Ext.widget({
+				let tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+				let report = Ext.widget({
 					xtype: "reportincomeandexpensesbycategory",
 					options: options
 				});
@@ -80,8 +80,8 @@ Ext.define("BuddiLive.controller.Reports", {
 			xtype: "reportpickerinterval",
 
 			callback: function(options) {
-				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-				var report = Ext.widget({
+				let tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+				let report = Ext.widget({
 					xtype: "reportaverageincomeandexpensesbycategory",
 					options: options
 				});
@@ -104,8 +104,8 @@ Ext.define("BuddiLive.controller.Reports", {
 				xtype: "reportpickerinterval",
 
 				callback: function(options) {
-					var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-					var report = Ext.widget({
+					let tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+					let report = Ext.widget({
 						xtype: "reportinflowandoutflowbyaccount",
 						options: options
 					});
@@ -129,8 +129,8 @@ Ext.define("BuddiLive.controller.Reports", {
 				xtype: "reportpickerinterval",
 
 				callback: function(options) {
-					var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-					var report = Ext.widget({
+					let tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+					let report = Ext.widget({
 						xtype: "reportinflowandoutflowbypayee",
 						options: options
 					});
@@ -146,8 +146,8 @@ Ext.define("BuddiLive.controller.Reports", {
 			xtype: "reportpickerinterval",
 
 			callback: function(options) {
-				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-				var report = Ext.widget({
+				let tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+				let report = Ext.widget({
 					xtype: "reportaccountbalancesovertime",
 					options: options
 				});
@@ -162,8 +162,8 @@ Ext.define("BuddiLive.controller.Reports", {
 			xtype: "reportpickerinterval",
 
 			callback: function(options) {
-				var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
-				var report = Ext.widget({
+				let tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+				let report = Ext.widget({
 					xtype: "reportnetworthovertime",
 					options: options
 				});

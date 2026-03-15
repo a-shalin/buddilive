@@ -7,7 +7,7 @@ Ext.define("BuddiLive.view.transaction.DescriptionCombobox", {
 	store: "transaction.DescriptionComboboxStore",
 
 	initComponent: function() {
-		var combo = this;
+		let combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
 		this.displayField = "value";

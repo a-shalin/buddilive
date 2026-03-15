@@ -30,7 +30,7 @@ Ext.define("BuddiLive.store.budget.TreeStore", {
 				transform: function(data) {
 					budgetTree = Ext.ComponentQuery.query('viewport')[0].down("budgettree[itemId='" + config.periodType + "']");
 					budgetTree.down("textfield[itemId='currentPeriod']").setValue(data.period);
-					var columns = budgetTree.getView().headerCt.items.items;
+					let columns = budgetTree.getView().headerCt.items.items;
 					columns[1].setText(columns[1].initialConfig.text + " (" + data.previousPeriod + ")");
 					columns[2].setText(columns[2].initialConfig.text + " (" + data.period + ")");
 					budgetTree.currentDate = data.date;	//ISO Date string, will be used as current reference when passing nextPeriod / previousPeriod

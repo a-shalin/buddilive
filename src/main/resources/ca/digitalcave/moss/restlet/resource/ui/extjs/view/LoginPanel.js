@@ -35,17 +35,17 @@ Ext.define('Login.view.LoginPanel', {
 	},
 
 	initComponent: function() {
-		var __ac = window.__authConfig || {};
-		var items = [];
+		let __ac = window.__authConfig || {};
+		let items = [];
 
 		if (__ac.showCookieWarning) {
 			this.listeners = {
 				afterrender: function(loginPanel) {
-					var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
-					var allowCookies = allowCookiesStorage.getItem(window.location.href);
+					let allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
+					let allowCookies = allowCookiesStorage.getItem(window.location.href);
 					allowCookiesStorage.release();
 					if (allowCookies != "true") {
-						var showMessage = function() {
+						let showMessage = function() {
 							Ext.Msg.show({
 								title: Login.translate("COOKIES_USED_TITLE"),
 								msg: Login.translate("COOKIES_USED_MESSAGE"),
@@ -54,7 +54,7 @@ Ext.define('Login.view.LoginPanel', {
 
 								fn: function(buttonId) {
 									if (buttonId == "yes") {
-										var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
+										let allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
 										allowCookiesStorage.setItem(window.location.href, "true");
 										allowCookiesStorage.release();
 									}
@@ -74,7 +74,7 @@ Ext.define('Login.view.LoginPanel', {
 		}
 
 		if (__ac.showLogin !== false) {
-			var loginItems = [
+			let loginItems = [
 				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "identifier", listeners: { afterrender: function(component) { component.focus(); } } },
 				{ fieldLabel: Login.translate("PASSWORD_LABEL"), name: "password", inputType: "password" }
 			];
@@ -89,7 +89,7 @@ Ext.define('Login.view.LoginPanel', {
 			}
 			loginItems.push({ xtype: "transientlabel", itemId: "messageLogin1" });
 
-			var passwordExpiredItems = [
+			let passwordExpiredItems = [
 				{ name: "identifier", xtype: "hidden" },
 				{ fieldLabel: Login.translate("NEW_PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
 			];
@@ -176,7 +176,7 @@ Ext.define('Login.view.LoginPanel', {
 		}
 
 		if (__ac.showRegister) {
-			var registerItems = [
+			let registerItems = [
 				{ fieldLabel: Login.translate("EMAIL_LABEL"), name: "email", vtype: "email" }
 			];
 			if (__ac.extraRegisterStep1Fields) {
@@ -184,7 +184,7 @@ Ext.define('Login.view.LoginPanel', {
 			}
 			registerItems.push({ xtype: "transientlabel", itemId: "messageRegister1" });
 
-			var registerStep2Items = [
+			let registerStep2Items = [
 				{ fieldLabel: Login.translate("ACTIVATION_KEY_LABEL"), name: "activationKey" },
 				{ fieldLabel: Login.translate("PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
 			];
@@ -218,7 +218,7 @@ Ext.define('Login.view.LoginPanel', {
 		}
 
 		if (__ac.showForgotPassword !== false) {
-			var forgotItems = [
+			let forgotItems = [
 				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "identifier" }
 			];
 			if (__ac.extraforgotPasswordStep1PanelFields) {
@@ -226,7 +226,7 @@ Ext.define('Login.view.LoginPanel', {
 			}
 			forgotItems.push({ xtype: "transientlabel", itemId: "messageForgotPassword1" });
 
-			var forgotStep2Items = [
+			let forgotStep2Items = [
 				{ fieldLabel: Login.translate("ACTIVATION_KEY_LABEL"), name: "activationKey" },
 				{ fieldLabel: Login.translate("NEW_PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
 			];
@@ -260,7 +260,7 @@ Ext.define('Login.view.LoginPanel', {
 		}
 
 		if (__ac.showForgotUsername) {
-			var forgotUsernameItems = [
+			let forgotUsernameItems = [
 				{ fieldLabel: Login.translate("EMAIL_LABEL"), name: "email" }
 			];
 			if (__ac.extraForgotUsernameStep1PanelFields) {

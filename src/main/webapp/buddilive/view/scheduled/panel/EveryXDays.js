@@ -5,7 +5,7 @@ Ext.define("BuddiLive.view.scheduled.panel.EveryXDays", {
 	],
 	
 	initComponent: function() {
-		var s = this.initialConfig.selected;
+		let s = this.initialConfig.selected;
 		this.itemId = "SCHEDULE_FREQUENCY_EVERY_X_DAYS";
 		this.border = false;
 		this.layout = "form";

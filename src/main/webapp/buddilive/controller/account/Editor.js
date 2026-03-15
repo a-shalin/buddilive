@@ -29,24 +29,24 @@ Ext.define("BuddiLive.controller.account.Editor", {
 	},
 	
 	ok: function(component) {
-		var me = this;
-		var window = component.up("accounteditor");
-		var grid = window.initialConfig.grid;
-		var selected = window.initialConfig.selected;
+		let me = this;
+		let window = component.up("accounteditor");
+		let grid = window.initialConfig.grid;
+		let selected = window.initialConfig.selected;
 
-		var request = {};
+		let request = {};
 		request.action = (selected ? update: "insert");
 		if (selected) request.id = selected.id;
 		request.name = window.down("textfield[itemId='name']").getValue();
 		request.accountType = window.down("textfield[itemId='accountType']").getValue();
 		request.type = window.down("combobox[itemId='type']").getValue();
-		var startBalance = window.down("numberfield[itemId='startBalance']").getValue();
+		let startBalance = window.down("numberfield[itemId='startBalance']").getValue();
 		if (startBalance) request.startBalance = startBalance;
 		
-		var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
+		let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
 		mask.show();
 
-		var conn = new Ext.data.Connection();
+		let conn = new Ext.data.Connection();
 		conn.request({
 			url: "data/accounts",
 			headers: {
@@ -69,11 +69,11 @@ Ext.define("BuddiLive.controller.account.Editor", {
 	},
 	
 	updateButtons: function(component) {
-		var window = component.up("accounteditor");
-		var ok = window.down("button[itemId='ok']");
-		var name = window.down("textfield[itemId='name']");
-		var accountType = window.down("textfield[itemId='accountType']");
-		var type = window.down("combobox[itemId='type']");
+		let window = component.up("accounteditor");
+		let ok = window.down("button[itemId='ok']");
+		let name = window.down("textfield[itemId='name']");
+		let accountType = window.down("textfield[itemId='accountType']");
+		let type = window.down("combobox[itemId='type']");
 		
 		ok.setDisabled(name.getValue().length == 0 || accountType.getValue().length == 0 || type.getValue().length == 0);
 	}

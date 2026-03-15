@@ -8,7 +8,7 @@ Ext.define('BuddiLive.view.report.NetWorthOverTime', {
 	layout: "fit",
 
 	initComponent: function() {
-		var me = this;
+		let me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
 		this.title = BuddiLive.translate("REPORT_NET_WORTH_OVER_TIME") + " - " + this.initialConfig.options.dateRange;

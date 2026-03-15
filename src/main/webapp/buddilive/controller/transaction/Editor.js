@@ -27,28 +27,28 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 	
 	checkKeys: function(component, e) {
 		this.validateFields(component);
-		var editor = component.up("transactioneditor");
-		var record = editor.down("button[itemId='recordTransaction']");
+		let editor = component.up("transactioneditor");
+		let record = editor.down("button[itemId='recordTransaction']");
 		if (e.getKey() == e.ENTER && e.ctrlKey && !record.isDisabled()) {
 			record.fireEvent("click", record);
 		}
 	},
 	
 	validateFields: function(component) {
-		var editor = (component.xtype == "transactioneditor" ? component : component.up("transactioneditor"));
-		var enabled = editor.validate();
+		let editor = (component.xtype == "transactioneditor" ? component : component.up("transactioneditor"));
+		let enabled = editor.validate();
 		editor.down("button[itemId='recordTransaction']").setDisabled(!enabled);
 	},
 	
 	recordTransaction: function(component) {
-		var me = this;
-		var editor = component.up("transactioneditor");
-		var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: editor});
+		let me = this;
+		let editor = component.up("transactioneditor");
+		let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: editor});
 		mask.show();
 		
-		var lastTransaction = editor.lastTransaction;
+		let lastTransaction = editor.lastTransaction;
 		
-		var request = editor.getTransaction();
+		let request = editor.getTransaction();
 		if (request.date == null || request.description == null || request.splits.length == 0) {
 			mask.hide();
 			return;
@@ -58,8 +58,8 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 		//Disable the button before submitting to prevent double clicks
 		editor.down("button[itemId='recordTransaction']").disable();
 
-		var doPost = function() {
-			var conn = new Ext.data.Connection();
+		let doPost = function() {
+			let conn = new Ext.data.Connection();
 			conn.request({
 				url: "data/transactions",
 				headers: {
@@ -84,11 +84,11 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 			});
 		}
 		
-		var d = Ext.Date.parse(request.date, "Y-m-d");
-		var validBeginDate = Ext.Date.add(new Date(), Ext.Date.YEAR, -1);
-		var validEndDate = Ext.Date.add(new Date(), Ext.Date.MONTH, 1);
+		let d = Ext.Date.parse(request.date, "Y-m-d");
+		let validBeginDate = Ext.Date.add(new Date(), Ext.Date.YEAR, -1);
+		let validEndDate = Ext.Date.add(new Date(), Ext.Date.MONTH, 1);
 		if (d < validBeginDate || d > validEndDate) {
-			var msg = d < validBeginDate ? BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_BEFORE") : BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_AFTER");
+			let msg = d < validBeginDate ? BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_BEFORE") : BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_AFTER");
 			Ext.MessageBox.show({
 				title: BuddiLive.translate("CONFIRM_DATE_OUT_OF_RANGE_TITLE"),
 				msg: msg,
@@ -135,16 +135,16 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 	
 	clearTransaction: function(component) {
 		//TODO Possibly check if there is data here... if so, verify that we really want to clear it?  This may be excessive...
-		var editor = component.up("transactioneditor");
-		var list = component.up("transactionlist");
+		let editor = component.up("transactioneditor");
+		let list = component.up("transactionlist");
 		editor.setTransaction();
 		list.getSelectionModel().deselectAll();
 	},
 	
 	deleteTransaction: function(component) {
-		var editor = component.up("transactioneditor");
-		var list = editor.up("transactionlist");
-		var selection = list.getSelectionModel().getSelection();
+		let editor = component.up("transactioneditor");
+		let list = editor.up("transactionlist");
+		let selection = list.getSelectionModel().getSelection();
 		if (selection.length > 0) {
 			Ext.MessageBox.show({
 				title: BuddiLive.translate("DELETE_TRANSACTION"),
@@ -153,9 +153,9 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 
 				fn: function(buttonId) {
 					if (buttonId == "yes") {
-						var id = selection[0].data.id;
+						let id = selection[0].data.id;
 						
-						var conn = new Ext.data.Connection();
+						let conn = new Ext.data.Connection();
 						conn.request({
 							url: "data/transactions",
 							headers: {

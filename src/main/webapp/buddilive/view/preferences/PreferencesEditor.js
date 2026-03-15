@@ -7,7 +7,7 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 	],
 	
 	initComponent: function() {
-		var d = this.initialConfig.data
+		let d = this.initialConfig.data
 
 		this.title = BuddiLive.translate("PREFERENCES");
 		this.layout = "fit";
@@ -191,7 +191,7 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						store: new Ext.data.Store({
 							fields: ["text", "value"],
 							data: (function() {
-								var now = new Date();
+								let now = new Date();
 								return [
 									{text: BuddiLive.translate("USE_LOCALE_DEFAULTS"), value: ""},
 									{text: Ext.Date.format(now, "Y-m-d"), value: "yyyy-MM-dd"},

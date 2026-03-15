@@ -13,7 +13,7 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 	minChars: 1,
 
 	initComponent: function() {
-		var combo = this;
+		let combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
 		//Default the display and value fields to "text" and "value".
@@ -68,13 +68,13 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 			},
 			listeners: {
 				beforeload: function(store, operation) {
-					var proxy = store.getProxy()
+					let proxy = store.getProxy()
 					if (proxy && proxy.ebieLastRequest) {
 						proxy.ebieLastRequest.options.callback = null;
 						Ext.Ajax.abort(proxy.ebieLastRequest);
 					}
 
-					var params = Ext.apply({}, operation.getParams());
+					let params = Ext.apply({}, operation.getParams());
 					
 					if (combo.initialSetValue && combo.initialConfig) {
 						if (combo.initialConfig.value != null) {
@@ -86,7 +86,7 @@ Ext.define("BuddiLive.view.component.LazyComboSingleSelect", {
 						}
 					}
 					else if (!combo.initialSetValue) {
-						var value = (combo.getRawValue() ? combo.getRawValue() : "");
+						let value = (combo.getRawValue() ? combo.getRawValue() : "");
 						params.filter="* co '" + value + "'";
 					}
 					else {

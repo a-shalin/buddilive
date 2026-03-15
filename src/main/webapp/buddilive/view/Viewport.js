@@ -20,13 +20,13 @@ Ext.define("BuddiLive.view.Viewport", {
 	width: "100%",
 
 	initComponent: function() {
-		var isPremium = true; //BuddiLive.util.UserConfig.get('premium');
-		var isEncrypted = BuddiLive.util.UserConfig.get('encrypted');
+		let isPremium = true; //BuddiLive.util.UserConfig.get('premium');
+		let isEncrypted = BuddiLive.util.UserConfig.get('encrypted');
 
-		var northHtml = isPremium ? "" : "<iframe id='adsensetop' src='buddilive/view/ads/top.html' scrolling='no' width='468' height='60' marginheight='0' marginwidth='0' seamless='seamless' frameborder='0'></iframe>";
+		let northHtml = isPremium ? "" : "<iframe id='adsensetop' src='buddilive/view/ads/top.html' scrolling='no' width='468' height='60' marginheight='0' marginwidth='0' seamless='seamless' frameborder='0'></iframe>";
 		northHtml += "<img src='img/logo-title-small.png' style='position: absolute; top: 2px; right: 30px'/>";
 
-		var northConfig = {
+		let northConfig = {
 			xtype: "panel",
 			region: "north",
 			height: 60,
@@ -38,7 +38,7 @@ Ext.define("BuddiLive.view.Viewport", {
 			northConfig.listeners = {
 				afterrender: function() {
 					window.setInterval(function() {
-						var iframe = document.getElementById('adsensetop');
+						let iframe = document.getElementById('adsensetop');
 						if (iframe != null) iframe.src += "";
 					}, 1000 * 60 * 20);
 				}
@@ -97,9 +97,9 @@ Ext.define("BuddiLive.view.Viewport", {
 	},
 
 	getDockedItems: function(type) {
-		var isPremium = BuddiLive.util.UserConfig.get('premium');
-		var isEncrypted = BuddiLive.util.UserConfig.get('encrypted');
-		var items = [];
+		let isPremium = BuddiLive.util.UserConfig.get('premium');
+		let isEncrypted = BuddiLive.util.UserConfig.get('encrypted');
+		let items = [];
 
 		if (type == "accounts") {
 			items.push(

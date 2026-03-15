@@ -5,7 +5,7 @@ Ext.define("BuddiLive.view.scheduled.panel.MultipleMonthsEveryYear", {
 	],
 	
 	initComponent: function() {
-		var s = this.initialConfig.selected;
+		let s = this.initialConfig.selected;
 		this.itemId = "SCHEDULE_FREQUENCY_MULTIPLE_MONTHS_EVERY_YEAR";
 		this.border = false;
 		this.layout = "form";
@@ -189,7 +189,7 @@ Ext.define("BuddiLive.view.scheduled.panel.MultipleMonthsEveryYear", {
 	},
 
 	getScheduleMonth: function() {
-		var result = 0;
+		let result = 0;
 		if (this.down("checkbox[itemId='MONTH_JANUARY']").getValue()) result += 1;
 		if (this.down("checkbox[itemId='MONTH_FEBRUARY']").getValue()) result += 2;
 		if (this.down("checkbox[itemId='MONTH_MARCH']").getValue()) result += 4;

@@ -27,12 +27,12 @@ Ext.define("BuddiLive.controller.budget.Editor", {
 	},
 	
 	ok: function(component) {
-		var me = this;
-		var window = component.up("budgeteditor");
-		var panel = window.initialConfig.panel;
-		var selected = window.initialConfig.selected;
+		let me = this;
+		let window = component.up("budgeteditor");
+		let panel = window.initialConfig.panel;
+		let selected = window.initialConfig.selected;
 
-		var request = {};
+		let request = {};
 		request.action = (selected ? update: "insert");
 		if (selected) request.id = selected.id;
 		request.name = window.down("textfield[itemId='name']").getValue();
@@ -40,7 +40,7 @@ Ext.define("BuddiLive.controller.budget.Editor", {
 		request.parent = window.down("parentcombobox[itemId='parent']").getValue();
 		request.type = window.down("combobox[itemId='type']").getValue();
 
-		var conn = new Ext.data.Connection();
+		let conn = new Ext.data.Connection();
 		conn.request({
 			url: "data/categories",
 			headers: {
@@ -63,11 +63,11 @@ Ext.define("BuddiLive.controller.budget.Editor", {
 	},
 	
 	updateButtons: function(component, foo, bar, baz) {
-		var window = component.up("budgeteditor");
-		var ok = window.down("button[itemId='ok']");
-		var name = window.down("textfield[itemId='name']");
-		var periodType = window.down("textfield[itemId='periodType']");
-		var type = window.down("combobox[itemId='type']");
+		let window = component.up("budgeteditor");
+		let ok = window.down("button[itemId='ok']");
+		let name = window.down("textfield[itemId='name']");
+		let periodType = window.down("textfield[itemId='periodType']");
+		let type = window.down("combobox[itemId='type']");
 		
 		ok.setDisabled(name.getValue().length == 0 || periodType.getValue().length == 0 || type.getValue().length == 0);
 	}

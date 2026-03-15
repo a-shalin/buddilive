@@ -5,7 +5,7 @@ Ext.define('Login.view.SelfDocumentingField', {
 	initComponent: function() {
 		this.layout = "hbox";
 		this.childItemId = this.itemId;
-		var component = Ext.applyIf({
+		let component = Ext.applyIf({
 			xtype: this.initialConfig.type,
 			flex: 1
 		}, this.initialConfig);
@@ -16,8 +16,8 @@ Ext.define('Login.view.SelfDocumentingField', {
 		delete this.listeners;
 		delete this.disabled;
 
-		var messageTitle = (this.initialConfig.messageTitle ? this.initialConfig.messageTitle : Login.translate("WHAT_IS_THIS"));
-		var messageBody = this.initialConfig.messageBody;
+		let messageTitle = (this.initialConfig.messageTitle ? this.initialConfig.messageTitle : Login.translate("WHAT_IS_THIS"));
+		let messageBody = this.initialConfig.messageBody;
 
 		this.items = [
 			component,

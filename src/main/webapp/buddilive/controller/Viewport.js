@@ -38,15 +38,15 @@ Ext.define("BuddiLive.controller.Viewport", {
 	},
 
 	addAccount: function(component) {
-		var grid = component.up("buddiviewport").down("accounttree");
+		let grid = component.up("buddiviewport").down("accounttree");
 		Ext.widget("accounteditor", {
 			grid: grid
 		}).show();
 	},
 
 	editAccount: function(component) {
-		var grid = component.up("buddiviewport").down("accounttree");
-		var selected = grid.getSelectionModel().getSelection()[0].data;
+		let grid = component.up("buddiviewport").down("accounttree");
+		let selected = grid.getSelectionModel().getSelection()[0].data;
 		Ext.widget("accounteditor", {
 			grid: grid,
 			selected: selected
@@ -54,17 +54,17 @@ Ext.define("BuddiLive.controller.Viewport", {
 	},
 
 	deleteAccount: function(component) {
-		var me = this;
-		var viewport = component.up("buddiviewport");
-		var grid = viewport.down("accounttree");
-		var selected = grid.getSelectionModel().getSelection()[0].data;
+		let me = this;
+		let viewport = component.up("buddiviewport");
+		let grid = viewport.down("accounttree");
+		let selected = grid.getSelectionModel().getSelection()[0].data;
 
 		if (selected == null) return;
 
 		if (selected.deleted) {
-			var request = {action: "undelete", id: selected.id};
-			var conn = new Ext.data.Connection();
-			var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
+			let request = {action: "undelete", id: selected.id};
+			let conn = new Ext.data.Connection();
+			let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
 			mask.show();
 			conn.request({
 				url: "data/accounts",
@@ -97,9 +97,9 @@ Ext.define("BuddiLive.controller.Viewport", {
 				fn: function(buttonId) {
 					if (buttonId != "yes") return;
 
-					var request = {action: "delete", id: selected.id};
-					var conn = new Ext.data.Connection();
-					var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
+					let request = {action: "delete", id: selected.id};
+					let conn = new Ext.data.Connection();
+					let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
 					mask.show();
 					conn.request({
 						url: "data/accounts",
@@ -128,15 +128,15 @@ Ext.define("BuddiLive.controller.Viewport", {
 	},
 
 	addCategory: function(component) {
-		var panel = component.up("buddiviewport").down("budgetpanel");
+		let panel = component.up("buddiviewport").down("budgetpanel");
 		Ext.widget("budgeteditor", {
 			panel: panel
 		}).show();
 	},
 
 	editCategory: function(component) {
-		var panel = component.up("buddiviewport").down("budgetpanel");
-		var selected = panel.getActiveTab().getSelectionModel().getSelection()[0].data;
+		let panel = component.up("buddiviewport").down("budgetpanel");
+		let selected = panel.getActiveTab().getSelectionModel().getSelection()[0].data;
 		Ext.widget("budgeteditor", {
 			panel: panel,
 			selected: selected
@@ -144,19 +144,19 @@ Ext.define("BuddiLive.controller.Viewport", {
 	},
 
 	deleteCategory: function(component) {
-		var me = this;
-		var viewport = component.up("buddiviewport");
-		var panel = viewport.down("budgetpanel");
-		var budgetTrees = Ext.ComponentQuery.query("budgettree", panel);
+		let me = this;
+		let viewport = component.up("buddiviewport");
+		let panel = viewport.down("budgetpanel");
+		let budgetTrees = Ext.ComponentQuery.query("budgettree", panel);
 
-		var selected = panel.getActiveTab().getSelectionModel().getSelection()[0].data;
+		let selected = panel.getActiveTab().getSelectionModel().getSelection()[0].data;
 
 		if (selected == null) return;
 
 		if (selected.deleted) {
-			var request = {action: "undelete", id: selected.id};
-			var conn = new Ext.data.Connection();
-			var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
+			let request = {action: "undelete", id: selected.id};
+			let conn = new Ext.data.Connection();
+			let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
 			mask.show();
 			conn.request({
 				url: "data/categories",
@@ -189,9 +189,9 @@ Ext.define("BuddiLive.controller.Viewport", {
 				fn: function(buttonId) {
 					if (buttonId != "yes") return;
 
-					var request = {action: "delete", id: selected.id};
-					var conn = new Ext.data.Connection();
-					var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
+					let request = {action: "delete", id: selected.id};
+					let conn = new Ext.data.Connection();
+					let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
 					mask.show();
 					conn.request({
 						url: "data/categories",
@@ -220,15 +220,15 @@ Ext.define("BuddiLive.controller.Viewport", {
 	},
 
 	addScheduled: function(component) {
-		var panel = component.up("buddiviewport").down("scheduledlist").down("grid");
+		let panel = component.up("buddiviewport").down("scheduledlist").down("grid");
 		Ext.widget("schedulededitor", {
 			panel: panel
 		}).show();
 	},
 
 	editScheduled: function(component) {
-		var panel = component.up("buddiviewport").down("scheduledlist").down("grid");
-		var selected = panel.getSelectionModel().getSelection()[0].data;
+		let panel = component.up("buddiviewport").down("scheduledlist").down("grid");
+		let selected = panel.getSelectionModel().getSelection()[0].data;
 		Ext.widget("schedulededitor", {
 			panel: panel,
 			selected: selected
@@ -236,10 +236,10 @@ Ext.define("BuddiLive.controller.Viewport", {
 	},
 
 	deleteScheduled: function(component) {
-		var viewport = component.up("buddiviewport");
-		var panel = viewport.down("scheduledlist").down("grid");
+		let viewport = component.up("buddiviewport");
+		let panel = viewport.down("scheduledlist").down("grid");
 
-		var selected = panel.getSelectionModel().getSelection()[0].data;
+		let selected = panel.getSelectionModel().getSelection()[0].data;
 
 		if (selected == null) return;
 
@@ -251,9 +251,9 @@ Ext.define("BuddiLive.controller.Viewport", {
 			fn: function(buttonId) {
 				if (buttonId != "yes") return;
 
-				var request = {action: "delete", id: selected.id};
-				var conn = new Ext.data.Connection();
-				var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
+				let request = {action: "delete", id: selected.id};
+				let conn = new Ext.data.Connection();
+				let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
 				mask.show();
 				conn.request({
 					url: "data/scheduledtransactions",
@@ -279,23 +279,23 @@ Ext.define("BuddiLive.controller.Viewport", {
 	},
 
 	refreshReport: function(component) {
-		var store = component.up("panel").down("chart, polar, grid").getStore();
+		let store = component.up("panel").down("chart, polar, grid").getStore();
 		if (store) {
 			store.reload();
 		}
 	},
 
 	changePassword: function(component) {
-		var panel = component.up("buddiviewport");
-		var conn = new Ext.data.Connection();
+		let panel = component.up("buddiviewport");
+		let conn = new Ext.data.Connection();
 		Ext.widget("changepasswordeditor", {
 			panel: panel
 		}).show();
 	},
 
 	showPreferences: function(component) {
-		var panel = component.up("buddiviewport");
-		var conn = new Ext.data.Connection();
+		let panel = component.up("buddiviewport");
+		let conn = new Ext.data.Connection();
 		conn.request({
 			url: "data/userpreferences",
 			headers: {
@@ -304,7 +304,7 @@ Ext.define("BuddiLive.controller.Viewport", {
 			method: "GET",
 
 			success: function(response) {
-				var data = Ext.decode(response.responseText);
+				let data = Ext.decode(response.responseText);
 				Ext.widget("preferenceseditor", {
 					panel: panel,
 					data: data
@@ -318,7 +318,7 @@ Ext.define("BuddiLive.controller.Viewport", {
 	},
 
 	showScheduled: function(component) {
-		var tabPanel = component.up("tabpanel[itemId='budditabpanel']");
+		let tabPanel = component.up("tabpanel[itemId='budditabpanel']");
 		if (tabPanel.down("scheduledlist") == null) {
 			tabPanel.add({xtype: "scheduledlist"});
 		}
@@ -365,7 +365,7 @@ Ext.define("BuddiLive.controller.Viewport", {
 	},
 
 	deleteUser: function(component) {
-		var viewport = component.up("buddiviewport");
+		let viewport = component.up("buddiviewport");
 		Ext.MessageBox.show({
 			title: BuddiLive.translate("DELETE_USER"),
 			msg: BuddiLive.translate("CONFIRM_DELETE_USER"),
@@ -382,7 +382,7 @@ Ext.define("BuddiLive.controller.Viewport", {
 					fn: function(buttonId) {
 						if (buttonId != "yes") return;
 
-						var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
+						let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: viewport});
 						mask.show();
 						new Ext.data.Connection().request({
 							url: "data/userpreferences",

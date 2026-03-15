@@ -4,7 +4,7 @@ Ext.define("Login.view.TransientLabel", {
 	text: "\xA0",	//non breaking space to reserve space for text and not collapse empty label
 	
 	setDisappearingHtml: function(value, timeout) {
-		var label = this;
+		let label = this;
 		label.setHtml(value);
 		if (!timeout) {
 			timeout = 10000;	//Default to 10 seconds

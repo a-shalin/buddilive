@@ -8,11 +8,11 @@ Ext.define('BuddiLive.view.report.AccountBalancesOverTime', {
 	layout: "fit",
 
 	initComponent: function() {
-		var me = this;
+		let me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
-		var fields = ["date"];
-		var series = [];
+		let fields = ["date"];
+		let series = [];
 		BuddiLive.app.viewport.down("accounttree").getStore().getRootNode().cascadeBy(function(node) {
 			if (node.data.nodeType == "account") {
 				fields.push("a" + node.data.id);

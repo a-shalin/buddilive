@@ -14,8 +14,8 @@ Ext.define('BuddiLive.view.scheduled.Editor', {
 	],
 	
 	initComponent: function() {
-		var s = this.initialConfig.selected
-		var editor = this;
+		let s = this.initialConfig.selected
+		let editor = this;
 		
 		this.title = (s ? BuddiLive.translate("EDIT_SCHEDULED_TRANSACTION") : BuddiLive.translate("ADD_SCHEDULED_TRANSACTION"));
 		this.layout = "fit";

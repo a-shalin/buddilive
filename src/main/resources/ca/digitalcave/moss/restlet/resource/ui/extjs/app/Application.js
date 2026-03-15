@@ -1,8 +1,8 @@
-var __ac = window.__authConfig || {};
+let __ac = window.__authConfig || {};
 
-var loaderPaths = {Login: __ac.routerAttachPoint || "authentication"};
+let loaderPaths = {Login: __ac.routerAttachPoint || "authentication"};
 if (__ac.applicationLoaderPaths) {
-	for (var key in __ac.applicationLoaderPaths) {
+	for (let key in __ac.applicationLoaderPaths) {
 		loaderPaths[key] = __ac.applicationLoaderPaths[key];
 	}
 }
@@ -14,9 +14,9 @@ Ext.Loader.setConfig({
 Ext.require(["Login.util.I18n"], function() {
 	Login.util.I18n.init(window.__authI18n);
 
-	var views = ["LoginPanel"];
-	var controllers = ["LoginController"];
-	var models = [];
+	let views = ["LoginPanel"];
+	let controllers = ["LoginController"];
+	let models = [];
 
 	if (__ac.applicationViews) {
 		views = views.concat(__ac.applicationViews);

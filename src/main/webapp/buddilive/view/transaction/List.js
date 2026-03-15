@@ -6,7 +6,7 @@ Ext.define('BuddiLive.view.transaction.List', {
 	],
 	
 	initComponent: function() {
-		var transactionList = this;
+		let transactionList = this;
 		this.layout = "fit";
 		this.store = Ext.create("BuddiLive.store.transaction.ListStore");
 		this.border = false;
@@ -20,10 +20,10 @@ Ext.define('BuddiLive.view.transaction.List', {
 				ftype: "rowbody",
 
 				getAdditionalData: function(data, rowIndex, record, orig) {
-					var rowBody = "";
-					var s = record.data.splits;
-					var headerCt = this.view.headerCt, colspan = headerCt.getColumnCount();
-					for (var i = 0; i < s.length; i++) {
+					let rowBody = "";
+					let s = record.data.splits;
+					let headerCt = this.view.headerCt, colspan = headerCt.getColumnCount();
+					for (let i = 0; i < s.length; i++) {
 						rowBody += "<div style='padding: 2px; height: 20px; width: 100%;'>"
 								+ "<span style='display: inline-block; width: 23%;'></span>"
 								+ "<span style='display: inline-block; width: 26%;'><i>" + s[i].from + " &rarr; " + s[i].to + "</i></span>" 

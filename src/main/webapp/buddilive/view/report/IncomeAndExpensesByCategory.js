@@ -9,11 +9,11 @@ Ext.define('BuddiLive.view.report.IncomeAndExpensesByCategory', {
 	layout: "fit",
 
 	initComponent: function() {
-		var me = this;
+		let me = this;
 		this.dockedItems = BuddiLive.app.viewport.getDockedItems("report");
 		
 		this.title = BuddiLive.translate("REPORT_TABLE_INCOME_AND_EXPENSES_BY_CATEGORY") + " - " + this.initialConfig.options.dateRange;
-		var styledRenderer = function(value, metaData, record) {
+		let styledRenderer = function(value, metaData, record) {
 			metaData.style = record.data[metaData.column.dataIndex + "Style"];
 			return value;
 		};

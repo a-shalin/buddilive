@@ -91,14 +91,14 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 	},
 	
 	getTransaction: function(transaction) {
-		var t = {};
+		let t = {};
 		t.id = this.down("hidden[itemId='id']").getValue();
 		t.date = Ext.Date.format(this.down("datefield[itemId='date']").getValue(), "Y-m-d");
 		t.description = this.down("combobox[itemId='description']").getValue();
 		t.number = this.down("textfield[itemId='number']").getValue();
 		t.splits = [];
 		
-		for (var i = 0;  i < this.items.length; i++) {
+		for (let i = 0;  i < this.items.length; i++) {
 			t.splits.push(this.items.get(i).getSplit());
 		}
 		return t;
@@ -131,7 +131,7 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 		}
 	
 		//Remember whatever data has already been set in the splits
-		var existingSplits = [];
+		let existingSplits = [];
 	
 		//Remove all the split editors
 		while (this.items.length > 0) {
@@ -139,11 +139,11 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 			this.remove(this.items.get(0));
 		}
 
-		var splits = (transaction.splits ? transaction.splits : []);
+		let splits = (transaction.splits ? transaction.splits : []);
 		if (splits && splits.length > 0) {
 			//Add a new split editor for each split
-			for (var i = 0; i < splits.length; i++) {
-				var split = Ext.apply(splits[i]);
+			for (let i = 0; i < splits.length; i++) {
+				let split = Ext.apply(splits[i]);
 				if (loadFromDescription && existingSplits.length > i) {
 					if (existingSplits[i].amount) {
 						split.amount = existingSplits[i].amount;
@@ -199,12 +199,12 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 	
 	validate: function() {
 		if (!this.initialConfig.scheduledTransaction && !Ext.isDate(this.down("datefield[itemId='date']").getValue())) return false;
-		var description = this.down("combobox[itemId='description']").getValue();
+		let description = this.down("combobox[itemId='description']").getValue();
 		if (description == null || description.length == 0) return false;
 		if (this.items.length == 0) return false;
 		
-		for (var i = 0;  i < this.items.length; i++) {
-			var split = this.items.get(i).getSplit();
+		for (let i = 0;  i < this.items.length; i++) {
+			let split = this.items.get(i).getSplit();
 			if (split.amount == 0) return false;
 			if (!split.fromId || !split.toId) return false;
 		}

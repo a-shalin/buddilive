@@ -42,7 +42,7 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 		],
 
 		launch: function() {
-			var viewport = Ext.create("BuddiLive.view.Viewport");
+			let viewport = Ext.create("BuddiLive.view.Viewport");
 			BuddiLive.app = this;
 			BuddiLive.app.viewport = viewport;
 
@@ -56,14 +56,14 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 				interval: 1000 * 60 * 60,
 
 				run: function() {
-					var conn = Ext.create("Ext.data.Connection");
+					let conn = Ext.create("Ext.data.Connection");
 					conn.request({
 						url: "data/scheduledtransactions/execute",
 						method: "POST",
 						jsonData: Ext.Date.format(new Date(), "Y-m-d"),
 
 						success: function(response) {
-							var messages = Ext.decode(response.responseText, true);
+							let messages = Ext.decode(response.responseText, true);
 							if (messages != null && messages.messages != null) {
 								if (messages.messages.length > 0) {
 									Ext.MessageBox.show({
@@ -85,15 +85,15 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 		},
 
 		error: function(error) {
-			var message;
-			var title;
+			let message;
+			let title;
 			if (Ext.isString(error)) {
 				message = error;
 				title = "Error";
 			}
 			else if (error.responseText != null) {
 				title = (error.statusText ? error.statusText : BuddiLive.translate("ERROR"));
-				var json = Ext.decode(error.responseText, true);
+				let json = Ext.decode(error.responseText, true);
 				if (json == null) {
 					message = error.responseText;
 				}

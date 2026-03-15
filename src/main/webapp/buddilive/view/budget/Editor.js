@@ -7,8 +7,8 @@ Ext.define('BuddiLive.view.budget.Editor', {
 	],
 	
 	initComponent: function() {
-		var s = this.initialConfig.selected
-		var editor = this;
+		let s = this.initialConfig.selected
+		let editor = this;
 		
 		this.title = (s ? BuddiLive.translate("EDIT_BUDGET_CATEGORY") : BuddiLive.translate("ADD_BUDGET_CATEGORY"))
 		this.layout = "fit";
@@ -53,7 +53,7 @@ Ext.define('BuddiLive.view.budget.Editor', {
 						url: "data/categories/parents.json" + (s ? "?exclude=" + s.id : ""),
 						listeners: {
 							change: function() {
-								var parent = editor.down("parentcombobox[itemId='parent']");
+								let parent = editor.down("parentcombobox[itemId='parent']");
 								if (parent.getValue() != null && (parent.getValue() + "").length > 0) {
 									editor.down("combobox[itemId='periodType']").setValue(parent.getStore().findRecord("value", parent.getValue()).data.periodType);
 									editor.down("combobox[itemId='type']").setValue(parent.getStore().findRecord("value", parent.getValue()).data.type);

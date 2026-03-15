@@ -14,11 +14,11 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 	},
 	
 	updateButtons: function(component) {
-		var window = component.up("schedulededitor");
-		var ok = window.down("button[itemId='ok']");
-		var name = window.down("textfield[itemId='name']");
-		var startDate = window.down("datefield[itemId='startDate']");
-		var transaction = window.down("transactioneditor")
+		let window = component.up("schedulededitor");
+		let ok = window.down("button[itemId='ok']");
+		let name = window.down("textfield[itemId='name']");
+		let startDate = window.down("datefield[itemId='startDate']");
+		let transaction = window.down("transactioneditor")
 		
 		ok.setDisabled(name.getValue().length == 0 || startDate.getValue() == null || !transaction.validate());
 	},
@@ -28,11 +28,11 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 	},
 	
 	ok: function(component) {
-		var window = component.up("schedulededitor");
-		var panel = window.initialConfig.panel;
-		var selected = window.initialConfig.selected;
+		let window = component.up("schedulededitor");
+		let panel = window.initialConfig.panel;
+		let selected = window.initialConfig.selected;
 
-		var request = {action: (selected ? update: "insert")};
+		let request = {action: (selected ? update: "insert")};
 		request.id = window.down("hidden[itemId='id']").getValue();
 		request.lastCreatedDate = window.down("hidden[itemId='lastCreatedDate']").getValue();
 		request.name = window.down("textfield[itemId='name']").getValue();
@@ -42,15 +42,15 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 		request.transaction = window.down("transactioneditor").getTransaction();
 		request.message = window.down("textarea[itemId='message']").getValue();
 		
-		var activeCard = window.down("panel[itemId='cardLayoutPanel']").getLayout().getActiveItem();
+		let activeCard = window.down("panel[itemId='cardLayoutPanel']").getLayout().getActiveItem();
 		request.scheduleDay = activeCard.getScheduleDay();
 		request.scheduleWeek = activeCard.getScheduleWeek();
 		request.scheduleMonth = activeCard.getScheduleMonth();
 
-		var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
+		let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
 		mask.show();
 		
-		var conn = new Ext.data.Connection();
+		let conn = new Ext.data.Connection();
 		conn.request({
 			url: "data/scheduledtransactions",
 			headers: {

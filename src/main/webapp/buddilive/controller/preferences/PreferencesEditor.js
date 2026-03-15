@@ -47,9 +47,9 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 	},
 	
 	ok: function(component) {
-		var window = component.up("preferenceseditor");
-		var panel = window.initialConfig.panel;
-		var originalData = window.initialConfig.data;
+		let window = component.up("preferenceseditor");
+		let panel = window.initialConfig.panel;
+		let originalData = window.initialConfig.data;
 
 		if (window.down("checkbox[itemId='encrypt']").getValue() != originalData.encrypt && window.down("textfield[itemId='password']").getValue().length == 0) {
 			Ext.MessageBox.show({
@@ -60,7 +60,7 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 			return;
 		}
 
-		var request = {action: "update"};
+		let request = {action: "update"};
 		request.encrypt = window.down("checkbox[itemId='encrypt']").getValue();
 		request.encryptPassword = window.down("textfield[itemId='password']").getValue();
 		request.useTwoFactor = window.down("checkbox[itemId='useTwoFactor']").getValue();
@@ -73,11 +73,11 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 		request.decimalSeparator = window.down("combobox[itemId='decimalSeparator']").getValue();
 		request.thousandSeparator = window.down("combobox[itemId='thousandSeparator']").getValue();
 		request.negativeFormat = window.down("combobox[itemId='negativeFormat']").getValue();
-		var dateFormat = window.down("combobox[itemId='dateFormat']").getValue();
+		let dateFormat = window.down("combobox[itemId='dateFormat']").getValue();
 		request.dateFormat = dateFormat ? dateFormat : "";
 		request.showDeleted = window.down("checkbox[itemId='showDeleted']").getValue();
 
-		var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
+		let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
 		mask.show();
 		
 		Ext.Ajax.request({
@@ -104,9 +104,9 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 	getCurrencySymbol: function(currencyCode, localeCode) {
 		if (!currencyCode) return "$";
 		try {
-			var locale = (localeCode || "en_US").replace("_", "-");
-			var parts = new Intl.NumberFormat(locale, {style: "currency", currency: currencyCode}).formatToParts(1);
-			for (var i = 0; i < parts.length; i++) {
+			let locale = (localeCode || "en_US").replace("_", "-");
+			let parts = new Intl.NumberFormat(locale, {style: "currency", currency: currencyCode}).formatToParts(1);
+			for (let i = 0; i < parts.length; i++) {
 				if (parts[i].type == "currency") return parts[i].value;
 			}
 		}
@@ -115,12 +115,12 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 	},
 
 	updateCurrencySymbolLabel: function(component) {
-		var window = (component.xtype == "preferenceseditor" ? component : component.up("preferenceseditor"));
+		let window = (component.xtype == "preferenceseditor" ? component : component.up("preferenceseditor"));
 		if (!window) return;
-		var checkbox = window.down("checkbox[itemId='showCurrencySymbol']");
-		var currencyCode = window.down("combobox[itemId='currency']").getValue();
-		var localeCode = window.down("combobox[itemId='locale']").getValue();
-		var symbol = this.getCurrencySymbol(currencyCode, localeCode);
+		let checkbox = window.down("checkbox[itemId='showCurrencySymbol']");
+		let currencyCode = window.down("combobox[itemId='currency']").getValue();
+		let localeCode = window.down("combobox[itemId='locale']").getValue();
+		let symbol = this.getCurrencySymbol(currencyCode, localeCode);
 		checkbox.setBoxLabel(BuddiLive.translate("SHOW_CURRENCY_SYMBOL") + " (" + symbol + ")");
 	}
 });

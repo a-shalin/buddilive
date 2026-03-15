@@ -16,10 +16,10 @@ Ext.define("BuddiLive.controller.restore.Form", {
 	},
 	
 	ok: function(component) {
-		var window = component.up("restoreform");
-		var form = window.down("form").getForm();
-		var submit = function(deleteData) {
-			var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
+		let window = component.up("restoreform");
+		let form = window.down("form").getForm();
+		let submit = function(deleteData) {
+			let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
 			mask.show();
 			form.submit({
 				url: "data/restore?deleteData=" + deleteData,
@@ -45,7 +45,7 @@ Ext.define("BuddiLive.controller.restore.Form", {
 			});
 		};
 		
-		var deleteData = window.down("checkbox[itemId='deleteData']").getValue();
+		let deleteData = window.down("checkbox[itemId='deleteData']").getValue();
 		if (deleteData) {
 			Ext.MessageBox.show({
 				title: BuddiLive.translate("DELETE_DATA"),
@@ -65,9 +65,9 @@ Ext.define("BuddiLive.controller.restore.Form", {
 	},
 	
 	updateButtons: function(component) {
-		var window = component.up("restoreform");
-		var form = window.down("form").getForm();
-		var ok = window.down("button[itemId='ok']");
+		let window = component.up("restoreform");
+		let form = window.down("form").getForm();
+		let ok = window.down("button[itemId='ok']");
 		
 		ok.setDisabled(!form.isValid());
 	}

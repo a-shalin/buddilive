@@ -10,8 +10,8 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 	formatText: "0,000.00",
 
 	initComponent: function() {
-		var decimalSeparator = BuddiLive.util.UserConfig.get('decimalSeparator') || '.';
-		var thousandSeparator = BuddiLive.util.UserConfig.get('thousandSeparator') || ',';
+		let decimalSeparator = BuddiLive.util.UserConfig.get('decimalSeparator') || '.';
+		let thousandSeparator = BuddiLive.util.UserConfig.get('thousandSeparator') || ',';
 
 		this.decimalSeparator = decimalSeparator;
 		this.thousandSeparator = thousandSeparator;
@@ -24,17 +24,17 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 	},
 
 	parseValue: function(value) {
-		var me = this;
+		let me = this;
 		if (!isNaN(value)) return value;
-		var currencySymbol = BuddiLive.util.UserConfig.get('currencySymbol') || '';
-		var thousandSeparator = BuddiLive.util.UserConfig.get('thousandSeparator') || ',';
-		var decimalSeparator = BuddiLive.util.UserConfig.get('decimalSeparator') || '.';
-		var parsedValue = parseFloat(String(value).split(currencySymbol).join("").split(thousandSeparator).join("").split(decimalSeparator).join("."));
+		let currencySymbol = BuddiLive.util.UserConfig.get('currencySymbol') || '';
+		let thousandSeparator = BuddiLive.util.UserConfig.get('thousandSeparator') || ',';
+		let decimalSeparator = BuddiLive.util.UserConfig.get('decimalSeparator') || '.';
+		let parsedValue = parseFloat(String(value).split(currencySymbol).join("").split(thousandSeparator).join("").split(decimalSeparator).join("."));
 		return isNaN(parsedValue) ? null : parsedValue;
 	},
 
 	valueToRaw: function(value) {
-		var me = this;
+		let me = this;
 		value = me.parseValue(value);
 		if (isNaN(value)) {
 			return "";
@@ -45,7 +45,7 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 	},
 
 	rawToValue: function(raw) {
-		var me = this;
+		let me = this;
 		return me.parseValue(raw);
 	},
 
@@ -54,7 +54,7 @@ Ext.define('BuddiLive.view.component.CurrencyField', {
 	},
 
 	getValue: function() {
-		var me = this;
+		let me = this;
 		return me.parseValue(me.rawValue);
 	}
 });

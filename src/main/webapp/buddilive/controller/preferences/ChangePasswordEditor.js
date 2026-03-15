@@ -13,17 +13,17 @@ Ext.define("BuddiLive.controller.preferences.ChangePasswordEditor", {
 	},
 
 	ok: function(component) {
-		var window = component.up("changepasswordeditor");
-		var panel = window.initialConfig.panel;
+		let window = component.up("changepasswordeditor");
+		let panel = window.initialConfig.panel;
 
-		var request = {action: "update"};
+		let request = {action: "update"};
 		request.newPassword = window.down("passwordfield[itemId='newPassword']").getValue();
 		request.currentPassword = window.down("textfield[itemId='currentPassword']").getValue();
 
-		var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
+		let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
 		mask.show();
 
-		var conn = new Ext.data.Connection();
+		let conn = new Ext.data.Connection();
 		conn.request({
 			url: "data/changepassword",
 			headers: {
@@ -35,7 +35,7 @@ Ext.define("BuddiLive.controller.preferences.ChangePasswordEditor", {
 			success: function(response) {
 				mask.hide();
 				window.close();
-				var connLogin = new Ext.data.Connection();
+				let connLogin = new Ext.data.Connection();
 				connLogin.request({
 					url: "index",
 					method: "POST",

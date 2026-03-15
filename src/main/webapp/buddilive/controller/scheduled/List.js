@@ -8,9 +8,9 @@ Ext.define("BuddiLive.controller.scheduled.List", {
 	},
 
 	selectionChange: function(selectionModel, selected) {
-		var enabled = selected && selected.length > 0;
+		let enabled = selected && selected.length > 0;
 
-		var viewport = selectionModel.view.panel.up("buddiviewport");
+		let viewport = selectionModel.view.panel.up("buddiviewport");
 		viewport.down("button[itemId='editScheduled']").setDisabled(!enabled);
 		viewport.down("button[itemId='deleteScheduled']").setDisabled(!enabled);
 	}

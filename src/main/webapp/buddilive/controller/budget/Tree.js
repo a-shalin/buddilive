@@ -22,14 +22,14 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 			return;
 		}
 		
-		var budgetTree = editor.cmp;
-		var request = {action: "set"};
+		let budgetTree = editor.cmp;
+		let request = {action: "set"};
 		request.categoryId = data.record.data.id;
 		request.date = data.record.data.date;
 		request.periodType = data.record.data.type;
 		request.amount = String(data.value);
 	
-		var conn = new Ext.data.Connection();
+		let conn = new Ext.data.Connection();
 		conn.request({
 			url: "data/categories",
 			headers: {
@@ -39,7 +39,7 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 			jsonData: request,
 
 			success: function(response) {
-				var v = Ext.decode(response.responseText);
+				let v = Ext.decode(response.responseText);
 				if (v && v.data) {
 					v = v.data;
 					data.record.set("current", v.current);
@@ -60,9 +60,9 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 	},
 	
 	selectionChange: function(selectionModel, selected) {
-		var enabled = selected && selected.length > 0;
+		let enabled = selected && selected.length > 0;
 
-		var viewport = selectionModel.view.panel.up("buddiviewport");
+		let viewport = selectionModel.view.panel.up("buddiviewport");
 		viewport.down("button[itemId='editCategory']").setDisabled(!enabled);
 		viewport.down("button[itemId='deleteCategory']").setDisabled(!enabled);
 		if (selected && selected.length > 0 && selected[0].data.deleted) {
@@ -74,12 +74,12 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 	},
 
 	clickCopyFromPreviousPeriod: function(component) {
-		var budgetTree = component.up("budgettree");
-		var request = {action: "copyFromPrevious"};
+		let budgetTree = component.up("budgettree");
+		let request = {action: "copyFromPrevious"};
 		request.type = budgetTree.periodValue;
 		request.date = budgetTree.currentDate;
-		var conn = new Ext.data.Connection();
-		var mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: budgetTree});
+		let conn = new Ext.data.Connection();
+		let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: budgetTree});
 		mask.show();
 		conn.request({
 			url: "data/categories",
@@ -102,8 +102,8 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 	},
 		
 	clickChangePeriod: function(component) {
-		var budgetTree = component.up("budgettree");
-		var offset = (component.itemId == "previousPeriod" ? -1 : 1);
+		let budgetTree = component.up("budgettree");
+		let offset = (component.itemId == "previousPeriod" ? -1 : 1);
 		budgetTree.getStore().load({params: {date: budgetTree.currentDate, offset: offset}});
 	}
 });

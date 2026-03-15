@@ -58,13 +58,13 @@ Ext.define('BuddiLive.view.budget.Tree', {
 	}],
 	
 	initComponent: function() {
-		var budgetTree = this;
+		let budgetTree = this;
 		this.itemId = this.initialConfig.periodValue;
 		this.stateId = "budgettree" + this.initialConfig.periodValue;
 		this.store = Ext.create("BuddiLive.store.budget.TreeStore", {periodType: this.initialConfig.periodValue});
 		this.title = this.initialConfig.periodText;
 		
-		var styledRenderer = function(value, metaData, record) {
+		let styledRenderer = function(value, metaData, record) {
 			metaData.style = record.data[metaData.column.dataIndex + "Style"];
 			return value;
 		};

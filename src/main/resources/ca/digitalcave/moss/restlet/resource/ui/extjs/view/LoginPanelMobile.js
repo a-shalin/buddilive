@@ -31,13 +31,13 @@ Ext.define('Login.view.LoginPanelMobile', {
 	},
 
 	initComponent: function() {
-		var __ac = window.__authConfig || {};
-		var items = [];
+		let __ac = window.__authConfig || {};
+		let items = [];
 
 		this.title = Login.translate("FORM_TITLE");
 		this.tabPosition = __ac.tabPosition || "bottom";
 
-		var tabBarConfig = {
+		let tabBarConfig = {
 			cls: "login-tab-bar",
 			layout: {
 				pack: __ac.tabPackAlignment || "start"
@@ -55,13 +55,13 @@ Ext.define('Login.view.LoginPanelMobile', {
 		if (__ac.showCookieWarning) {
 			this.listeners = {
 				afterrender: function() {
-					var url = window.location.href;
-					var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
-					var allowCookies = allowCookiesStorage.getItem(url);
+					let url = window.location.href;
+					let allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
+					let allowCookies = allowCookiesStorage.getItem(url);
 					allowCookiesStorage.release();
 					if (allowCookies != "true") {
-						var showMessage = function() {
-							var win = Ext.create({
+						let showMessage = function() {
+							let win = Ext.create({
 								xtype: "panel",
 								modal: true,
 								floating: true,
@@ -81,7 +81,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 													},
 
 													click: function(button) {
-														var allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
+														let allowCookiesStorage = Ext.util.LocalStorage.get("allowCookies");
 														allowCookiesStorage.setItem(url, "true");
 														allowCookiesStorage.release();
 
@@ -106,7 +106,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 		}
 
 		if (__ac.showLogin !== false) {
-			var loginFormItems = [
+			let loginFormItems = [
 				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "identifier", inputAttrTpl: "autocapitalize='off'", listeners: { afterrender: function(component) { component.focus(); } } },
 				{ fieldLabel: Login.translate("PASSWORD_LABEL"), inputType: "password", inputAttrTpl: "autocapitalize='off'", name: "password" }
 			];
@@ -124,14 +124,14 @@ Ext.define('Login.view.LoginPanelMobile', {
 				{ xtype: "label", html: "<a href='.?desktop' style='color: #666; align: right;'>Desktop View</a>", style: {display: "block"}}
 			);
 
-			var ssoItems = [];
+			let ssoItems = [];
 			if (__ac.ssoProviders) {
-				for (var key in __ac.ssoProviders) {
+				for (let key in __ac.ssoProviders) {
 					ssoItems.push({xtype: "button", text: Login.translate("SAML_LOGIN_LABEL") + " " + __ac.ssoProviders[key], ssoProviderId: key, width: "100%", margin: "5px"});
 				}
 			}
 
-			var passwordExpiredItems = [
+			let passwordExpiredItems = [
 				{ name: "identifier", xtype: "hiddenfield" },
 				{ fieldLabel: Login.translate("NEW_PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
 			];
@@ -215,7 +215,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 		}
 
 		if (__ac.showRegister) {
-			var registerItems = [
+			let registerItems = [
 				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), name: "email", inputAttrTpl: "autocapitalize='off'", vtype: "email" }
 			];
 			if (__ac.extraRegisterStep1Fields) {
@@ -228,7 +228,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 				{ xtype: "button", text: Login.translate("GENERATE_KEY_BUTTON"), itemId: "register" }
 			);
 
-			var activateItems = [
+			let activateItems = [
 				{ fieldLabel: Login.translate("ACTIVATION_KEY_LABEL"), inputAttrTpl: "autocapitalize='off'", name: "identifier" },
 				{ fieldLabel: Login.translate("PASSWORD_LABEL"), name: "secret", xtype: "passwordfield" }
 			];
@@ -258,7 +258,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 		}
 
 		if (__ac.showForgotPassword !== false) {
-			var forgotItems = [
+			let forgotItems = [
 				{ fieldLabel: Login.translate("IDENTIFIER_LABEL"), inputAttrTpl: "autocapitalize='off'", name: "identifier" }
 			];
 			if (__ac.extraforgotPasswordStep1PanelFields) {
@@ -271,7 +271,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 				{ xtype: "button", text: Login.translate("EXISTING_KEY_BUTTON"), itemId: "forward" }
 			);
 
-			var resetItems = [
+			let resetItems = [
 				{ fieldLabel: Login.translate("ACTIVATION_KEY_LABEL"), inputAttrTpl: "autocapitalize='off'", name: "activationKey" },
 				{ fieldLabel: Login.translate("NEW_PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
 			];
@@ -301,7 +301,7 @@ Ext.define('Login.view.LoginPanelMobile', {
 		}
 
 		if (__ac.showForgotUsername) {
-			var forgotUsernameItems = [
+			let forgotUsernameItems = [
 				{ fieldLabel: Login.translate("EMAIL_LABEL"), inputAttrTpl: "autocapitalize='off'", name: "email" }
 			];
 			if (__ac.extraForgotUsernameStep1PanelFields) {

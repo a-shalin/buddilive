@@ -6,7 +6,7 @@ Ext.define('BuddiLive.view.account.Editor', {
 	],
 	
 	initComponent: function() {
-		var s = this.initialConfig.selected
+		let s = this.initialConfig.selected
 
 		this.title = (s ? BuddiLive.translate("EDIT_ACCOUNT") : BuddiLive.translate("ADD_ACCOUNT"));
 		this.layout = "fit";

@@ -5,9 +5,9 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 	],
 
 	initComponent: function() {
-		var me = this;
-		var s = this.initialConfig.selected
-		var extDateFormat = BuddiLive.util.UserConfig.get('extDateFormat') || 'Y-m-d';
+		let me = this;
+		let s = this.initialConfig.selected
+		let extDateFormat = BuddiLive.util.UserConfig.get('extDateFormat') || 'Y-m-d';
 
 		this.title = BuddiLive.translate("INTERVAL_PICKER");
 		this.layout = "fit";
@@ -99,22 +99,22 @@ Ext.define("BuddiLive.view.report.picker.Interval", {
 				itemId: "ok",
 				listeners: {
 					click: function() {
-						var interval = me.down("combobox[itemId='interval']").getValue();
-						var dateRange = me.down("combobox[itemId='interval']").getRawValue();
-						var query = "interval=" + interval;
+						let interval = me.down("combobox[itemId='interval']").getValue();
+						let dateRange = me.down("combobox[itemId='interval']").getRawValue();
+						let query = "interval=" + interval;
 						if (interval == "PLUGIN_FILTER_OTHER") {
-							var startValid = me.down("datefield[itemId='startDate']").validate();
-							var endValid = me.down("datefield[itemId='endDate']").validate();
+							let startValid = me.down("datefield[itemId='startDate']").validate();
+							let endValid = me.down("datefield[itemId='endDate']").validate();
 							if (!startValid || !endValid) return;
 
-							var startDate = me.down("datefield[itemId='startDate']").getValue();
-							var endDate = me.down("datefield[itemId='endDate']").getValue();
+							let startDate = me.down("datefield[itemId='startDate']").getValue();
+							let endDate = me.down("datefield[itemId='endDate']").getValue();
 							query += ("&startDate=" + Ext.Date.format(startDate, "Y-m-d"));
 							query += ("&endDate=" + Ext.Date.format(endDate, "Y-m-d"));
 
 							dateRange = Ext.Date.format(startDate, extDateFormat) + " - " + Ext.Date.format(endDate, extDateFormat);
 						}
-						var options = {
+						let options = {
 							query: query,
 							dateRange: dateRange
 						};

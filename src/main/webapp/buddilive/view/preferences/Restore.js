@@ -6,7 +6,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 	],
 	
 	initComponent: function() {
-		var d = this.initialConfig.data
+		let d = this.initialConfig.data
 
 		this.title = BuddiLive.translate("PREFERENCES");
 		this.layout = "fit";
@@ -82,7 +82,7 @@ Ext.define('BuddiLive.view.preferences.Restore', {
 						store: new Ext.data.Store({
 							fields: ["text", "value"],
 							data: (function() {
-								var now = new Date();
+								let now = new Date();
 								return [
 									{text: Ext.Date.format(now, "Y-m-d"), value: "yyyy-MM-dd"},
 									{text: Ext.Date.format(now, "m/d/Y"), value: "MM/dd/yyyy"},

@@ -2,7 +2,7 @@ Ext.define("BuddiLive.view.transaction.split.SourceCombobox", {
 	extend: "Ext.form.field.ComboBox",
 	
 	initComponent: function() {
-		var combo = this;
+		let combo = this;
 		Ext.applyIf(this, this.initialConfig);
 
 		this.displayField = "text";
@@ -57,14 +57,14 @@ Ext.define("BuddiLive.view.transaction.split.SourceCombobox", {
 				combo.setValue(null);
 			}
 			else {
-				var c = String.fromCharCode(e.charCode || e.keyCode);
+				let c = String.fromCharCode(e.charCode || e.keyCode);
 				if (c.match(/[a-zA-Z]+/)) combo.searchText += c;
 				else combo.searchText = "";
 			}
 
 			if (combo.searchText.length > 0) {
 				combo.expand();
-				var record = combo.getStore().findRecord("search", combo.searchText);	//We prefer to find text matching at the beginning
+				let record = combo.getStore().findRecord("search", combo.searchText);	//We prefer to find text matching at the beginning
 				if (record == null) record = combo.getStore().findRecord("text", combo.searchText, 0, true, false, false);	//If that doesn't work, try anywhere.
 				combo.select(record);
 				combo.setValue(record);
@@ -80,8 +80,8 @@ Ext.define("BuddiLive.view.transaction.split.SourceCombobox", {
 				thisCombo.setValue();
 			}
 
-			var otherCombo = thisCombo.up("spliteditor").down(thisCombo.xtype == "fromcombobox" ? tocombobox: "fromcombobox");
-			var source = thisCombo.initialConfig.source;
+			let otherCombo = thisCombo.up("spliteditor").down(thisCombo.xtype == "fromcombobox" ? tocombobox: "fromcombobox");
+			let source = thisCombo.initialConfig.source;
 			if (source != null) {
 				//If we have a source, it will be an account; thus we guarantee that there will be at most one category.
 				if (thisCombo.getValue() != source) {
@@ -96,8 +96,8 @@ Ext.define("BuddiLive.view.transaction.split.SourceCombobox", {
 			else {
 				//If we don't have a source, we are probably in a scheduled transaction editor.  This makes things a bit harder; we need 
 				// to look up the type from the source ID, and switch from that.
-				var thisType = thisCombo.getStore().findRecord("value", thisCombo.getValue());
-				var otherType = otherCombo.getStore().findRecord("value", otherCombo.getValue());
+				let thisType = thisCombo.getStore().findRecord("value", thisCombo.getValue());
+				let otherType = otherCombo.getStore().findRecord("value", otherCombo.getValue());
 				if ((thisType == "I" || thisType == "E") && (otherType == "I" || otherType == "E")) {
 					otherCombo.setValue();
 				}
