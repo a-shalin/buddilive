@@ -15,6 +15,12 @@
 		<result column="locale" property="locale"/>
 		<result column="currency" property="currency"/>
 		<result column="override_date_format" property="overrideDateFormat"/>
+		<result column="override_currency_after" property="overrideCurrencyAfter"/>
+		<result column="override_decimal_separator" property="overrideDecimalSeparator"/>
+		<result column="override_thousands_separator" property="overrideThousandsSeparator"/>
+		<result column="override_negative_format" property="overrideNegativeFormat"/>
+		<result column="show_currency_symbol" property="showCurrencySymbol" typeHandler="ca.digitalcave.buddi.live.db.handler.BooleanHandler"/>
+		<result column="currency_spacing" property="currencySpacing"/>
 		<result column="show_deleted" property="showDeleted" typeHandler="ca.digitalcave.buddi.live.db.handler.BooleanHandler"/>
 		<result column="created" property="created"/>
 		<result column="modified" property="modified"/>
@@ -37,6 +43,12 @@
 			locale,
 			currency,
 			override_date_format,
+			override_currency_after,
+			override_decimal_separator,
+			override_thousands_separator,
+			override_negative_format,
+			show_currency_symbol,
+			currency_spacing,
 			show_deleted,
 			users.created created,
 			modified,
@@ -59,6 +71,12 @@
 			locale,
 			currency,
 			override_date_format,
+			override_currency_after,
+			override_decimal_separator,
+			override_thousands_separator,
+			override_negative_format,
+			show_currency_symbol,
+			currency_spacing,
 			show_deleted,
 			users.created created,
 			modified,
@@ -90,6 +108,7 @@
 				use_two_factor,
 				locale,
 				currency,
+				show_currency_symbol,
 				show_deleted,
 				encryption_version,
 				created, 
@@ -105,6 +124,7 @@
 				'N',
 				#{user.locale,javaType=java.util.Locale},
 				#{user.currency,javaType=java.util.Currency},
+				'N',
 				'Y',
 				2,
 				CURRENT_TIMESTAMP, 
@@ -148,6 +168,12 @@
 			locale = #{user.locale,javaType=java.util.Locale},
 			currency = #{user.currency,javaType=java.util.Currency},
 			override_date_format = #{user.overrideDateFormat,jdbcType=VARCHAR},
+			override_currency_after = #{user.overrideCurrencyAfter,jdbcType=CHAR},
+			override_decimal_separator = #{user.overrideDecimalSeparator,jdbcType=VARCHAR},
+			override_thousands_separator = #{user.overrideThousandsSeparator,jdbcType=VARCHAR},
+			override_negative_format = #{user.overrideNegativeFormat,jdbcType=VARCHAR},
+			show_currency_symbol = <choose><when test="user.showCurrencySymbol == true">'Y'</when><otherwise>'N'</otherwise></choose>,
+			currency_spacing = #{user.currencySpacing,jdbcType=CHAR},
 			show_deleted = <choose><when test="user.showDeleted == true">'Y'</when><otherwise>'N'</otherwise></choose>,
 			use_two_factor = <choose><when test="user.twoFactorRequired == true">'Y'</when><otherwise>'N'</otherwise></choose>,
 			modified = CURRENT_TIMESTAMP

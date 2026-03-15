@@ -36,6 +36,8 @@ public class UserPreferencesIT extends BaseIT {
 		assertThat(prefs.getBoolean("success")).isTrue();
 		assertThat(prefs.getString("currency")).isEqualTo("USD");
 		assertThat(prefs.getString("locale")).isEqualTo("en_US");
+		assertThat(prefs.getBoolean("showCurrencySymbol")).isFalse();
+		assertThat(prefs.getBoolean("currencySpacing")).isTrue();
 	}
 
 	@Test
@@ -43,10 +45,22 @@ public class UserPreferencesIT extends BaseIT {
 	void testUpdatePreferences() throws Exception {
 		JSONObject update = new JSONObject();
 		update.put("showDeleted", true);
+		update.put("showCurrencySymbol", true);
+		update.put("currencySpacing", false);
+		update.put("currencyAfter", true);
+		update.put("decimalSeparator", ",");
+		update.put("thousandSeparator", " ");
+		update.put("negativeFormat", "B");
 
 		helper.updateUserPreferences(client, update);
 
 		JSONObject prefs = helper.getUserPreferences(client);
 		assertThat(prefs.getBoolean("showDeleted")).isTrue();
+		assertThat(prefs.getBoolean("showCurrencySymbol")).isTrue();
+		assertThat(prefs.getBoolean("currencySpacing")).isFalse();
+		assertThat(prefs.getBoolean("currencyAfter")).isTrue();
+		assertThat(prefs.getString("decimalSeparator")).isEqualTo(",");
+		assertThat(prefs.getString("thousandSeparator")).isEqualTo(" ");
+		assertThat(prefs.getString("negativeFormat")).isEqualTo("B");
 	}
 }

@@ -13,7 +13,10 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 		this.control({
 			"preferenceseditor button[itemId='regenerateTwoFactorBackup']": { "click": this.regenerateTwoFactorBackup },
 			"preferenceseditor button[itemId='ok']": {"click": this.ok},
-			"preferenceseditor button[itemId='cancel']": {"click": this.cancel}
+			"preferenceseditor button[itemId='cancel']": {"click": this.cancel},
+			"preferenceseditor combobox[itemId='currency']": {"change": this.updateCurrencySymbolLabel},
+			"preferenceseditor combobox[itemId='locale']": {"change": this.updateCurrencySymbolLabel},
+			"preferenceseditor": {"show": this.updateCurrencySymbolLabel}
 		});
 	},
 	
@@ -61,6 +64,12 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 		request.storeEmail = window.down("checkbox[itemId='storeEmail']").getValue();
 		request.locale = window.down("combobox[itemId='locale']").getValue();
 		request.currency = window.down("combobox[itemId='currency']").getValue();
+		request.showCurrencySymbol = window.down("checkbox[itemId='showCurrencySymbol']").getValue();
+		request.currencyAfter = window.down("checkbox[itemId='currencyAfter']").getValue();
+		request.currencySpacing = window.down("checkbox[itemId='currencySpacing']").getValue();
+		request.decimalSeparator = window.down("combobox[itemId='decimalSeparator']").getValue();
+		request.thousandSeparator = window.down("combobox[itemId='thousandSeparator']").getValue();
+		request.negativeFormat = window.down("combobox[itemId='negativeFormat']").getValue();
 		var dateFormat = window.down("combobox[itemId='dateFormat']").getValue();
 		request.dateFormat = dateFormat ? dateFormat : "";
 		request.showDeleted = window.down("checkbox[itemId='showDeleted']").getValue();
@@ -85,5 +94,28 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 				BuddiLive.app.error(response);
 			}
 		});
+	},
+
+	"getCurrencySymbol": function(currencyCode, localeCode){
+		if (!currencyCode) return "$";
+		try {
+			var locale = (localeCode || "en_US").replace("_", "-");
+			var parts = new Intl.NumberFormat(locale, {"style": "currency", "currency": currencyCode}).formatToParts(1);
+			for (var i = 0; i < parts.length; i++){
+				if (parts[i].type == "currency") return parts[i].value;
+			}
+		}
+		catch (e){}
+		return currencyCode;
+	},
+
+	"updateCurrencySymbolLabel": function(component){
+		var window = (component.xtype == "preferenceseditor" ? component : component.up("preferenceseditor"));
+		if (!window) return;
+		var checkbox = window.down("checkbox[itemId='showCurrencySymbol']");
+		var currencyCode = window.down("combobox[itemId='currency']").getValue();
+		var localeCode = window.down("combobox[itemId='locale']").getValue();
+		var symbol = this.getCurrencySymbol(currencyCode, localeCode);
+		checkbox.setBoxLabel(BuddiLive.translate("SHOW_CURRENCY_SYMBOL") + " (" + symbol + ")");
 	}
 });

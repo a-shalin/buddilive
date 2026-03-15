@@ -91,6 +91,88 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						"fieldLabel": BuddiLive.translate("CURRENCY"),
 						"value": d.currency
 					},
+					{
+						"xtype": "checkbox",
+						"itemId": "showCurrencySymbol",
+						"fieldLabel": " ",
+						"labelSeparator": "",
+						"checked": d.showCurrencySymbol,
+						"boxLabel": BuddiLive.translate("SHOW_CURRENCY_SYMBOL")
+					},
+					{
+						"xtype": "checkbox",
+						"itemId": "currencyAfter",
+						"fieldLabel": " ",
+						"labelSeparator": "",
+						"checked": d.currencyAfter,
+						"boxLabel": BuddiLive.translate("SHOW_CURRENCY_SYMBOL_AFTER_AMOUNT")
+					},
+					{
+						"xtype": "checkbox",
+						"itemId": "currencySpacing",
+						"fieldLabel": " ",
+						"labelSeparator": "",
+						"checked": d.currencySpacing,
+						"boxLabel": BuddiLive.translate("SPACE_BETWEEN_CURRENCY_AND_AMOUNT")
+					},
+					{
+						"xtype": "combobox",
+						"anchor": "100%",
+						"itemId": "decimalSeparator",
+						"fieldLabel": BuddiLive.translate("DECIMAL_SEPARATOR"),
+						"editable": false,
+						"forceSelection": true,
+						"value": d.decimalSeparator || "",
+						"store": new Ext.data.Store({
+							"fields": ["text", "value"],
+							"data": [
+								{"text": BuddiLive.translate("USE_LOCALE_DEFAULTS"), "value": ""},
+								{"text": ".", "value": "."},
+								{"text": ",", "value": ","}
+							]
+						}),
+						"queryMode": "local",
+						"valueField": "value"
+					},
+					{
+						"xtype": "combobox",
+						"anchor": "100%",
+						"itemId": "thousandSeparator",
+						"fieldLabel": BuddiLive.translate("THOUSAND_SEPARATOR"),
+						"editable": false,
+						"forceSelection": true,
+						"value": d.thousandSeparator || "",
+						"store": new Ext.data.Store({
+							"fields": ["text", "value"],
+							"data": [
+								{"text": BuddiLive.translate("USE_LOCALE_DEFAULTS"), "value": ""},
+								{"text": ",", "value": ","},
+								{"text": ".", "value": "."},
+								{"text": " ", "value": " "},
+								{"text": "'", "value": "'"}
+							]
+						}),
+						"queryMode": "local",
+						"valueField": "value"
+					},
+					{
+						"xtype": "combobox",
+						"anchor": "100%",
+						"itemId": "negativeFormat",
+						"fieldLabel": BuddiLive.translate("NEGATIVE_FORMAT"),
+						"editable": false,
+						"forceSelection": true,
+						"value": d.negativeFormat || "N",
+						"store": new Ext.data.Store({
+							"fields": ["text", "value"],
+							"data": [
+								{"text": BuddiLive.translate("NEGATIVE_FORMAT_SIGN"), "value": "N"},
+								{"text": BuddiLive.translate("NEGATIVE_FORMAT_BRACKETS"), "value": "B"}
+							]
+						}),
+						"queryMode": "local",
+						"valueField": "value"
+					},
  					{
 						"xtype": "selfdocumentingfield",
 						"messageBody": BuddiLive.translate("HELP_DATE_FORMAT"),

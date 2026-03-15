@@ -2,9 +2,12 @@ package ca.digitalcave.buddi.live.util;
 
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import ca.digitalcave.buddi.live.model.Source;
 import ca.digitalcave.buddi.live.model.Split;
@@ -55,12 +58,37 @@ public class FormatUtil {
 	
 	public static String formatCurrency(BigDecimal value, User user){
 		if (value == null) return null;
-		
-		final DecimalFormat format = (DecimalFormat) DecimalFormat.getCurrencyInstance(user.getLocale());
-		format.setCurrency(user.getCurrency());
-		format.setMaximumFractionDigits(user.getCurrency().getDefaultFractionDigits());
-		format.setMinimumFractionDigits(user.getCurrency().getDefaultFractionDigits());
-		return format.format(value);
+
+		final BigDecimal absoluteValue = value.abs();
+		final Locale locale = user.getLocale() != null ? user.getLocale() : Locale.US;
+		final NumberFormat rawFormat = NumberFormat.getNumberInstance(locale);
+		final DecimalFormat format = rawFormat instanceof DecimalFormat ? (DecimalFormat) rawFormat : (DecimalFormat) NumberFormat.getNumberInstance();
+		final DecimalFormatSymbols symbols = format.getDecimalFormatSymbols();
+		symbols.setDecimalSeparator(user.getDecimalSeparator().charAt(0));
+		symbols.setGroupingSeparator(user.getThousandSeparator().charAt(0));
+		format.setDecimalFormatSymbols(symbols);
+		final int fractionDigits = Math.max(0, user.getCurrency() != null ? user.getCurrency().getDefaultFractionDigits() : 2);
+		format.setMaximumFractionDigits(fractionDigits);
+		format.setMinimumFractionDigits(fractionDigits);
+		format.setGroupingUsed(true);
+
+		final String token = user.getCurrencyToken();
+		final String amount = format.format(absoluteValue);
+		final String spacer = user.useCurrencySpacing() ? " " : "";
+		String result = user.isCurrencyAfter()
+				? amount + spacer + token
+				: token + spacer + amount;
+
+		if (value.compareTo(BigDecimal.ZERO) < 0) {
+			if ("B".equals(user.getNegativeFormat())) {
+				result = "(" + result + ")";
+			}
+			else {
+				result = "-" + result;
+			}
+		}
+
+		return result;
 	}
 	
 	public static String formatCurrency(BigDecimal value, User user, Source source){

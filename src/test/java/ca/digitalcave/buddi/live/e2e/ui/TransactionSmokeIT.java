@@ -9,6 +9,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TransactionSmokeIT extends BrowserBaseIT {
 
 	private static final String EMAIL = "txn-smoke@example.com";
+	private static final String EMAIL_EDIT = "txn-smoke-edit@example.com";
+	private static final String EMAIL_PREF = "txn-smoke-pref@example.com";
 	private static final String PASSWORD = "TestPassword123!";
 
 	@Test
@@ -20,22 +22,7 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 
 		browserLogin(EMAIL, PASSWORD);
 
-		// Select the account in the tree
-		wait.until(d -> {
-			try {
-				return (Boolean) executeJs(
-					"var tree = Ext.ComponentQuery.query('accounttree')[0];" +
-					"var root = tree.getRootNode();" +
-					"var found = null;" +
-					"root.cascadeBy(function(node) {" +
-					"  if (node.get('name') === 'Chequing' && node.get('nodeType') === 'account') found = node;" +
-					"});" +
-					"if (found) { tree.getSelectionModel().select(found); return true; }" +
-					"return false;");
-			} catch (Exception e) {
-				return false;
-			}
-		});
+		selectAccount("Chequing");
 
 		waitForComponent("transactioneditor");
 		Thread.sleep(1000);
@@ -113,5 +100,117 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 			"var el = Ext.ComponentQuery.query('transactionlist')[0].getEl();" +
 			"return el.dom.innerHTML.indexOf('Weekly Groceries') !== -1;");
 		assertThat(found).as("Transaction 'Weekly Groceries' should appear in grid").isTrue();
+	}
+
+	@Test
+	void testSelectingTransactionPopulatesEditorFields() throws Exception {
+		helper.registerUser(EMAIL_EDIT, PASSWORD, "en_US", "USD");
+		OkHttpClient apiClient = helper.login(EMAIL_EDIT, PASSWORD);
+		int chequingId = helper.createAccount(apiClient, "Chequing", "D", "Chequing", "1000.00");
+		int groceriesId = helper.createCategory(apiClient, "Groceries", "E", "MONTH");
+
+		org.json.JSONObject split = new org.json.JSONObject();
+		split.put("amount", "45.50");
+		split.put("fromId", chequingId);
+		split.put("toId", groceriesId);
+		split.put("memo", "Original Memo");
+		org.json.JSONArray splits = new org.json.JSONArray();
+		splits.put(split);
+		org.json.JSONObject transaction = new org.json.JSONObject();
+		transaction.put("action", "insert");
+		transaction.put("description", "Editable Transaction");
+		transaction.put("number", "INV-1");
+		transaction.put("date", "2024-03-20");
+		transaction.put("splits", splits);
+		helper.postJson(apiClient, "/data/transactions", transaction);
+
+		browserLogin(EMAIL_EDIT, PASSWORD);
+		selectAccount("Chequing");
+
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"var list = Ext.ComponentQuery.query('transactionlist')[0];" +
+					"var idx = list.getStore().findExact('description', 'Editable Transaction');" +
+					"if (idx >= 0) { list.getSelectionModel().select(idx); return true; }" +
+					"return false;");
+			} catch (Exception e) {
+				return false;
+			}
+		});
+
+		String selectedDate = (String) executeJs(
+			"var e = Ext.ComponentQuery.query('transactioneditor')[0];" +
+			"return Ext.Date.format(e.down('datefield[itemId=date]').getValue(), 'Y-m-d');");
+		String selectedDescription = (String) executeJs(
+			"return Ext.ComponentQuery.query('transactioneditor')[0].down('combobox[itemId=description]').getValue();");
+		String selectedNumber = (String) executeJs(
+			"return Ext.ComponentQuery.query('transactioneditor')[0].down('textfield[itemId=number]').getValue();");
+		String selectedAmount = String.valueOf(executeJs(
+			"return Ext.ComponentQuery.query('transactioneditor')[0].down('currencyfield[itemId=amount]').getValue();"));
+		String selectedFromId = String.valueOf(executeJs(
+			"return Ext.ComponentQuery.query('transactioneditor')[0].down('combo[itemId=from]').getValue();"));
+		String selectedToId = String.valueOf(executeJs(
+			"return Ext.ComponentQuery.query('transactioneditor')[0].down('combo[itemId=to]').getValue();"));
+		String selectedMemo = (String) executeJs(
+			"return Ext.ComponentQuery.query('transactioneditor')[0].down('textfield[itemId=memo]').getValue();");
+
+		assertThat(selectedDate).isEqualTo("2024-03-20");
+		assertThat(selectedDescription).isEqualTo("Editable Transaction");
+		assertThat(selectedNumber).isEqualTo("INV-1");
+		assertThat(Double.parseDouble(selectedAmount)).isEqualTo(45.50);
+		assertThat(Integer.parseInt(selectedFromId)).isEqualTo(chequingId);
+		assertThat(Integer.parseInt(selectedToId)).isEqualTo(groceriesId);
+		assertThat(selectedMemo).isEqualTo("Original Memo");
+
+	}
+
+	@Test
+	void testPreferencesCurrencySymbolLabelTracksSelectedCurrency() throws Exception {
+		helper.registerUser(EMAIL_PREF, PASSWORD, "en_US", "USD");
+		browserLogin(EMAIL_PREF, PASSWORD);
+
+		executeJs(
+			"var item = Ext.ComponentQuery.query('menuitem[itemId=showPreferences]')[0];" +
+			"item.fireEvent('click', item);");
+		waitForComponent("preferenceseditor");
+
+		String initialLabel = (String) executeJs(
+			"return Ext.ComponentQuery.query('preferenceseditor checkbox[itemId=showCurrencySymbol]')[0].boxLabel;");
+		assertThat(initialLabel).contains("$");
+
+		executeJs(
+			"var combo = Ext.ComponentQuery.query('preferenceseditor combobox[itemId=currency]')[0];" +
+			"combo.setValue('EUR');");
+
+		wait.until(d -> {
+			try {
+				String label = (String) executeJs(
+					"return Ext.ComponentQuery.query('preferenceseditor checkbox[itemId=showCurrencySymbol]')[0].boxLabel;");
+				return label != null && label.contains("€");
+			} catch (Exception e) {
+				return false;
+			}
+		});
+	}
+
+	private void selectAccount(String accountName) {
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"var target = arguments[0];" +
+					"var tree = Ext.ComponentQuery.query('accounttree')[0];" +
+					"var root = tree.getRootNode();" +
+					"var found = null;" +
+					"root.cascadeBy(function(node) {" +
+					"  if (node.get('name') === target && node.get('nodeType') === 'account') found = node;" +
+					"});" +
+					"if (found) { tree.getSelectionModel().select(found); return true; }" +
+					"return false;",
+					accountName);
+			} catch (Exception e) {
+				return false;
+			}
+		});
 	}
 }

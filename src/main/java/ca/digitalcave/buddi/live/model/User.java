@@ -29,6 +29,12 @@ public class User extends AuthUser {
 	private Locale locale;
 	private Currency currency;
 	private String overrideDateFormat;
+	private String overrideCurrencyAfter;
+	private String overrideDecimalSeparator;
+	private String overrideThousandsSeparator;
+	private String overrideNegativeFormat;
+	private Boolean showCurrencySymbol;
+	private String currencySpacing;
 	private Boolean showCleared;
 	private Boolean showReconciled;
 	private Boolean showDeleted;
@@ -151,7 +157,73 @@ public class User extends AuthUser {
 		this.currency = currency;
 	}
 	public String getCurrencySymbol(){
-		return currency.getSymbol(locale);
+		return getCurrencyToken();
+	}
+	public String getCurrencyToken(){
+		if (currency == null) return "";
+		if (isShowCurrencySymbol()) {
+			return currency.getSymbol(getEffectiveLocale());
+		}
+		return currency.getCurrencyCode();
+	}
+	public boolean isCurrencyAfter() {
+		if ("Y".equals(overrideCurrencyAfter)) return true;
+		if ("N".equals(overrideCurrencyAfter)) return false;
+		if (currency != null) {
+			final DecimalFormat format = (DecimalFormat) NumberFormat.getCurrencyInstance(getEffectiveLocale());
+			format.setCurrency(currency);
+			final String pattern = format.toPattern();
+			final int currencyPosition = pattern.indexOf('\u00a4');
+			final int numberPosition = pattern.indexOf('#');
+			if (currencyPosition >= 0 && numberPosition >= 0) {
+				return currencyPosition > numberPosition;
+			}
+		}
+		return false;
+	}
+	public String getOverrideCurrencyAfter() {
+		return overrideCurrencyAfter;
+	}
+	public void setOverrideCurrencyAfter(String overrideCurrencyAfter) {
+		this.overrideCurrencyAfter = overrideCurrencyAfter;
+	}
+	public String getOverrideDecimalSeparator() {
+		return overrideDecimalSeparator;
+	}
+	public void setOverrideDecimalSeparator(String overrideDecimalSeparator) {
+		this.overrideDecimalSeparator = (overrideDecimalSeparator == null || overrideDecimalSeparator.length() == 0) ? null : overrideDecimalSeparator.substring(0, 1);
+	}
+	public String getOverrideThousandsSeparator() {
+		return overrideThousandsSeparator;
+	}
+	public void setOverrideThousandsSeparator(String overrideThousandsSeparator) {
+		this.overrideThousandsSeparator = (overrideThousandsSeparator == null || overrideThousandsSeparator.length() == 0) ? null : overrideThousandsSeparator.substring(0, 1);
+	}
+	public String getOverrideNegativeFormat() {
+		return overrideNegativeFormat;
+	}
+	public void setOverrideNegativeFormat(String overrideNegativeFormat) {
+		this.overrideNegativeFormat = "B".equals(overrideNegativeFormat) ? "B" : "N";
+	}
+	public String getNegativeFormat() {
+		return "B".equals(overrideNegativeFormat) ? "B" : "N";
+	}
+	public boolean isShowCurrencySymbol() {
+		return showCurrencySymbol != null && showCurrencySymbol;
+	}
+	public void setShowCurrencySymbol(Boolean showCurrencySymbol) {
+		this.showCurrencySymbol = showCurrencySymbol;
+	}
+	public String getCurrencySpacing() {
+		return currencySpacing;
+	}
+	public void setCurrencySpacing(String currencySpacing) {
+		this.currencySpacing = (currencySpacing == null || currencySpacing.length() == 0) ? null : ("Y".equals(currencySpacing) ? "Y" : "N");
+	}
+	public boolean useCurrencySpacing() {
+		if ("Y".equals(currencySpacing)) return true;
+		if ("N".equals(currencySpacing)) return false;
+		return !isShowCurrencySymbol();
 	}
 	public boolean isShowCleared() {
 		return showCleared;
@@ -172,9 +244,14 @@ public class User extends AuthUser {
 		this.showReconciled = showReconciled;
 	}
 	public String getDecimalSeparator(){
-		return ((DecimalFormat) NumberFormat.getInstance(getLocale())).getDecimalFormatSymbols().getDecimalSeparator() + "";
+		if (overrideDecimalSeparator != null) return overrideDecimalSeparator;
+		return ((DecimalFormat) NumberFormat.getInstance(getEffectiveLocale())).getDecimalFormatSymbols().getDecimalSeparator() + "";
 	}
 	public String getThousandSeparator(){
-		return ((DecimalFormat) NumberFormat.getInstance(getLocale())).getDecimalFormatSymbols().getGroupingSeparator() + "";
+		if (overrideThousandsSeparator != null) return overrideThousandsSeparator;
+		return ((DecimalFormat) NumberFormat.getInstance(getEffectiveLocale())).getDecimalFormatSymbols().getGroupingSeparator() + "";
+	}
+	private Locale getEffectiveLocale() {
+		return locale != null ? locale : Locale.US;
 	}
 }
