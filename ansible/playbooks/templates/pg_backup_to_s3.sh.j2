@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_NAME="{{ app_name }}"
+APP_DIR="$HOME/$APP_NAME"
+ENV_FILE="$APP_DIR/.env"
+DB_CONTAINER="{{ app_name }}-postgres"
+DB_NAME="{{ db_name }}"
+DB_USER="{{ db_user }}"
+DAILY_PREFIX="postgres/daily"
+MONTHLY_PREFIX="postgres/monthly"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "docker command not found"
+  exit 1
+fi
+
+if ! command -v aws >/dev/null 2>&1; then
+  echo "aws command not found"
+  exit 1
+fi
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
+
+BUCKET="${BACKUP_S3_BUCKET:-}"
+
+if [ -z "${DB_PASSWORD:-}" ]; then
+  echo "DB_PASSWORD is not set"
+  exit 1
+fi
+
+if [ -z "$BUCKET" ]; then
+  echo "BACKUP_S3_BUCKET is not set"
+  exit 1
+fi
+
+timestamp_utc="$(date -u '+%Y-%m-%d_%H%M%S')"
+year="$(date -u '+%Y')"
+month="$(date -u '+%m')"
+day="$(date -u '+%d')"
+filename="postgres_${DB_NAME}_${timestamp_utc}.sql.gz"
+tmp_file="/tmp/${filename}"
+
+cleanup() {
+  rm -f "$tmp_file"
+}
+trap cleanup EXIT
+
+docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" \
+  pg_dump -U "$DB_USER" -d "$DB_NAME" | gzip -c > "$tmp_file"
+
+daily_key="$DAILY_PREFIX/$year/$month/$filename"
+aws s3 cp "$tmp_file" "s3://$BUCKET/$daily_key"
+
+if [ "$day" = "01" ]; then
+  monthly_key="$MONTHLY_PREFIX/$year/$month/$filename"
+  aws s3 cp "$tmp_file" "s3://$BUCKET/$monthly_key"
+fi
+
+cutoff_date="$(date -u -d '30 days ago' '+%Y-%m-%d')"
+aws s3 ls "s3://$BUCKET/$DAILY_PREFIX/" --recursive | awk -v cutoff="$cutoff_date" '
+  NF >= 4 && $1 < cutoff { print $4 }
+' | while read -r key; do
+  [ -n "$key" ] || continue
+  aws s3 rm "s3://$BUCKET/$key"
+done
