@@ -17,13 +17,17 @@ Ext.define("BuddiLive.controller.budget.Tree", {
 		//If nothing has changed, no point in reloading
 		if (data.originalValue == data.value) return;
 		if (data.value == "") data.value = 0;
+		if (data.value == null) {
+			data.record.reject();
+			return;
+		}
 		
 		var budgetTree = editor.cmp;
 		var request = {"action": "set"};
 		request.categoryId = data.record.data.id;
 		request.date = data.record.data.date;
 		request.periodType = data.record.data.type;
-		request.amount = data.value;
+		request.amount = String(data.value);
 	
 		var conn = new Ext.data.Connection();
 		conn.request({

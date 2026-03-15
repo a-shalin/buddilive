@@ -2,6 +2,8 @@ package ca.digitalcave.buddi.live.e2e.ui;
 
 import okhttp3.OkHttpClient;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -11,6 +13,7 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 	private static final String EMAIL = "txn-smoke@example.com";
 	private static final String EMAIL_EDIT = "txn-smoke-edit@example.com";
 	private static final String EMAIL_PREF = "txn-smoke-pref@example.com";
+	private static final String EMAIL_BUDGET_FORMAT = "txn-smoke-budget-format@example.com";
 	private static final String PASSWORD = "TestPassword123!";
 
 	@Test
@@ -194,6 +197,80 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 		});
 	}
 
+	@Test
+	void testEditBudgetAmountWithCustomSeparators() throws Exception {
+		helper.registerUser(EMAIL_BUDGET_FORMAT, PASSWORD, "en_US", "USD");
+		OkHttpClient apiClient = helper.login(EMAIL_BUDGET_FORMAT, PASSWORD);
+		int groceriesId = helper.createCategory(apiClient, "Groceries", "E", "MONTH");
+
+		JSONObject update = new JSONObject();
+		update.put("locale", "en_US");
+		update.put("currency", "USD");
+		update.put("showCurrencySymbol", false);
+		update.put("currencyAfter", false);
+		update.put("currencySpacing", true);
+		update.put("decimalSeparator", ",");
+		update.put("thousandSeparator", ".");
+		update.put("negativeFormat", "N");
+		update.put("showDeleted", true);
+		helper.updateUserPreferences(apiClient, update);
+
+		JSONObject initialBudget = helper.getCategories(apiClient, "MONTH");
+		JSONObject setBudget = new JSONObject();
+		setBudget.put("action", "set");
+		setBudget.put("categoryId", groceriesId);
+		setBudget.put("amount", "1111.00");
+		setBudget.put("date", initialBudget.getString("date"));
+		setBudget.put("periodType", "MONTH");
+		setBudget.put("offset", 0);
+		helper.postJson(apiClient, "/data/categories", setBudget);
+
+		browserLogin(EMAIL_BUDGET_FORMAT, PASSWORD);
+
+		executeJs("Ext.ComponentQuery.query('tabpanel[itemId=budditabpanel]')[0].setActiveTab(1);");
+		waitForComponent("budgettree[itemId=MONTH]");
+
+		Boolean edited = (Boolean) executeJs(
+			"var categoryName = arguments[0];" +
+			"var rawAmount = arguments[1];" +
+			"var tree = Ext.ComponentQuery.query(\"budgettree[itemId='MONTH']\")[0] || Ext.ComponentQuery.query('budgettree')[0];" +
+			"if (!tree) return false;" +
+			"var record = null;" +
+			"tree.getRootNode().cascadeBy(function(node) {" +
+			"  if (node.get('name') === categoryName) record = node;" +
+			"});" +
+			"if (!record) return false;" +
+			"var currentColumn = tree.columns[2];" +
+			"var field = currentColumn.getEditor(record);" +
+			"field.setRawValue(rawAmount);" +
+			"var parsedValue = field.getValue();" +
+			"BuddiLive.app.getController('budget.Tree').edit({cmp: tree}, {" +
+			"  cmp: tree," +
+			"  record: record," +
+			"  originalValue: record.get('current')," +
+			"  value: parsedValue" +
+			"});" +
+			"return true;",
+			"Groceries", "1.234,56");
+		assertThat(edited).isTrue();
+
+		wait.until(d -> {
+			try {
+				JSONObject budget = helper.getCategories(apiClient, "MONTH");
+				JSONObject groceries = findCategory(budget, "Groceries");
+				return groceries != null && groceries.optString("current").contains("1.234,56");
+			}
+			catch (Exception e) {
+				return false;
+			}
+		});
+
+		JSONObject updatedBudget = helper.getCategories(apiClient, "MONTH");
+		JSONObject groceries = findCategory(updatedBudget, "Groceries");
+		assertThat(groceries).isNotNull();
+		assertThat(groceries.optString("current")).contains("1.234,56");
+	}
+
 	private void selectAccount(String accountName) {
 		wait.until(d -> {
 			try {
@@ -212,5 +289,26 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 				return false;
 			}
 		});
+	}
+
+	private JSONObject findCategory(JSONObject tree, String name) {
+		JSONArray children = tree.optJSONArray("children");
+		if (children == null) return null;
+		for (int i = 0; i < children.length(); i++) {
+			JSONObject category = findCategoryNode(children.getJSONObject(i), name);
+			if (category != null) return category;
+		}
+		return null;
+	}
+
+	private JSONObject findCategoryNode(JSONObject node, String name) {
+		if (name.equals(node.optString("name"))) return node;
+		JSONArray children = node.optJSONArray("children");
+		if (children == null) return null;
+		for (int i = 0; i < children.length(); i++) {
+			JSONObject found = findCategoryNode(children.getJSONObject(i), name);
+			if (found != null) return found;
+		}
+		return null;
 	}
 }
