@@ -104,8 +104,15 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 	getCurrencySymbol: function(currencyCode, localeCode) {
 		if (!currencyCode) return "$";
 		try {
-			let locale = (localeCode || "en_US").replace("_", "-");
-			let parts = new Intl.NumberFormat(locale, {style: "currency", currency: currencyCode}).formatToParts(1);
+			const parts = new Intl.NumberFormat("en", {style: "currency", currency: currencyCode, currencyDisplay: "narrowSymbol"}).formatToParts(1);
+			for (let i = 0; i < parts.length; i++) {
+				if (parts[i].type == "currency") return parts[i].value;
+			}
+		}
+		catch (e) {}
+		try {
+			const locale = (localeCode || "en_US").replace("_", "-");
+			const parts = new Intl.NumberFormat(locale, {style: "currency", currency: currencyCode}).formatToParts(1);
 			for (let i = 0; i < parts.length; i++) {
 				if (parts[i].type == "currency") return parts[i].value;
 			}

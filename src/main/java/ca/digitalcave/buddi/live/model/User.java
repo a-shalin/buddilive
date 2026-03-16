@@ -7,6 +7,8 @@ import java.text.SimpleDateFormat;
 import java.util.Currency;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.crypto.SecretKey;
 
@@ -18,6 +20,7 @@ import ca.digitalcave.moss.restlet.model.AuthUser;
 
 public class User extends AuthUser {
 	private static final long serialVersionUID = 1L;
+	private static final Map<String, String> CURRENCY_SYMBOLS_BY_CODE = new ConcurrentHashMap<String, String>();
 	
 	private String plaintextIdentifier;	//Not persisted, injected by BuddiVerifier
 	private String plaintextSecret;	//Not persisted, injected by BuddiVerifier
@@ -162,10 +165,45 @@ public class User extends AuthUser {
 	public String getCurrencyToken(){
 		if (currency == null) return "";
 		if (isShowCurrencySymbol()) {
-			return currency.getSymbol(getEffectiveLocale());
+			return resolveCurrencySymbol(currency);
 		}
 		return currency.getCurrencyCode();
 	}
+
+	private static String resolveCurrencySymbol(final Currency currency) {
+		final String currencyCode = currency.getCurrencyCode();
+		return CURRENCY_SYMBOLS_BY_CODE.computeIfAbsent(currencyCode, code -> {
+			String bestSymbol = null;
+			for (final Locale candidateLocale : Locale.getAvailableLocales()) {
+				try {
+					final Currency candidateCurrency = Currency.getInstance(candidateLocale);
+					if (!currency.equals(candidateCurrency)) continue;
+					final String symbol = currency.getSymbol(candidateLocale);
+					if (isCurrencySymbol(symbol, code)) {
+						if (bestSymbol == null || symbol.length() < bestSymbol.length()) {
+							bestSymbol = symbol;
+							if (bestSymbol.length() == 1) {
+								break;
+							}
+						}
+					}
+				}
+				catch (IllegalArgumentException e) {}
+			}
+
+			if (bestSymbol != null) {
+				return bestSymbol;
+			}
+
+			final String defaultSymbol = currency.getSymbol();
+			return isCurrencySymbol(defaultSymbol, code) ? defaultSymbol : code;
+		});
+	}
+
+	private static boolean isCurrencySymbol(final String symbol, final String currencyCode) {
+		return symbol != null && symbol.length() > 0 && !currencyCode.equals(symbol);
+	}
+
 	public boolean isCurrencyAfter() {
 		if ("Y".equals(overrideCurrencyAfter)) return true;
 		if ("N".equals(overrideCurrencyAfter)) return false;
