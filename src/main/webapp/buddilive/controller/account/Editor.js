@@ -35,7 +35,7 @@ Ext.define("BuddiLive.controller.account.Editor", {
 		let selected = window.initialConfig.selected;
 
 		let request = {};
-		request.action = (selected ? update: "insert");
+		request.action = (selected ? "update" : "insert");
 		if (selected) request.id = selected.id;
 		request.name = window.down("textfield[itemId='name']").getValue();
 		request.accountType = window.down("textfield[itemId='accountType']").getValue();

@@ -1,6 +1,7 @@
 package ca.digitalcave.buddi.live.e2e.ui;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,8 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import ca.digitalcave.buddi.live.e2e.BaseIT;
 import ca.digitalcave.buddi.live.e2e.TestHelper;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class BrowserBaseIT extends BaseIT {
 
@@ -41,6 +44,29 @@ public abstract class BrowserBaseIT extends BaseIT {
 
 	protected Object executeJs(String script, Object... args) {
 		return ((JavascriptExecutor) driver).executeScript(script, args);
+	}
+
+	protected void installJsErrorCollector() {
+		executeJs(
+			"window.__e2eJsErrors = [];" +
+			"if (!window.__e2eJsCollectorInstalled) {" +
+			"  window.__e2eJsCollectorInstalled = true;" +
+			"  window.addEventListener('error', function(event) {" +
+			"    var message = (event && event.message) ? event.message : 'unknown error';" +
+			"    window.__e2eJsErrors.push(message);" +
+			"  });" +
+			"  window.addEventListener('unhandledrejection', function(event) {" +
+			"    var reason = (event && event.reason) ? (event.reason.message || String(event.reason)) : 'unknown rejection';" +
+			"    window.__e2eJsErrors.push('unhandledrejection: ' + reason);" +
+			"  });" +
+			"}");
+	}
+
+	protected void assertNoJsErrors() {
+		final Object result = executeJs("return (window.__e2eJsErrors || []).slice();");
+		assertThat(result).isInstanceOf(List.class);
+		final List<?> errors = (List<?>) result;
+		assertThat(errors).as("Unexpected browser JavaScript errors").isEmpty();
 	}
 
 	protected void waitForExtJs() {

@@ -33,7 +33,7 @@ Ext.define("BuddiLive.controller.budget.Editor", {
 		let selected = window.initialConfig.selected;
 
 		let request = {};
-		request.action = (selected ? update: "insert");
+		request.action = (selected ? "update" : "insert");
 		if (selected) request.id = selected.id;
 		request.name = window.down("textfield[itemId='name']").getValue();
 		request.periodType = window.down("textfield[itemId='periodType']").getValue();

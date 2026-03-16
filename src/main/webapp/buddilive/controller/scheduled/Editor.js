@@ -32,7 +32,7 @@ Ext.define("BuddiLive.controller.scheduled.Editor", {
 		let panel = window.initialConfig.panel;
 		let selected = window.initialConfig.selected;
 
-		let request = {action: (selected ? update: "insert")};
+		let request = {action: (selected ? "update" : "insert")};
 		request.id = window.down("hidden[itemId='id']").getValue();
 		request.lastCreatedDate = window.down("hidden[itemId='lastCreatedDate']").getValue();
 		request.name = window.down("textfield[itemId='name']").getValue();

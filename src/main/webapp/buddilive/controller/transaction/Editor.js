@@ -53,7 +53,7 @@ Ext.define("BuddiLive.controller.transaction.Editor", {
 			mask.hide();
 			return;
 		}
-		request.action = (request.id ? update: "insert");
+			request.action = (request.id ? "update" : "insert");
 		
 		//Disable the button before submitting to prevent double clicks
 		editor.down("button[itemId='recordTransaction']").disable();
