@@ -40,3 +40,4 @@
 
 ## Testing
 - See [doc/E2E.md](doc/E2E.md) for E2E testing guide, architecture, and key lessons.
+- For bug fixes, run the relevant test first and confirm it fails, then fix the bug, rerun, and confirm it passes.
