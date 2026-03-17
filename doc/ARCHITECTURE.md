@@ -6,24 +6,26 @@ BuddiLive is a web-based personal finance application for budgeting, account tra
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | ExtJS 6.2.0 (Classic Gray theme, loaded from CDN) |
-| Backend Framework | Restlet 2.4.3 (Java REST framework) |
-| Templating | FreeMarker 2.3.32 |
-| ORM | MyBatis 3.5.4 (XML-based mappers) |
-| Database | PostgreSQL (via postgresql-42.6.0 driver) |
-| Connection Pool | C3P0 0.9.5.5 |
-| DB Migrations | Liquibase 4.20.0 |
+| Frontend | ExtJS 6.2.0 (Classic Gray theme, served from `lib/extjs`) |
+| Backend Framework | Restlet 2.6.0 (Java REST framework) |
+| Templating | FreeMarker 2.3.34 |
+| ORM | MyBatis 3.5.19 (XML-based mappers) |
+| Database | PostgreSQL (via postgresql-42.7.10 driver) |
+| Connection Pool | C3P0 0.12.0 |
+| DB Migrations | Liquibase 4.33.0 |
 | Auth | Cookie-based (SHA-512 password hashing, AES-256 encryption) |
 | 2FA | TOTP with backup codes (ZXing for QR generation) |
-| Build | Maven |
+| Build | Maven (Java 17 target, generated resources via Ant tasks) |
 | Deployment | Docker + Nginx + Ansible |
-| Java Target | 1.8 |
+| Java Target | 17 |
 
 ### Custom Libraries (moss framework)
 
 - **moss-common** - Common utilities
 - **moss-crypto** - Cryptographic utilities (AES-256, password hashing)
 - **moss-restlet** - Restlet extensions (CookieAuthenticator, AuthenticationRouter)
+
+These moss modules are vendored in-repo under `src/main/java/ca/digitalcave/moss`.
 
 ---
 
@@ -106,9 +108,10 @@ ca.digitalcave.buddi.live
 │   │   ├── PeriodsResource.java
 │   │   ├── ParentsResource.java
 │   │   ├── DescriptionsResource.java
+│   │   ├── UserPreferencesResource.java
+│   │   ├── ChangePasswordResource.java
+│   │   ├── DonationResource.java
 │   │   ├── preferences/
-│   │   │   ├── UserPreferencesResource.java
-│   │   │   ├── ChangePasswordResource.java
 │   │   │   ├── CurrenciesResource.java
 │   │   │   └── LocalesResource.java
 │   │   └── report/               # 6 report types
@@ -117,7 +120,8 @@ ca.digitalcave.buddi.live
 │   │       ├── AverageIncomeAndExpensesByCategoryResource.java
 │   │       ├── InflowAndOutflowByAccountResource.java
 │   │       ├── InflowAndOutflowByPayeeResource.java
-│   │       └── BalancesOverTimeResource.java
+│   │       ├── BalancesOverTimeResource.java
+│   │       └── ReportHelper.java
 │   └── data/
 │       ├── BackupResource.java
 │       ├── ExportResource.java
@@ -159,9 +163,10 @@ All data routes are under `/data/` and require authentication (cookie-based).
 | GET | `/stores/locales` | LocalesResource | Locale list |
 
 **Public routes** (no auth required):
-- `GET /` → Redirect to `/index`
+- `GET /` → Redirect to `index.html`
 - `GET /index` → IndexResource (FreeMarker-templated login or app)
-- `POST /authentication` → Login/register/password reset
+- `/authentication` → Login/register/password reset/2FA flow
+- `GET /donation-completed` → DonationResource
 - Static files served by DefaultResource
 
 ### Request Flow
@@ -182,10 +187,11 @@ HTTP Request
 
 - **Password storage**: SHA-512 with 20,000 iterations and 96-byte salt (auto-upgrades legacy SHA-256)
 - **Sessions**: Encrypted cookies via moss-restlet CookieAuthenticator
+- **Session lifecycle**: Backend exposes cookie timeout metadata; ExtJS schedules pre-expiry logout and redirects on `401`
 - **Cookie encryption key**: Stored in `buddi_system` table; nullifying it invalidates all sessions
 - **2FA**: TOTP-based with one-time backup codes stored in `user_totp_backups`
 - **Registration**: Email activation key workflow
-- **User identifier**: Hashed email (not stored in plaintext for privacy)
+- **User identifier**: Hashed login identifier for lookup; optional recoverable email is stored separately
 
 ---
 
@@ -193,14 +199,14 @@ HTTP Request
 
 ### Framework: ExtJS 6.2.0
 
-Classic MVC pattern with Controllers, Views, and Stores. No build tooling - files are served directly and loaded dynamically by `Ext.Loader`.
+Classic MVC pattern with Controllers, Views, and Stores. App classes are loaded dynamically by `Ext.Loader`.
 
 ### File Organization
 
 ```
 src/main/webapp/
 ├── index.html                    # FreeMarker template (entry point)
-├── buddilive/                    # Application code (71 JS files)
+├── buddilive/                    # Application code (74 JS files)
 │   ├── Application.js            # Ext.application config
 │   ├── controller/               # 15 controllers (event handlers)
 │   │   ├── Viewport.js           # Main layout controller
@@ -236,6 +242,9 @@ src/main/webapp/
 │   └── login.css                 # Login page styles
 ├── img/                          # Icons (40+ PNGs + Fugue icon set)
 └── doc/                          # Static HTML documentation (11 pages)
+
+src/main/resources/ca/digitalcave/moss/restlet/resource/ui/extjs/
+└── app/Application.js            # Authentication/login ExtJS app entry point
 ```
 
 ### Key UI Screens
@@ -250,10 +259,11 @@ src/main/webapp/
 ### API Communication
 
 - All data via `Ext.data.proxy.Ajax` with JSON reader/writer
-- Endpoints: `data/*.json` (e.g., `data/transactions.json`, `data/accounts.json`)
+- Endpoints: `data/*` (e.g., `data/transactions`, `data/accounts`)
 - Buffered rendering for transaction grid (250 items per page)
 - `Ext.util.TaskManager` runs hourly check for due scheduled transactions
 - UI state persisted via `Ext.state.LocalStorageProvider`
+- `IndexResource` injects per-user runtime config (`__buddiConfig`) including formatting preferences and session timeout values
 
 ---
 
@@ -267,58 +277,65 @@ src/main/webapp/
 │──────────────────│     │──────────────────│
 │ id, uuid         │     │ id (=1)          │
 │ identifier (hash)│     │ cookie_encrypt_  │
-│ credentials      │     │   ion_key        │
-│ encryption_key   │     └──────────────────┘
-│ locale, currency │
-│ totp_secret      │     ┌──────────────────┐
+│ email            │     │   ion_key        │
+│ credentials      │     └──────────────────┘
+│ encryption_key   │
+│ encryption_ver   │     ┌──────────────────┐
 │ premium (Y/N)    │     │user_totp_backups │
-└────────┬─────────┘     │──────────────────│
-         │               │ user_id (FK)     │
-         │               │ totp_backup      │
-    ┌────┴────┐          │ used             │
-    │         │          └──────────────────┘
-    │         │
-    │    ┌────┴───────────┐     ┌──────────────────────────┐
-    │    │user_activations│     │       sources            │
-    │    │────────────────│     │──────────────────────────│
-    │    │ user_id (FK)   │     │ id, uuid, user_id (FK)   │
-    │    │ activation_key │     │ name, type (D/C/I/E)     │
-    │    └────────────────┘     │ account_type, balance    │
-    │                           │ period_type, parent (FK) │
-    │                           └──────┬───────────────────┘
-    │                                  │
-    │    ┌─────────────────────┐       │
-    │    │      entries        │       │
-    │    │─────────────────────│       │
-    │    │ category (FK)───────┼───────┘
-    │    │ user_id (FK)        │
-    │    │ amount, entry_date  │
-    │    └─────────────────────┘
-    │
-    │    ┌─────────────────────┐    ┌──────────────────────┐
-    │    │    transactions     │    │       splits          │
-    │    │─────────────────────│    │──────────────────────│
-    │    │ id, uuid            │    │ transaction_id (FK)  │
-    │    │ user_id (FK)        │    │ from_source (FK)─────┼→ sources
-    │    │ description, date   │←───┤ to_source (FK)───────┼→ sources
-    │    │ number              │    │ amount, memo         │
-    │    └─────────────────────┘    │ from_balance,        │
-    │                               │   to_balance         │
-    │    ┌─────────────────────┐    └──────────────────────┘
-    │    │scheduledtransactions│    ┌──────────────────────┐
-    │    │─────────────────────│    │   scheduledsplits    │
-    │    │ id, uuid            │    │──────────────────────│
-    │    │ user_id (FK)        │←───┤ scheduledtxn_id (FK) │
-    │    │ description, number │    │ from_source (FK)     │
-    │    │ schedule_*          │    │ to_source (FK)       │
-    │    │ frequency_type      │    │ amount, memo         │
-    │    │ start/end/last_date │    └──────────────────────┘
-    │    └─────────────────────┘
+│ locale, currency │     │──────────────────│
+│ use_two_factor   │     │ user_id (FK)     │
+│ totp_secret      │     │ totp_backup      │
+│ override_*       │     │ used             │
+│ show_currency_*  │     └──────────────────┘
+│ show_deleted     │
+│ last_login       │
+└──────────────────┘
+
+┌────────────────┐         ┌──────────────────────────┐
+│user_activations│         │       sources            │
+│────────────────│         │──────────────────────────│
+│ user_id (FK)   │         │ id, uuid, user_id (FK)   │
+│ activation_key │         │ name, type (D/C/I/E)     │
+└────────────────┘         │ account_type, balance    │
+                           │ period_type, parent (FK) │
+                           └──────┬───────────────────┘
+                                  │
+┌─────────────────────┐           │
+│      entries        │           │
+│─────────────────────│           │
+│ category (FK)───────┼───────────┘
+│ user_id (FK)        │
+│ amount, entry_date  │
+└─────────────────────┘
+
+┌─────────────────────┐    ┌──────────────────────┐
+│    transactions     │    │       splits         │
+│─────────────────────│    │──────────────────────│
+│ id, uuid            │    │ transaction_id (FK)  │
+│ user_id (FK)        │    │ from_source (FK)─────┼→ sources
+│ description, date   │←───┤ to_source (FK)───────┼→ sources
+│ number              │    │ amount, memo         │
+└─────────────────────┘    │ from_balance,        │
+                           │   to_balance         │
+                           └──────────────────────┘
+
+┌─────────────────────┐    ┌──────────────────────┐
+│scheduledtransactions│    │   scheduledsplits    │
+│─────────────────────│    │──────────────────────│
+│ id, uuid            │    │ scheduledtxn_id (FK) │
+│ user_id (FK)        │←───┤ from_source (FK)     │
+│ description, number │    │ to_source (FK)       │
+│ schedule_*          │    │ amount, memo         │
+│ frequency_type      │    └──────────────────────┘
+│ start/end/last_date │
+└─────────────────────┘
 ```
 
 **Source types** (`type` column):
 - `D` = Debit account, `C` = Credit account
 - `I` = Income category, `E` = Expense category
+
+**Users table highlights**: includes identifier + optional recoverable email, encryption metadata (`encryption_key`, `encryption_version`), 2FA fields (`use_two_factor`, `totp_secret`), and formatting preferences (`override_*`, `show_currency_symbol`, `currency_spacing`, `show_deleted`).
 
 **Multi-tenant isolation**: All tables include `user_id` foreign key; all queries filter by user.
 
@@ -332,8 +349,12 @@ src/main/webapp/
 mvn clean package              # → target/buddilive.war
 mvn clean package -Ptest       # → target/buddilive-test.war
 mvn exec:java -Pstandalone     # standalone Jetty on port 8686
-mvn -Pe2etest                  # E2E tests (starts embedded Jetty with Derby, runs tests, shuts down)
+mvn verify -Pe2etest           # E2E tests (embedded Jetty + Derby; run integration-test + verify)
 ```
+
+Build also generates filtered runtime artifacts at package time:
+- `target/generated-resources/{config.properties,logging.properties,version.properties}`
+- `target/generated-webapp/{WEB-INF/web.xml,doc/changelog.html}`
 
 ### Configuration
 
@@ -341,6 +362,7 @@ mvn -Pe2etest                  # E2E tests (starts embedded Jetty with Derby, ru
 |------|---------|
 | `conf/server/config.properties` | Production DB + mail config |
 | `conf/test/config.properties` | Test environment config |
+| `conf/e2etest/config.properties` | E2E profile config |
 | `src/main/webapp/WEB-INF/web.xml` | Servlet mapping (Restlet → `/*`) |
 | `src/main/webapp/WEB-INF/liquibase/master.xml` | DB schema changelog |
 | `conf/logging.properties` | Log levels and file handler |
@@ -360,4 +382,6 @@ EN_US, DE, ES, ES_MX, FR, IT, NL, NO, PT, PT_BR, RU, EL, HE, SR, SV
 - **Encrypted user data**: Optional AES-256 encryption of sensitive fields, decrypted at read time via `CryptoUtil`
 - **Convention-based routing**: URL paths map directly to Restlet Resource classes
 - **Server-side rendering for auth**: FreeMarker template checks `<#if user??>` to serve login vs. app
+- **Proactive session expiry handling**: frontend schedules logout before cookie expiry and immediately logs out on unauthorized responses
+- **Premium mode behavior**: runtime user config currently emits `premium=true`, effectively enabling premium-gated UI features for all users
 - **Hourly scheduled transaction execution**: Frontend `TaskManager` triggers backend to create transactions from due schedules
