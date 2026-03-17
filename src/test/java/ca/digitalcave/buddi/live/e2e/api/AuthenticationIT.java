@@ -120,6 +120,23 @@ public class AuthenticationIT extends BaseIT {
 		assertThat(code).isNotEqualTo(200);
 	}
 
+	@Test
+	@Order(6)
+	void testAuthenticatedIndexContainsSessionTimingConfig() throws Exception {
+		final OkHttpClient client = helper.login(EMAIL, PASSWORD);
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/index")
+			.get()
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(200);
+			final String body = response.body().string();
+			assertThat(body).contains("sessionTimeoutMillis");
+			assertThat(body).contains("sessionRefreshWindowMillis");
+		}
+	}
+
 	private int postRegister(OkHttpClient client, String email) throws Exception {
 		RequestBody formBody = new FormBody.Builder()
 			.add("email", email)

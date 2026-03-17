@@ -15,6 +15,46 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 	Login.util.I18n.init(window.__buddiI18n);
 	Login.translate = function(key) { return Login.util.I18n.translate(key); };
 
+	const sessionLogoutLeadMillis = 1000 * 60 * 2;
+	let sessionLogoutTimeout = null;
+	let sessionLogoutTriggered = false;
+
+	const triggerSessionLogout = function() {
+		if (sessionLogoutTriggered) {
+			return;
+		}
+		sessionLogoutTriggered = true;
+		if (sessionLogoutTimeout != null) {
+			clearTimeout(sessionLogoutTimeout);
+			sessionLogoutTimeout = null;
+		}
+		window.location.href = "authentication/logout";
+	};
+
+	const scheduleSessionLogout = function() {
+		if (sessionLogoutTriggered) {
+			return;
+		}
+		const sessionTimeoutMillis = BuddiLive.util.UserConfig.get("sessionTimeoutMillis");
+		const sessionRefreshWindowMillis = BuddiLive.util.UserConfig.get("sessionRefreshWindowMillis");
+		if (!Ext.isNumber(sessionTimeoutMillis) || !Ext.isNumber(sessionRefreshWindowMillis)) {
+			return;
+		}
+
+		// The server only refreshes cookie expiry on a cadence, so we subtract that window to stay ahead of true expiry.
+		const delayMillis = sessionTimeoutMillis - sessionRefreshWindowMillis - sessionLogoutLeadMillis;
+		if (sessionLogoutTimeout != null) {
+			clearTimeout(sessionLogoutTimeout);
+			sessionLogoutTimeout = null;
+		}
+
+		if (delayMillis <= 0) {
+			triggerSessionLogout();
+			return;
+		}
+		sessionLogoutTimeout = setTimeout(triggerSessionLogout, delayMillis);
+	};
+
 	Ext.application({
 		name: "BuddiLive",
 		appFolder: "buddilive",
@@ -45,6 +85,17 @@ Ext.require(["BuddiLive.util.I18n", "BuddiLive.util.UserConfig", "Login.util.I18
 			let viewport = Ext.create("BuddiLive.view.Viewport");
 			BuddiLive.app = this;
 			BuddiLive.app.viewport = viewport;
+			Ext.Ajax.on("requestcomplete", function() {
+				scheduleSessionLogout();
+			});
+			Ext.Ajax.on("requestexception", function(conn, response) {
+				if (response != null && response.status === 401) {
+					triggerSessionLogout();
+					return;
+				}
+				scheduleSessionLogout();
+			});
+			scheduleSessionLogout();
 
 			Ext.EventManager.addListener(Ext.getBody(), 'keydown', function(e) {
 				if (e.getTarget().type != 'text' && e.getKey() == '8' ) {

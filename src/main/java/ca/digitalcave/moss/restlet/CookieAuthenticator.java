@@ -45,6 +45,10 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 	public static final String FIELD_COOKIE_EXPIRY_MILLIS = "cookieExpires";
 	public static final String FIELD_PASSWORD_EXPIRED = "passwordExpired";
 	public static final String FIELD_CLIENT_ADDRESS = "clientAddress";
+	public static final long COOKIE_REFRESH_WINDOW_MILLIS = 300000L;
+	public static final long COOKIE_EXPIRY_DEFAULT_MILLIS = 60L * 60 * 1000;
+	public static final long COOKIE_EXPIRY_REMEMBER_MILLIS = 30L * 24 * 60 * 60 * 1000;
+	public static final long COOKIE_EXPIRY_NO_IP_LOCK_MILLIS = 30L * 1000;
 	
 	public static final String FIELD_TOTP_TOKEN = "totpToken";								//The TOTP token submitted by the user
 	public static final String FIELD_TOTP_SHARED_SECRET = "totpSharedSecret";				//The TOTP shared secret.  Used for sending the secret to the user at TOTP setup time
@@ -149,8 +153,8 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		if (cr != null && cr.getScheme().equals(ChallengeScheme.HTTP_COOKIE)){
 			final long expireTime = Long.parseLong(cr.getParameters().getFirstValue(FIELD_COOKIE_EXPIRY_MILLIS));
 			if (StringUtils.isBlank(cr.getParameters().getFirstValue(FIELD_CLIENT_ADDRESS))							//If the client address is blank...
-					|| (cr.getTimeIssued() < System.currentTimeMillis() - 300000)									// ... or the cookie has been issued more than 5 minutes ago...
-					|| (expireTime - 300000 < System.currentTimeMillis())){											// ... or if the cookie will expire in the next 5 minutes ...
+					|| (cr.getTimeIssued() < System.currentTimeMillis() - COOKIE_REFRESH_WINDOW_MILLIS)									// ... or the cookie has been issued more than 5 minutes ago...
+					|| (expireTime - COOKIE_REFRESH_WINDOW_MILLIS < System.currentTimeMillis())){											// ... or if the cookie will expire in the next 5 minutes ...
 				setEncryptedCookieFromChallengeResponse(request, response, authenticationHelper);					// ... we refresh the cookie
 			}
 		}
@@ -244,15 +248,10 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 				p.set(FIELD_CLIENT_ADDRESS, getClientAddress(request));
 			}
 			
-			if (remember){
-				expiryTimeMillis = 30l * 24 * 60 * 60 * 1000;	//If "Remember me" is set, the cookie is valid for 30 days
-			}
-			else {
-				expiryTimeMillis = 60 * 60 * 1000;		//By default the cookie is valid for one hour
-			}
+			expiryTimeMillis = getCookieTimeoutMillis(remember);
 		}
 		else {
-			expiryTimeMillis = 30 * 1000;	//If ipLock is false, we set the expiry date for 30 seconds in the future.
+			expiryTimeMillis = COOKIE_EXPIRY_NO_IP_LOCK_MILLIS;	//If ipLock is false, we set the expiry date for 30 seconds in the future.
 		}
 
 		final long issued = System.currentTimeMillis();	// / cookieRenewIntervalMillis * cookieRenewIntervalMillis;		//The issue date is truncated to <cookieRenewIntervalMillis> intervals (defaults to 5 minutes).  This is what determines when the cookie is to be renewed.
@@ -357,6 +356,15 @@ public class CookieAuthenticator extends ChallengeAuthenticator {
 		}
 		return Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_PASSWORD_EXPIRED, "false"));
 	}
+
+	public static long getCookieTimeoutMillis(final ChallengeResponse challengeResponse) {
+		return getCookieTimeoutMillis(challengeResponse != null && Boolean.parseBoolean(challengeResponse.getParameters().getFirstValue(FIELD_REMEMBER, "false")));
+	}
+
+	public static long getCookieTimeoutMillis(final boolean remember) {
+		return remember ? COOKIE_EXPIRY_REMEMBER_MILLIS : COOKIE_EXPIRY_DEFAULT_MILLIS;
+	}
+
 	public static void setPasswordExpired(ChallengeResponse challengeResponse) {
 		if (challengeResponse == null){
 			return;

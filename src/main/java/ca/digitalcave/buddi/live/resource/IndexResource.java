@@ -34,6 +34,7 @@ import ca.digitalcave.moss.restlet.model.AuthUser;
 import ca.digitalcave.moss.restlet.plugin.AuthenticationConfiguration;
 import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
 import ca.digitalcave.moss.restlet.plugin.ExtraFieldsDirective;
+import ca.digitalcave.moss.restlet.CookieAuthenticator;
 import ca.digitalcave.moss.restlet.resource.LoginResource;
 import ca.digitalcave.moss.restlet.util.LocalizationUtil;
 import ca.digitalcave.moss.restlet.util.OverridableResourceBundle;
@@ -76,9 +77,10 @@ public class IndexResource extends ServerResource {
 
 		final User user = (User) getClientInfo().getUser();
 		if (getClientInfo().getUser() != null && (!user.isTwoFactorRequired() || user.getTwoFactorBackupCodes().size() > 0)) {
+			final ChallengeResponse challengeResponse = getChallengeResponse();
 			dataModel.put("user", getClientInfo().getUser());
 			dataModel.put("translationsJson", serializeTranslationsJson(LocaleUtil.getTranslation(getRequest())));
-			dataModel.put("userConfigJson", serializeUserConfigJson(user));
+			dataModel.put("userConfigJson", serializeUserConfigJson(user, challengeResponse));
 		}
 		else {
 			dataModel.put("authConfigJson", serializeAuthConfigJson());
@@ -110,10 +112,11 @@ public class IndexResource extends ServerResource {
 		}
 	}
 
-	private String serializeUserConfigJson(User user) {
+	private String serializeUserConfigJson(final User user, final ChallengeResponse challengeResponse) {
 		try {
 			final StringWriter sw = new StringWriter();
 			final JsonGenerator g = new JsonFactory().createGenerator(sw);
+			final long sessionTimeoutMillis = CookieAuthenticator.getCookieTimeoutMillis(challengeResponse);
 			g.writeStartObject();
 			g.writeStringField("extDateFormat", user.getExtDateFormat());
 			g.writeBooleanField("premium", true);
@@ -122,6 +125,8 @@ public class IndexResource extends ServerResource {
 			g.writeStringField("thousandSeparator", user.getThousandSeparator());
 			g.writeStringField("currencySymbol", user.getCurrencySymbol());
 			g.writeStringField("plaintextIdentifier", user.getPlaintextIdentifier());
+			g.writeNumberField("sessionTimeoutMillis", sessionTimeoutMillis);
+			g.writeNumberField("sessionRefreshWindowMillis", CookieAuthenticator.COOKIE_REFRESH_WINDOW_MILLIS);
 			g.writeEndObject();
 			g.close();
 			return sw.toString();
