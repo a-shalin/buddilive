@@ -110,6 +110,36 @@ public abstract class BrowserBaseIT extends BaseIT {
 		return result != null ? result.toString() : null;
 	}
 
+	protected void assertGridRowsVisible(String gridQuery) {
+		final Boolean visible = (Boolean) executeJs(
+			"var grid = Ext.ComponentQuery.query(arguments[0])[0];" +
+			"var view = grid.getView();" +
+			"var items = grid.getEl().query('.x-grid-item');" +
+			"if (items.length === 0) return false;" +
+			"var gridRect = grid.getEl().dom.getBoundingClientRect();" +
+			"return items.some(function(el) {" +
+			"  var r = el.getBoundingClientRect();" +
+			"  return r.width > 0 && r.bottom > gridRect.top && r.top < gridRect.bottom;" +
+			"});",
+			gridQuery);
+		assertThat(visible).as("Grid rows in " + gridQuery + " should be visible in viewport").isTrue();
+	}
+
+	protected void waitForStoreLoad(String gridQuery) {
+		executeJs(
+			"window.__storeLoaded = false;" +
+			"var list = Ext.ComponentQuery.query(arguments[0])[0];" +
+			"list.getStore().on('load', function() { window.__storeLoaded = true; }, null, {single: true});",
+			gridQuery);
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs("return window.__storeLoaded === true;");
+			} catch (Exception e) {
+				return false;
+			}
+		});
+	}
+
 	protected void dismissMessageBox() {
 		try {
 			Thread.sleep(1000);

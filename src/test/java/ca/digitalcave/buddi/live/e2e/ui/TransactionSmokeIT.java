@@ -28,7 +28,7 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 		selectAccount("Chequing");
 
 		waitForComponent("transactioneditor");
-		Thread.sleep(1000);
+		waitForStoreLoad("transactionlist");
 
 		// Fill in the transaction editor
 		executeJs(
@@ -97,6 +97,8 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 				return false;
 			}
 		});
+
+		assertGridRowsVisible("transactionlist");
 
 		// Verify the transaction appears in the grid
 		Boolean found = (Boolean) executeJs(
@@ -269,6 +271,81 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 		JSONObject groceries = findCategory(updatedBudget, "Groceries");
 		assertThat(groceries).isNotNull();
 		assertThat(groceries.optString("current")).contains("1.234,56");
+	}
+
+	@Test
+	void testSwitchAccountAfterScrollShowsRows() throws Exception {
+		final String email = "txn-scroll-switch@example.com";
+		helper.registerUser(email, PASSWORD, "en_US", "USD");
+		OkHttpClient apiClient = helper.login(email, PASSWORD);
+		final int chequingId = helper.createAccount(apiClient, "Chequing", "D", "Chequing", "1000.00");
+		final int savingsId = helper.createAccount(apiClient, "Savings", "D", "Savings", "2000.00");
+		final int groceriesId = helper.createCategory(apiClient, "Groceries", "E", "MONTH");
+
+		// Create >250 transactions in Chequing (pageSize=250) so the
+		// BufferedStore pages and the rendered block is positioned deep.
+		for (int t = 0; t < 300; t++) {
+			final int day = (t % 28) + 1;
+			final int month = (t / 28 % 12) + 1;
+			final String date = String.format("2024-%02d-%02d", month, day);
+			helper.createTransaction(apiClient, "Chq txn " + t, date, chequingId, groceriesId, "10.00");
+		}
+
+		// A few transactions in Savings
+		for (int t = 0; t < 3; t++) {
+			helper.createTransaction(apiClient, "Sav txn " + t, "2024-02-0" + (t + 1), savingsId, groceriesId, "100.00");
+		}
+
+		browserLogin(email, PASSWORD);
+
+		// Open Chequing and wait for page 1 to load
+		selectAccount("Chequing");
+		waitForStoreLoad("transactionlist");
+
+		// Scroll past page 1 boundary and wait for the rendered block to
+		// include records beyond the first page (index >= 250).
+		executeJs(
+			"var list = Ext.ComponentQuery.query('transactionlist')[0];" +
+			"var scroller = list.getView().getScrollable();" +
+			"scroller.scrollTo(0, scroller.getMaxPosition().y);");
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"var rows = Ext.ComponentQuery.query('transactionlist')[0].getView().all;" +
+					"return rows.endIndex >= 250;");
+			} catch (Exception e) {
+				return false;
+			}
+		});
+
+		// Now switch to Savings — reload() is called while the rendered
+		// block is positioned deep in the scroll area (page 2+ territory).
+		executeJs(
+			"window.__switchLoadDone = false;" +
+			"var list = Ext.ComponentQuery.query('transactionlist')[0];" +
+			"list.getStore().on('load', function() { window.__switchLoadDone = true; }, null, {single: true});");
+		selectAccount("Savings");
+
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs("return window.__switchLoadDone === true;");
+			} catch (Exception e) {
+				return false;
+			}
+		});
+
+		// Wait for the buffered renderer to finish rendering after load
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"var list = Ext.ComponentQuery.query('transactionlist')[0];" +
+					"var br = list.getView().bufferedRenderer;" +
+					"return br && !br.refreshing;");
+			} catch (Exception e) {
+				return false;
+			}
+		});
+		assertGridRowsVisible("transactionlist");
 	}
 
 	private void selectAccount(String accountName) {

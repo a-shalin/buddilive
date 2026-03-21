@@ -112,7 +112,10 @@ Ext.define('BuddiLive.view.transaction.List', {
 	},
 	
 	reload: function() {
-		this.getView().refresh();					//This forces the scroll bar to move back to the top
+		const scrollable = this.getView().getScrollable();
+		if (scrollable) {
+			scrollable.scrollTo(0, 0);
+		}
 		this.getStore().load();
 	}
 });
