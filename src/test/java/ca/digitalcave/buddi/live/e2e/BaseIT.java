@@ -47,7 +47,7 @@ public abstract class BaseIT {
 		greenMail.start();
 
 		server = new Server(0);
-		URL warUrl = new File("src/main/webapp").toURI().toURL();
+		URL warUrl = new File("target/buddilive").toURI().toURL();
 		WebAppContext context = new WebAppContext(warUrl.toExternalForm(), "/buddilive");
 		context.setClassLoader(BuddiLiveStandalone.class.getClassLoader());
 		server.setHandler(context);

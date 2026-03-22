@@ -10,4 +10,4 @@ if [ -f .env ]; then
     set +a
 fi
 
-mvn compile exec:java -Pstandalone
+mvn package exec:java -Pstandalone -DskipTests

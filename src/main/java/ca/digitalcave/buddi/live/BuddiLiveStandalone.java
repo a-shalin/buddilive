@@ -13,7 +13,7 @@ public class BuddiLiveStandalone {
 	 */
 	public static void main(String[] args) throws Exception {
 		final Server server = new Server(8686);
-		final URL warUrl = new File("src/main/webapp").toURI().toURL();
+		final URL warUrl = new File("target/buddilive").toURI().toURL();
 		final WebAppContext context = new WebAppContext(warUrl.toExternalForm(), "/buddilive");
 		
 		context.setClassLoader(BuddiLiveStandalone.class.getClassLoader());

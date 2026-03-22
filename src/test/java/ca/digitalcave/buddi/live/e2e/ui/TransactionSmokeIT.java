@@ -180,6 +180,15 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 			"item.fireEvent('click', item);");
 		waitForComponent("preferenceseditor");
 
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"return Ext.ComponentQuery.query('preferenceseditor checkbox[itemId=showCurrencySymbol]').length > 0;");
+			} catch (Exception e) {
+				return false;
+			}
+		});
+
 		String initialLabel = (String) executeJs(
 			"return Ext.ComponentQuery.query('preferenceseditor checkbox[itemId=showCurrencySymbol]')[0].boxLabel;");
 		assertThat(initialLabel).contains("$");
@@ -346,6 +355,32 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 			}
 		});
 		assertGridRowsVisible("transactionlist");
+	}
+
+	@Test
+	void testBudgetToolbarLabelsAreTranslated() throws Exception {
+		final String email = "txn-budget-i18n@example.com";
+		helper.registerUser(email, PASSWORD, "en_US", "USD");
+		helper.createCategory(helper.login(email, PASSWORD), "Groceries", "E", "MONTH");
+
+		browserLogin(email, PASSWORD);
+
+		executeJs("Ext.ComponentQuery.query('tabpanel[itemId=budditabpanel]')[0].setActiveTab(1);");
+		waitForComponent("budgettree[itemId=MONTH]");
+
+		String copyText = (String) executeJs(
+			"return Ext.ComponentQuery.query('budgettree button[itemId=copyFromPreviousPeriod]')[0].getText();");
+		assertThat(copyText)
+			.as("COPY_FROM_PREVIOUS_BUDGET_PERIOD should be translated")
+			.isNotEqualTo("COPY_FROM_PREVIOUS_BUDGET_PERIOD");
+
+		String periodLabel = (String) executeJs(
+			"var labels = Ext.ComponentQuery.query('budgettree label');" +
+			"for (var i = 0; i < labels.length; i++) { if (labels[i].getText && labels[i].getText() !== '') return labels[i].getText(); }" +
+			"return null;");
+		assertThat(periodLabel)
+			.as("CURRENT_BUDGET_PERIOD should be translated")
+			.isNotEqualTo("CURRENT_BUDGET_PERIOD");
 	}
 
 	private void selectAccount(String accountName) {

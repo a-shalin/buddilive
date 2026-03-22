@@ -1,6 +1,6 @@
 Ext.define('BuddiLive.view.preferences.Restore', {
 	extend: "Ext.window.Window",
-	alias: "widget.preferenceseditor",
+	alias: "widget.preferencesrestore",
 	requires: [
 		
 	],

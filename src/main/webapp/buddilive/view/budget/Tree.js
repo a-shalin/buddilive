@@ -56,7 +56,7 @@ Ext.define('BuddiLive.view.budget.Tree', {
 			}
 		]
 	}],
-	
+
 	initComponent: function() {
 		let budgetTree = this;
 		this.itemId = this.initialConfig.periodValue;

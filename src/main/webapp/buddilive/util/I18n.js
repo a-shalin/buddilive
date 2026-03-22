@@ -3,6 +3,10 @@ Ext.define("BuddiLive.util.I18n", {
 
 	translations: {},
 
+	constructor: function() {
+		this.translations = window.__buddiI18n || {};
+	},
+
 	init: function(translations) {
 		this.translations = translations || {};
 	},
