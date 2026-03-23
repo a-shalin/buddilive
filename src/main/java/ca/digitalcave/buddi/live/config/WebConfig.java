@@ -23,6 +23,7 @@ public class WebConfig implements WebMvcConfigurer {
 		registry.addRedirectViewController("/", "/index");
 		registry.addRedirectViewController("/index.html", "/index");
 		registry.addRedirectViewController("/buddilive", "/index");
+		registry.addRedirectViewController("/favicon.ico", "/img/logo-title-small.png");
 	}
 
 	@Override
