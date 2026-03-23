@@ -8,7 +8,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import ca.digitalcave.buddi.live.security.CookieAuthenticationFilter;
-import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import jakarta.servlet.DispatcherType;
 
 @Configuration

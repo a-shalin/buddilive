@@ -1,8 +1,10 @@
-package ca.digitalcave.moss.restlet.plugin;
+package ca.digitalcave.moss.auth.config;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+
+import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
 
 /**
  * The configuration class is used for static data, such as i18n, hardcoded application properties, etc.  For things that can be changed

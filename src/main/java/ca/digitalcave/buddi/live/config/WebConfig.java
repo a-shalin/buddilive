@@ -29,7 +29,7 @@ public class WebConfig implements WebMvcConfigurer {
 	@Override
 	public void addResourceHandlers(final ResourceHandlerRegistry registry) {
 		registry.addResourceHandler("/authentication/**")
-			.addResourceLocations("classpath:ca/digitalcave/moss/restlet/resource/ui/extjs/");
+			.addResourceLocations("classpath:ca/digitalcave/moss/auth/resource/ui/extjs/");
 	}
 
 	@Bean

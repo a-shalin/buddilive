@@ -1,4 +1,4 @@
-package ca.digitalcave.moss.restlet.util;
+package ca.digitalcave.moss.auth.i18n;
 
 import java.util.Collections;
 import java.util.Enumeration;

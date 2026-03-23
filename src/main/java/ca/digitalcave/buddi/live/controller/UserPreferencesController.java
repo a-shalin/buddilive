@@ -30,7 +30,7 @@ import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import ca.digitalcave.moss.crypto.DefaultHash;
-import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 

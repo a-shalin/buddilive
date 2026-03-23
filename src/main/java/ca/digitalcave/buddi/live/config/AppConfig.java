@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.Algorithm;
-import ca.digitalcave.moss.restlet.util.PasswordChecker;
+import ca.digitalcave.moss.auth.password.PasswordChecker;
 
 @Configuration
 public class AppConfig {

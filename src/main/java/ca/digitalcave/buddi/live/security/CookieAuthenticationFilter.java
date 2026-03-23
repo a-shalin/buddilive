@@ -14,8 +14,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import ca.digitalcave.buddi.live.model.User;
-import ca.digitalcave.moss.restlet.model.AuthUser;
-import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
+import ca.digitalcave.moss.auth.model.AuthUser;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

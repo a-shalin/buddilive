@@ -1,4 +1,4 @@
-package ca.digitalcave.moss.restlet.util;
+package ca.digitalcave.moss.auth.password;
 
 import java.io.BufferedReader;
 import java.io.File;

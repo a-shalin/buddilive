@@ -20,7 +20,7 @@ import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import ca.digitalcave.moss.crypto.DefaultHash;
-import ca.digitalcave.moss.restlet.util.PasswordChecker;
+import ca.digitalcave.moss.auth.password.PasswordChecker;
 
 @RestController
 @RequestMapping("/data/changepassword")

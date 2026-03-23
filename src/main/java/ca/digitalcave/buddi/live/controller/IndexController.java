@@ -38,10 +38,10 @@ import ca.digitalcave.buddi.live.security.CookieUtil;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
-import ca.digitalcave.moss.restlet.plugin.AuthenticationConfiguration;
-import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
-import ca.digitalcave.moss.restlet.plugin.ExtraFieldsDirective;
-import ca.digitalcave.moss.restlet.util.OverridableResourceBundle;
+import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
+import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
+import ca.digitalcave.moss.auth.i18n.OverridableResourceBundle;
 
 @Controller
 public class IndexController {
@@ -231,7 +231,7 @@ public class IndexController {
 			final Locale locale = Locale.getDefault();
 			final ResourceBundle i18n = new OverridableResourceBundle(
 				(config.i18nBaseCustom == null ? null : ResourceBundle.getBundle(config.i18nBaseCustom, locale)),
-				ResourceBundle.getBundle("ca.digitalcave.moss.restlet.i18n", locale)
+				ResourceBundle.getBundle("ca.digitalcave.moss.auth.i18n", locale)
 			);
 
 			writeExtraFields(g, "extraRegisterStep1Fields", config.extraRegisterStep1Fields, i18n);
@@ -297,7 +297,7 @@ public class IndexController {
 			final Locale locale = Locale.getDefault();
 			final ResourceBundle i18n = new OverridableResourceBundle(
 				(config.i18nBaseCustom == null ? null : ResourceBundle.getBundle(config.i18nBaseCustom, locale)),
-				ResourceBundle.getBundle("ca.digitalcave.moss.restlet.i18n", locale)
+				ResourceBundle.getBundle("ca.digitalcave.moss.auth.i18n", locale)
 			);
 			return serializeTranslationsJson(i18n);
 		}

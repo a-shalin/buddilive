@@ -3,7 +3,7 @@ package ca.digitalcave.buddi.live.db;
 import org.apache.ibatis.annotations.Param;
 
 import ca.digitalcave.buddi.live.model.User;
-import ca.digitalcave.moss.restlet.model.AuthUser;
+import ca.digitalcave.moss.auth.model.AuthUser;
 
 @org.apache.ibatis.annotations.Mapper
 public interface Users {

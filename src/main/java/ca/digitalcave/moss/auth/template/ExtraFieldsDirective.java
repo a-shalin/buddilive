@@ -1,4 +1,4 @@
-package ca.digitalcave.moss.restlet.plugin;
+package ca.digitalcave.moss.auth.template;
 
 import java.io.IOException;
 import java.io.Writer;

@@ -1,4 +1,4 @@
-package ca.digitalcave.moss.restlet.plugin;
+package ca.digitalcave.moss.auth.service;
 
 import java.security.Key;
 import java.util.List;
@@ -12,8 +12,9 @@ import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import ca.digitalcave.moss.crypto.DefaultHash;
 import ca.digitalcave.moss.crypto.Hash;
-import ca.digitalcave.moss.restlet.model.AuthUser;
-import ca.digitalcave.moss.restlet.util.PasswordChecker;
+import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
+import ca.digitalcave.moss.auth.model.AuthUser;
+import ca.digitalcave.moss.auth.password.PasswordChecker;
 
 public abstract class AuthenticationHelper {
 

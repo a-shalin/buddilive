@@ -31,9 +31,9 @@ import com.google.zxing.qrcode.QRCodeWriter;
 
 import ca.digitalcave.buddi.live.security.CookieAuthenticationToken;
 import ca.digitalcave.buddi.live.security.CookieUtil;
-import ca.digitalcave.moss.restlet.model.AuthUser;
-import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
-import ca.digitalcave.moss.restlet.util.PasswordChecker;
+import ca.digitalcave.moss.auth.model.AuthUser;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
+import ca.digitalcave.moss.auth.password.PasswordChecker;
 import dev.samstevens.totp.code.CodeVerifier;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
 import dev.samstevens.totp.code.DefaultCodeVerifier;
@@ -518,7 +518,7 @@ public class AuthenticationController {
 			path = "app/Application.js";
 		}
 
-		try (InputStream is = getClass().getResourceAsStream("/ca/digitalcave/moss/restlet/resource/ui/extjs/" + path)) {
+		try (InputStream is = getClass().getResourceAsStream("/ca/digitalcave/moss/auth/resource/ui/extjs/" + path)) {
 			if (is == null) {
 				return ResponseEntity.notFound().build();
 			}

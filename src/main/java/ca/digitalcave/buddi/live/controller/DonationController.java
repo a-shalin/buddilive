@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import ca.digitalcave.buddi.live.db.Users;
 import ca.digitalcave.buddi.live.model.User;
-import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 
 @Controller
 public class DonationController {

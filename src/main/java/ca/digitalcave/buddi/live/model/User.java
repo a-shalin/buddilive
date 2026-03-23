@@ -16,7 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
-import ca.digitalcave.moss.restlet.model.AuthUser;
+import ca.digitalcave.moss.auth.model.AuthUser;
 
 public class User extends AuthUser {
 	private static final long serialVersionUID = 1L;

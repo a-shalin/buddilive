@@ -23,7 +23,7 @@ BuddiLive is a web-based personal finance application for budgeting, account tra
 
 - **moss-common** - Common utilities
 - **moss-crypto** - Cryptographic utilities (AES-256, password hashing)
-- **moss-restlet** - Authentication UI resources (login panel, FreeMarker templates, ExtJS components)
+- **moss-auth** - Authentication UI resources (login panel, FreeMarker templates, ExtJS components)
 
 These moss modules are vendored in-repo under `src/main/java/ca/digitalcave/moss`.
 
@@ -232,7 +232,7 @@ src/main/resources/static/
 ├── img/                          # Icons (40+ PNGs + Fugue icon set)
 └── doc/                          # Static HTML documentation (11 pages)
 
-src/main/resources/ca/digitalcave/moss/restlet/resource/ui/extjs/
+src/main/resources/ca/digitalcave/moss/auth/resource/ui/extjs/
 └── app/Application.js            # Authentication/login ExtJS app entry point
 ```
 

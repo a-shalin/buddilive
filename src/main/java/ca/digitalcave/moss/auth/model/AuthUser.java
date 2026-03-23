@@ -1,4 +1,4 @@
-package ca.digitalcave.moss.restlet.model;
+package ca.digitalcave.moss.auth.model;
 
 import java.io.Serializable;
 import java.util.Date;

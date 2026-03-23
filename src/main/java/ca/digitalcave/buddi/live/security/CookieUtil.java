@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 import org.apache.commons.lang3.StringUtils;
 
 import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
