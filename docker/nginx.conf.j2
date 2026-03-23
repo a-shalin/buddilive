@@ -24,10 +24,6 @@ server {
     client_max_body_size 100M;
     client_body_timeout 600s;
 
-    location = / {
-        return 301 /buddilive/;
-    }
-
     location / {
         proxy_pass http://app:{{ app_port }};
         proxy_connect_timeout 60s;

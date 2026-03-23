@@ -16,7 +16,7 @@
       ansible.builtin.shell:
         cmd: >
           find ~/{{ app_name }}/ -mindepth 1 -maxdepth 1
-          ! -name 'buddilive.war'
+          ! -name 'buddilive.jar'
           ! -name 'Dockerfile'
           ! -name 'docker-compose.yml'
           ! -name 'nginx.conf'
@@ -32,10 +32,10 @@
         state: directory
         mode: "0755"
 
-    - name: Copy WAR file
+    - name: Copy JAR file
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../../target/buddilive.war"
-        dest: "~/{{ app_name }}/buddilive.war"
+        src: "{{ playbook_dir }}/../../target/buddilive.jar"
+        dest: "~/{{ app_name }}/buddilive.jar"
 
     - name: Copy Dockerfile
       ansible.builtin.copy:

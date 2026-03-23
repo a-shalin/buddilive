@@ -34,7 +34,7 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       MAIL_TLS: "{{ mail_tls }}"
     expose:
-      - "{{ app_port }}"
+      - "8080"
 
   nginx:
     container_name: {{ app_name }}-nginx

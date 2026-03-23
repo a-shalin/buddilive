@@ -6,16 +6,16 @@ BuddiLive is a web-based personal finance application for budgeting, account tra
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | ExtJS 6.2.0 (Classic Gray theme, served from `lib/extjs`) |
-| Backend Framework | Restlet 2.6.0 (Java REST framework) |
+| Frontend | ExtJS 6.2.0 (Classic Gray theme, served from `static/`) |
+| Backend Framework | Spring Boot 3.4.3 (Spring MVC, embedded Tomcat) |
 | Templating | FreeMarker 2.3.34 |
-| ORM | MyBatis 3.5.19 (XML-based mappers) |
-| Database | PostgreSQL (via postgresql-42.7.10 driver) |
-| Connection Pool | C3P0 0.12.0 |
-| DB Migrations | Liquibase 4.33.0 |
-| Auth | Cookie-based (SHA-512 password hashing, AES-256 encryption) |
+| ORM | MyBatis 3.5.19 via mybatis-spring-boot-starter (XML-based mappers) |
+| Database | PostgreSQL (production) / Derby (standalone/test) |
+| Connection Pool | HikariCP (Spring Boot default) |
+| DB Migrations | Liquibase 4.29.2 (Spring Boot auto-configuration) |
+| Auth | Spring Security + custom cookie filter (SHA-512 hashing, AES-256 encryption) |
 | 2FA | TOTP with backup codes (ZXing for QR generation) |
-| Build | Maven (Java 17 target, generated resources via Ant tasks) |
+| Build | Maven (Java 17 target, Spring Boot Maven plugin) |
 | Deployment | Docker + Nginx + Ansible |
 | Java Target | 17 |
 
@@ -23,7 +23,7 @@ BuddiLive is a web-based personal finance application for budgeting, account tra
 
 - **moss-common** - Common utilities
 - **moss-crypto** - Cryptographic utilities (AES-256, password hashing)
-- **moss-restlet** - Restlet extensions (CookieAuthenticator, AuthenticationRouter)
+- **moss-restlet** - Authentication UI resources (login panel, FreeMarker templates, ExtJS components)
 
 These moss modules are vendored in-repo under `src/main/java/ca/digitalcave/moss`.
 
@@ -38,17 +38,17 @@ These moss modules are vendored in-repo under `src/main/java/ca/digitalcave/moss
                     └──────┬───────┘
                            │
                     ┌──────┴───────┐
-                    │  BuddiLive   │  (Embedded Jetty :8686 or WAR in servlet container)
+                    │  BuddiLive   │  (Embedded Tomcat :8080)
                     │  Application │
                     ├──────────────┤
-                    │   Restlet    │  Router + Resources (REST API)
-                    │   Encoder    │  (gzip compression)
-                    │   Auth       │  CookieAuthenticator + CookieVerifier
+                    │  Spring MVC  │  Controllers (REST API)
+                    │  Security    │  CookieAuthenticationFilter
+                    │  Compression │  (server.compression.enabled)
                     ├──────────────┤
                     │   MyBatis    │  SQL mapping layer
-                    │   C3P0 Pool  │
+                    │  HikariCP   │
                     ├──────────────┤
-                    │  Liquibase   │  Schema migrations (run on startup)
+                    │  Liquibase   │  Schema migrations (auto-run on startup)
                     └──────┬───────┘
                            │
                     ┌──────┴───────┐
@@ -65,133 +65,123 @@ These moss modules are vendored in-repo under `src/main/java/ca/digitalcave/moss
 
 ```
 ca.digitalcave.buddi.live
-├── BuddiApplication.java          # Main Restlet Application (routes, init)
-├── BuddiLiveStandalone.java       # Embedded Jetty runner (port 8686)
-├── db/                            # Data access layer
-│   ├── Users.java/.xml            # User CRUD + auth queries
-│   ├── Sources.java/.xml          # Accounts & categories
-│   ├── Transactions.java/.xml     # Transactions & splits
+├── BuddiSpringApplication.java       # @SpringBootApplication entry point
+├── config/
+│   ├── AppConfig.java                # Shared beans (Crypto, JsonFactory, etc.)
+│   ├── SecurityConfig.java           # Spring Security filter chain
+│   └── WebConfig.java                # Static resources, view controllers, filters
+├── controller/                       # Spring MVC controllers
+│   ├── AccountsController.java
+│   ├── AuthenticationController.java # Login, register, password reset, 2FA
+│   ├── CategoriesController.java
+│   ├── ChangePasswordController.java
+│   ├── DataManagementController.java # Backup, export, restore
+│   ├── DescriptionsController.java
+│   ├── DonationController.java
+│   ├── GlobalExceptionHandler.java   # @RestControllerAdvice error handler
+│   ├── IndexController.java          # FreeMarker-templated entry point
+│   ├── ParentsController.java
+│   ├── PeriodsController.java
+│   ├── ReportController.java         # 6 report types
+│   ├── ScheduledTransactionsController.java
+│   ├── SourcesController.java
+│   ├── StoreController.java          # Currencies, locales
+│   ├── TransactionsController.java
+│   └── UserPreferencesController.java
+├── db/                               # Data access layer
+│   ├── Users.java/.xml               # User CRUD + auth queries
+│   ├── Sources.java/.xml             # Accounts & categories
+│   ├── Transactions.java/.xml        # Transactions & splits
 │   ├── ScheduledTransactions.java/.xml
-│   ├── Entries.java/.xml          # Budget entries
-│   ├── BuddiSystem.java/.xml      # System settings (cookie key)
-│   ├── handler/                   # MyBatis type handlers
-│   │   ├── BooleanHandler.java    #   Y/N → boolean
-│   │   ├── CurrencyHandler.java   #   code → Currency
-│   │   └── LocaleHandler.java     #   string → Locale
-│   ├── liquibase/
-│   │   └── Migration.java         # Runs Liquibase on startup
+│   ├── Entries.java/.xml             # Budget entries
+│   ├── BuddiSystem.java/.xml         # System settings (cookie key)
+│   ├── handler/                      # MyBatis type handlers
+│   │   ├── BooleanHandler.java       #   Y/N → boolean
+│   │   ├── CurrencyHandler.java      #   code → Currency
+│   │   └── LocaleHandler.java        #   string → Locale
 │   └── util/
-│       ├── ConstraintsChecker.java # Business rule validation
-│       ├── DataUpdater.java        # Batch update operations
+│       ├── ConstraintsChecker.java    # Business rule validation
+│       ├── DataUpdater.java           # Batch update operations
 │       └── DatabaseException.java
-├── model/                         # Domain objects
-│   ├── User.java                  # User account (extends AuthUser)
-│   ├── Account.java               # Debit/credit account (extends Source)
-│   ├── Category.java              # Income/expense category (extends Source)
-│   ├── Source.java                 # Base class for Account/Category
-│   ├── AccountType.java           # Account type grouping
-│   ├── CategoryPeriod.java        # Budget period enum (WEEK/MONTH/QUARTER/YEAR)
-│   ├── Transaction.java           # Financial transaction
-│   ├── Split.java                 # Transaction line item (from/to/amount)
-│   ├── Entry.java                 # Budget entry
-│   ├── ScheduledTransaction.java  # Recurring transaction template
+├── model/                            # Domain objects
+│   ├── User.java                     # User account (extends AuthUser)
+│   ├── Account.java                  # Debit/credit account (extends Source)
+│   ├── Category.java                 # Income/expense category (extends Source)
+│   ├── Source.java                    # Base class for Account/Category
+│   ├── AccountType.java              # Account type grouping
+│   ├── CategoryPeriod.java           # Budget period enum (WEEK/MONTH/QUARTER/YEAR)
+│   ├── Transaction.java              # Financial transaction
+│   ├── Split.java                    # Transaction line item (from/to/amount)
+│   ├── Entry.java                    # Budget entry
+│   ├── ScheduledTransaction.java     # Recurring transaction template
 │   └── report/
-│       └── Interval.java          # Report time interval
-├── resource/                      # REST API endpoints (Restlet Resources)
-│   ├── buddilive/                 # Core API resources
-│   │   ├── AccountsResource.java
-│   │   ├── CategoriesResource.java
-│   │   ├── TransactionsResource.java
-│   │   ├── ScheduledTransactionsResource.java
-│   │   ├── ScheduledTransactionsRunnerResource.java
-│   │   ├── SourcesResource.java
-│   │   ├── PeriodsResource.java
-│   │   ├── ParentsResource.java
-│   │   ├── DescriptionsResource.java
-│   │   ├── UserPreferencesResource.java
-│   │   ├── ChangePasswordResource.java
-│   │   ├── DonationResource.java
-│   │   ├── preferences/
-│   │   │   ├── CurrenciesResource.java
-│   │   │   └── LocalesResource.java
-│   │   └── report/               # 6 report types
-│   │       ├── PieTotalsByCategoryResource.java
-│   │       ├── IncomeAndExpensesByCategoryResource.java
-│   │       ├── AverageIncomeAndExpensesByCategoryResource.java
-│   │       ├── InflowAndOutflowByAccountResource.java
-│   │       ├── InflowAndOutflowByPayeeResource.java
-│   │       ├── BalancesOverTimeResource.java
-│   │       └── ReportHelper.java
-│   └── data/
-│       ├── BackupResource.java
-│       ├── ExportResource.java
-│       └── RestoreResource.java
+│       └── Interval.java             # Report time interval
 ├── security/
-│   ├── BuddiVerifier.java                # Cookie session verifier
-│   └── BuddiLiveAuthenticationHelper.java # Login, register, password reset, 2FA
-├── service/
-│   └── BuddiStatusService.java    # Error response handler (JSON/HTML/text)
+│   ├── BuddiLiveAuthenticationHelper.java # Login, register, password reset, 2FA
+│   ├── CookieAuthenticationFilter.java    # Reads/validates encrypted session cookie
+│   ├── CookieAuthenticationToken.java     # Spring Security token
+│   └── CookieUtil.java                    # Cookie encrypt/decrypt/serialize
 └── util/
-    ├── CryptoUtil.java            # Encrypt/decrypt user data fields
-    ├── FormatUtil.java            # Locale-aware date/currency formatting
-    └── LocaleUtil.java            # Locale management
+    ├── CryptoUtil.java               # Encrypt/decrypt user data fields
+    ├── FormatUtil.java               # Locale-aware date/currency formatting
+    └── LocaleUtil.java               # Locale management
 ```
 
 ### REST API Routes
 
 All data routes are under `/data/` and require authentication (cookie-based).
 
-| Method | Path | Resource | Description |
-|--------|------|----------|-------------|
-| GET/POST | `/data/accounts` | AccountsResource | Account CRUD |
-| GET/POST | `/data/categories` | CategoriesResource | Category CRUD |
-| GET/POST | `/data/categories/periods` | PeriodsResource | Budget periods |
-| GET/POST | `/data/categories/parents` | ParentsResource | Parent categories |
-| GET/POST | `/data/transactions` | TransactionsResource | Transaction CRUD |
-| GET/POST | `/data/transactions/descriptions` | DescriptionsResource | Autocomplete |
-| GET/POST | `/data/scheduledtransactions` | ScheduledTransactionsResource | Scheduled tx CRUD |
-| GET/POST | `/data/scheduledtransactions/execute` | ScheduledTransactionsRunnerResource | Execute due txns |
-| GET/POST | `/data/sources/from` | SourcesResource | Source selector (from) |
-| GET/POST | `/data/sources/to` | SourcesResource | Source selector (to) |
-| GET/POST | `/data/changepassword` | ChangePasswordResource | Password change |
-| GET/POST | `/data/userpreferences` | UserPreferencesResource | User settings |
-| GET/POST | `/data/backup` | BackupResource | JSON backup |
-| GET/POST | `/data/export` | ExportResource | CSV export |
-| GET/POST | `/data/restore` | RestoreResource | Restore from backup |
-| GET | `/data/report/*` | Report resources | 6 report types |
-| GET | `/stores/currencies` | CurrenciesResource | Currency list |
-| GET | `/stores/locales` | LocalesResource | Locale list |
+| Method | Path | Controller | Description |
+|--------|------|------------|-------------|
+| GET/POST | `/data/accounts` | AccountsController | Account CRUD |
+| GET/POST | `/data/categories` | CategoriesController | Category CRUD |
+| GET/POST | `/data/categories/periods` | PeriodsController | Budget periods |
+| GET/POST | `/data/categories/parents` | ParentsController | Parent categories |
+| GET/POST | `/data/transactions` | TransactionsController | Transaction CRUD |
+| GET/POST | `/data/transactions/descriptions` | DescriptionsController | Autocomplete |
+| GET/POST | `/data/scheduledtransactions` | ScheduledTransactionsController | Scheduled tx CRUD |
+| GET/POST | `/data/scheduledtransactions/execute` | ScheduledTransactionsController | Execute due txns |
+| GET/POST | `/data/sources/from` | SourcesController | Source selector (from) |
+| GET/POST | `/data/sources/to` | SourcesController | Source selector (to) |
+| GET/POST | `/data/changepassword` | ChangePasswordController | Password change |
+| GET/POST | `/data/userpreferences` | UserPreferencesController | User settings |
+| GET/POST | `/data/backup` | DataManagementController | JSON backup |
+| GET/POST | `/data/export` | DataManagementController | CSV export |
+| GET/POST | `/data/restore` | DataManagementController | Restore from backup |
+| GET | `/data/report/*` | ReportController | 6 report types |
+| GET | `/stores/currencies` | StoreController | Currency list |
+| GET | `/stores/locales` | StoreController | Locale list |
 
 **Public routes** (no auth required):
-- `GET /` → Redirect to `index.html`
-- `GET /index` → IndexResource (FreeMarker-templated login or app)
-- `/authentication` → Login/register/password reset/2FA flow
-- `GET /donation-completed` → DonationResource
-- Static files served by DefaultResource
+- `GET /` → Redirect to `/index`
+- `GET /index` → IndexController (FreeMarker-templated login or app)
+- `/authentication/**` → AuthenticationController (login/register/password reset/2FA)
+- `GET /donation-completed` → DonationController
+- Static files served from `classpath:/static/` by Spring Boot
 
 ### Request Flow
 
 ```
 HTTP Request
-  → Restlet Encoder (gzip)
-  → CookieAuthenticator (validates session cookie)
-  → Router (dispatches to Resource by URL pattern)
-  → Resource (gets User from request context)
-  → SqlSession (MyBatis, from BuddiApplication's SqlSessionFactory)
-  → MyBatis Mapper (XML-defined SQL)
+  → Spring Security filter chain
+  → CookieAuthenticationFilter (validates encrypted session cookie)
+  → DispatcherServlet (routes to @Controller by @RequestMapping)
+  → Controller method (@Autowired MyBatis mappers)
+  → MyBatis Mapper (XML-defined SQL, Spring-managed SqlSession)
   → CryptoUtil.decryptWrapper() (if user has encryption enabled)
-  → JSON response
+  → JSON response (ResponseEntity or StreamingResponseBody)
 ```
 
 ### Authentication
 
 - **Password storage**: SHA-512 with 20,000 iterations and 96-byte salt (auto-upgrades legacy SHA-256)
-- **Sessions**: Encrypted cookies via moss-restlet CookieAuthenticator
+- **Sessions**: Encrypted cookies via CookieAuthenticationFilter + CookieUtil
 - **Session lifecycle**: Backend exposes cookie timeout metadata; ExtJS schedules pre-expiry logout and redirects on `401`
 - **Cookie encryption key**: Stored in `buddi_system` table; nullifying it invalidates all sessions
 - **2FA**: TOTP-based with one-time backup codes stored in `user_totp_backups`
-- **Registration**: Email activation key workflow
+- **Registration**: Email activation key workflow (server mode) or direct registration (standalone mode)
 - **User identifier**: Hashed login identifier for lookup; optional recoverable email is stored separately
+- **Spring Security**: Custom `SecurityFilterChain` with CSRF disabled, `CookieAuthenticationFilter` before `UsernamePasswordAuthenticationFilter`
 
 ---
 
@@ -204,8 +194,7 @@ Classic MVC pattern with Controllers, Views, and Stores. App classes are loaded 
 ### File Organization
 
 ```
-src/main/webapp/
-├── index.html                    # FreeMarker template (entry point)
+src/main/resources/static/
 ├── buddilive/                    # Application code (74 JS files)
 │   ├── Application.js            # Ext.application config
 │   ├── controller/               # 15 controllers (event handlers)
@@ -263,13 +252,13 @@ src/main/resources/ca/digitalcave/moss/restlet/resource/ui/extjs/
 - Buffered rendering for transaction grid (250 items per page)
 - `Ext.util.TaskManager` runs hourly check for due scheduled transactions
 - UI state persisted via `Ext.state.LocalStorageProvider`
-- `IndexResource` injects per-user runtime config (`__buddiConfig`) including formatting preferences and session timeout values
+- `IndexController` injects per-user runtime config (`__buddiConfig`) including formatting preferences and session timeout values
 
 ---
 
 ## Database Schema
 
-10 tables managed by Liquibase migrations (`src/main/webapp/WEB-INF/liquibase/master.xml`):
+10 tables managed by Liquibase migrations (`src/main/resources/db/changelog/master.xml`):
 
 ```
 ┌──────────────────┐     ┌──────────────────┐
@@ -346,27 +335,45 @@ src/main/resources/ca/digitalcave/moss/restlet/resource/ui/extjs/
 ### Build
 
 ```bash
-mvn clean package              # → target/buddilive.war
-mvn clean package -Ptest       # → target/buddilive-test.war
-mvn exec:java -Pstandalone     # standalone Jetty on port 8686
-mvn verify -Pe2etest           # E2E tests (embedded Jetty + Derby; run integration-test + verify)
+mvn clean package                     # → target/buddilive.jar (server profile)
+mvn clean package -Pstandalone        # → target/buddilive.jar (standalone profile)
+mvn verify -Pe2etest                  # E2E tests (embedded Tomcat + Derby)
 ```
 
-Build also generates filtered runtime artifacts at package time:
-- `target/generated-resources/{config.properties,logging.properties,version.properties}`
-- `target/generated-webapp/{WEB-INF/web.xml,doc/changelog.html}`
+### Spring Boot Profiles
+
+| Profile | Config file | Database | Registration |
+|---------|-------------|----------|--------------|
+| `server` | `application-server.properties` | PostgreSQL (env vars) | Email activation |
+| `standalone` | `application-standalone.properties` | Embedded Derby | Direct (no email) |
+| `e2etest` | `application-e2etest.properties` | Embedded Derby | Email activation |
 
 ### Configuration
 
 | File | Purpose |
 |------|---------|
-| `conf/server/config.properties` | Production DB + mail config |
-| `conf/test/config.properties` | Test environment config |
-| `conf/e2etest/config.properties` | E2E profile config |
-| `src/main/webapp/WEB-INF/web.xml` | Servlet mapping (Restlet → `/*`) |
-| `src/main/webapp/WEB-INF/liquibase/master.xml` | DB schema changelog |
-| `conf/logging.properties` | Log levels and file handler |
+| `application.properties` | Common config (port, compression, MyBatis, Liquibase) |
+| `application-server.properties` | Production DB + mail config (env var placeholders) |
+| `application-standalone.properties` | Derby DB, direct registration, no mail |
+| `application-e2etest.properties` | Derby DB for E2E tests |
+| `src/main/resources/db/changelog/master.xml` | Liquibase schema changelog |
 | `.env` | Docker secrets (DB/mail passwords) |
+
+### Docker Deployment
+
+```bash
+mvn clean package -DskipTests
+cp target/buddilive.jar docker/
+docker compose up --build -d
+```
+
+The Docker stack includes:
+- **app** — Spring Boot JAR with embedded Tomcat (port 8080)
+- **postgres** — PostgreSQL 16
+- **nginx** — Reverse proxy with SSL termination (Let's Encrypt)
+- **certbot** — Automatic certificate renewal
+
+Ansible playbook (`ansible/playbooks/deploy.yml`) automates the full deployment.
 
 ### Internationalization
 
@@ -380,7 +387,7 @@ EN_US, DE, ES, ES_MX, FR, IT, NL, NO, PT, PT_BR, RU, EL, HE, SR, SV
 - **Multi-tenant by user_id**: Every database query filters by the authenticated user's ID
 - **Double-entry bookkeeping**: Transactions have splits with `from_source` and `to_source`, each tracking running balances
 - **Encrypted user data**: Optional AES-256 encryption of sensitive fields, decrypted at read time via `CryptoUtil`
-- **Convention-based routing**: URL paths map directly to Restlet Resource classes
+- **Spring MVC controllers**: `@RestController` classes with `@Autowired` MyBatis mappers and `@Transactional` write operations
 - **Server-side rendering for auth**: FreeMarker template checks `<#if user??>` to serve login vs. app
 - **Proactive session expiry handling**: frontend schedules logout before cookie expiry and immediately logs out on unauthorized responses
 - **Premium mode behavior**: runtime user config currently emits `premium=true`, effectively enabling premium-gated UI features for all users

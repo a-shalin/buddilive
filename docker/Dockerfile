@@ -1,4 +1,5 @@
-FROM jetty:11.0-jre17-alpine
-RUN rm -rf /var/lib/jetty/webapps/ROOT
-COPY buddilive.war /var/lib/jetty/webapps/buddilive.war
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+COPY buddilive.jar buddilive.jar
 EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "buddilive.jar", "--spring.profiles.active=server"]

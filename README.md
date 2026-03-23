@@ -14,21 +14,21 @@ A web-based personal finance application for budgeting, account tracking, and fi
 mvn package -DskipTests
 ```
 
-This produces `target/buddilive.war`.
+This produces `target/buddilive.jar` (executable Spring Boot JAR).
 
 Build profiles control the database and mail configuration:
 
-| Profile | Config | Database | Use case |
-|---------|--------|----------|----------|
-| `server` (default) | `conf/server` | PostgreSQL (env vars) | Docker / production |
-| `standalone` | `conf/standalone` | Embedded Derby | Local use |
-| `e2etest` | `conf/e2etest` | Embedded Derby | Automated tests |
+| Profile | Database | Use case |
+|---------|----------|----------|
+| `server` (default) | PostgreSQL (env vars) | Docker / production |
+| `standalone` | Embedded Derby | Local use (no email needed) |
+| `e2etest` | Embedded Derby | Automated tests |
 
 Select a profile with `-P<profile>`, e.g. `mvn package -Pstandalone -DskipTests`.
 
 ## Run
 
-### Standalone (embedded Jetty + Derby)
+### Standalone (embedded Tomcat + Derby)
 
 **Option 1** -- from source with Maven:
 
@@ -36,27 +36,21 @@ Select a profile with `-P<profile>`, e.g. `mvn package -Pstandalone -DskipTests`
 ./run-standalone.sh
 ```
 
-This builds and starts the server on `http://localhost:8686/buddilive`.
+This builds and starts the server on `http://localhost:8080`. Registration is direct (no email activation required).
 
-Create a `.env` file in the project root to configure mail (needed for registration):
-
-```
-EMAIL=you@example.com
-MAIL_PASSWORD=app-password
-```
-
-**Option 2** -- from the WAR file directly:
+**Option 2** -- from the JAR file directly:
 
 ```bash
 mvn package -Pstandalone -DskipTests
-java -jar target/buddilive.war
+java -jar target/buddilive.jar --spring.profiles.active=standalone
 ```
-
-The server starts on `http://localhost:8686/buddilive`. The WAR is self-contained with embedded Jetty and Derby.
 
 ### Server (PostgreSQL)
 
-Deploy `target/buddilive.war` to any Servlet 5.0 container (Jetty 11, Tomcat 10).
+```bash
+java -jar target/buddilive.jar --spring.profiles.active=server
+```
+
 Set the following environment variables:
 
 | Variable | Description |
@@ -76,12 +70,12 @@ Set the following environment variables:
 
 ```bash
 mvn package -DskipTests
-cp target/buddilive.war docker/
+cp target/buddilive.jar docker/
 cd docker
 docker build -t buddilive .
 ```
 
-The Dockerfile deploys the WAR to Jetty 11 on port 8080. See `docker/docker-compose.yml.j2` for a full stack with Nginx and PostgreSQL.
+The Dockerfile runs the JAR with embedded Tomcat on port 8080. See `docker/docker-compose.yml.j2` for a full stack with Nginx and PostgreSQL.
 
 ## Test
 
@@ -91,7 +85,7 @@ Run all tests (unit + E2E integration):
 mvn verify -Pe2etest
 ```
 
-The E2E tests start an embedded Jetty server with Derby, drive a headless Chrome browser, and verify UI and API behavior. See [doc/E2E.md](doc/E2E.md) for details.
+The E2E tests start an embedded Spring Boot server with Derby, drive a headless Chrome browser, and verify UI and API behavior. See [doc/E2E.md](doc/E2E.md) for details.
 
 Run a single test:
 
@@ -102,18 +96,19 @@ mvn verify -Pe2etest -Dit.test=TransactionSmokeIT#testCreateTransactionAppearsIn
 ## Project Structure
 
 ```
-src/main/java/          Java backend (Restlet resources, MyBatis mappers, security)
-src/main/webapp/        Web frontend
-  buddilive/            ExtJS application (views, controllers, stores, models)
-  lib/extjs/            ExtJS 6.2 framework (debug builds)
-  css/                  Stylesheets
-  index.html            FreeMarker template (entry point)
-src/main/resources/     Classpath resources
-  ca/.../moss/          Authentication UI (login panel, controllers)
-  ca/.../buddi/         MyBatis SQL mappers
-conf/                   Per-profile config.properties
-doc/                    Documentation
-src/test/               E2E and integration tests
+src/main/java/          Java backend (Spring MVC controllers, MyBatis mappers, security)
+src/main/resources/
+  static/               Web frontend
+    buddilive/           ExtJS application (views, controllers, stores, models)
+    lib/extjs/           ExtJS 6.2 framework (debug builds)
+    css/                 Stylesheets
+  templates/             FreeMarker templates (index.ftlh)
+  ca/.../moss/           Authentication UI (login panel, controllers)
+  ca/.../buddi/          MyBatis SQL mappers
+  db/changelog/          Liquibase migrations
+  application.properties Spring Boot config (+ per-profile overrides)
+doc/                     Documentation
+src/test/                E2E and integration tests
 ```
 
 See [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md) for detailed architecture documentation.

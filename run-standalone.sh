@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run BuddiLive standalone with embedded Tomcat + Derby on port 8686.
+# Run BuddiLive standalone with embedded Tomcat + Derby on port 8080.
 
 set -e
 cd "$(dirname "$0")"
