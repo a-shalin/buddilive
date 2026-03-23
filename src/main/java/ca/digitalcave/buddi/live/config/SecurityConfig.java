@@ -9,6 +9,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import ca.digitalcave.buddi.live.security.CookieAuthenticationFilter;
 import ca.digitalcave.moss.restlet.plugin.AuthenticationHelper;
+import jakarta.servlet.DispatcherType;
 
 @Configuration
 @EnableWebSecurity
@@ -25,6 +26,7 @@ public class SecurityConfig {
 			.csrf(csrf -> csrf.disable())
 			.addFilterBefore(cookieAuthFilter, UsernamePasswordAuthenticationFilter.class)
 			.authorizeHttpRequests(auth -> auth
+				.dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD, DispatcherType.ASYNC).permitAll()
 				.requestMatchers("/", "/index", "/index.html",
 					"/authentication/**",
 					"/stores/**",
