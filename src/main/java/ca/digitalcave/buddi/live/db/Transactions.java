@@ -12,6 +12,7 @@ import ca.digitalcave.buddi.live.model.Transaction;
 import ca.digitalcave.buddi.live.model.User;
 
 
+@org.apache.ibatis.annotations.Mapper
 public interface Transactions {
 	public int selectTransactionCount(@Param("user") User user, @Param("uuid") String uuid);
 	

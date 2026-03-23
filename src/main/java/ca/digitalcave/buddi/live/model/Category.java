@@ -2,14 +2,12 @@ package ca.digitalcave.buddi.live.model;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.ibatis.session.SqlSession;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -101,19 +99,18 @@ public class Category extends Source {
 	 * match the boundaries of a single period, then we just return the amount.  Otherwise, the amount is calculated
 	 * based on the percentage of the category in the range.
 	 * @param user
-	 * @param sql
+	 * @param entriesMapper
 	 * @param startDate
 	 * @param endDate
 	 * @return
-	 * @throws SQLException
 	 */
-	public BigDecimal getAmount(User user, SqlSession sql, Date startDate, Date endDate) throws SQLException, CryptoException {
-		return getAmountRecursive(user, sql, startDate, endDate, null);
+	public BigDecimal getAmount(User user, Entries entriesMapper, Date startDate, Date endDate) throws CryptoException {
+		return getAmountRecursive(user, entriesMapper, startDate, endDate, null);
 	}
-	
-	private BigDecimal getAmountRecursive(User user, SqlSession sql, Date startDate, Date endDate, Map<Date, Entry> entries) throws SQLException, CryptoException {
+
+	private BigDecimal getAmountRecursive(User user, Entries entriesMapper, Date startDate, Date endDate, Map<Date, Entry> entries) throws CryptoException {
 		final CategoryPeriods categoryPeriod = CategoryPeriods.valueOf(getPeriodType());
-		if (entries == null) entries = sql.getMapper(Entries.class).selectEntries(user, getId());
+		if (entries == null) entries = entriesMapper.selectEntries(user, getId());
 		
 		//If the start date and end date are in the same period, then our job is easy: find the entry, 
 		// and return the amount * percent of how many days were used in the period. 
@@ -133,14 +130,14 @@ public class Category extends Source {
 			Date periodEndDate = categoryPeriod.getEndOfBudgetPeriod(startDate);
 			BigDecimal total = BigDecimal.ZERO;
 			while (categoryPeriod.getEndOfBudgetPeriod(periodEndDate).before(endDate)){
-				total = total.add(getAmountRecursive(user, sql, periodStartDate, periodEndDate, entries));
+				total = total.add(getAmountRecursive(user, entriesMapper, periodStartDate, periodEndDate, entries));
 				
 				//The next start date is the first day in the next period
 				periodStartDate = categoryPeriod.getBudgetPeriodOffset(periodStartDate, 1);
 				//The next end date is the overall end date, or the end date in the next period, whichever is earlier
 				periodEndDate = categoryPeriod.getEndOfBudgetPeriod(periodStartDate).before(endDate) ? categoryPeriod.getEndOfBudgetPeriod(periodStartDate) : endDate;
  			}
-			total = total.add(getAmountRecursive(user, sql, periodStartDate, periodEndDate, entries));
+			total = total.add(getAmountRecursive(user, entriesMapper, periodStartDate, periodEndDate, entries));
 			
 			return total;
 		}

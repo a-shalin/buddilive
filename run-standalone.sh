@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run BuddiLive standalone with embedded Jetty + Derby on port 8686.
+# Run BuddiLive standalone with embedded Tomcat + Derby on port 8686.
 
 set -e
 cd "$(dirname "$0")"
@@ -10,4 +10,5 @@ if [ -f .env ]; then
     set +a
 fi
 
-mvn package exec:java -Pstandalone -DskipTests
+mvn clean package -Pstandalone -DskipTests
+java -jar target/buddilive.jar --spring.profiles.active=standalone

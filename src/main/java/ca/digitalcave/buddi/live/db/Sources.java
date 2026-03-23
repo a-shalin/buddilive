@@ -13,6 +13,8 @@ import ca.digitalcave.buddi.live.model.CategoryPeriod;
 import ca.digitalcave.buddi.live.model.Source;
 import ca.digitalcave.buddi.live.model.User;
 
+@org.apache.ibatis.annotations.Mapper
+
 
 public interface Sources {
 	public Account selectAccount(@Param("user") User user, @Param("uuid") String uuid);

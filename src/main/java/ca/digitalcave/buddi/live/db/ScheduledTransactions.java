@@ -9,6 +9,7 @@ import ca.digitalcave.buddi.live.model.Split;
 import ca.digitalcave.buddi.live.model.User;
 
 
+@org.apache.ibatis.annotations.Mapper
 public interface ScheduledTransactions {
 
 	/**

@@ -3,14 +3,22 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.3</version>
+        <relativePath/>
+    </parent>
+
     <groupId>ca.digitalcave</groupId>
     <artifactId>buddilive</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <restlet.version>2.6.0</restlet.version>
+        <java.version>17</java.version>
+        <jar.name>buddilive</jar.name>
     </properties>
 
     <profiles>
@@ -20,36 +28,15 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <war.name>buddilive</war.name>
-                <config.dir>conf/server</config.dir>
+                <spring.profiles.active>server</spring.profiles.active>
             </properties>
         </profile>
         <profile>
-            <id>test</id>
+            <id>standalone</id>
             <properties>
-                <war.name>buddilive-test</war.name>
-                <config.dir>conf/test</config.dir>
-            </properties>
-        </profile>
-        <profile>
-            <id>e2etest</id>
-            <properties>
-                <war.name>buddilive</war.name>
-                <config.dir>conf/e2etest</config.dir>
+                <spring.profiles.active>standalone</spring.profiles.active>
             </properties>
             <dependencies>
-                <dependency>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>jetty-server</artifactId>
-                    <version>11.0.24</version>
-                    <scope>compile</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>jetty-webapp</artifactId>
-                    <version>11.0.24</version>
-                    <scope>compile</scope>
-                </dependency>
                 <dependency>
                     <groupId>org.apache.derby</groupId>
                     <artifactId>derby</artifactId>
@@ -63,24 +50,11 @@
             </dependencies>
         </profile>
         <profile>
-            <id>standalone</id>
+            <id>e2etest</id>
             <properties>
-                <war.name>buddilive</war.name>
-                <config.dir>conf/standalone</config.dir>
+                <spring.profiles.active>e2etest</spring.profiles.active>
             </properties>
             <dependencies>
-                <dependency>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>jetty-server</artifactId>
-                    <version>11.0.24</version>
-                    <scope>compile</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>jetty-webapp</artifactId>
-                    <version>11.0.24</version>
-                    <scope>compile</scope>
-                </dependency>
                 <dependency>
                     <groupId>org.apache.derby</groupId>
                     <artifactId>derby</artifactId>
@@ -90,23 +64,34 @@
                     <groupId>org.apache.derby</groupId>
                     <artifactId>derbyshared</artifactId>
                     <version>10.16.1.1</version>
-                </dependency>
-                <dependency>
-                    <groupId>jakarta.servlet</groupId>
-                    <artifactId>jakarta.servlet-api</artifactId>
-                    <version>5.0.0</version>
-                    <scope>compile</scope>
                 </dependency>
             </dependencies>
         </profile>
     </profiles>
 
     <dependencies>
+        <!-- Spring Boot -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-freemarker</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- Database -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.10</version>
         </dependency>
         <dependency>
             <groupId>org.apache.derby</groupId>
@@ -115,44 +100,30 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.mybatis</groupId>
-            <artifactId>mybatis</artifactId>
-            <version>3.5.19</version>
-        </dependency>
-        <dependency>
-            <groupId>com.mchange</groupId>
-            <artifactId>c3p0</artifactId>
-            <version>0.12.0</version>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+            <version>3.0.4</version>
         </dependency>
         <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
-            <version>4.33.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.activation</groupId>
-                    <artifactId>javax.activation-api</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
-        <!-- JSON / Templating -->
+        <!-- JSON -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.18.6</version>
         </dependency>
         <dependency>
-            <groupId>org.freemarker</groupId>
-            <artifactId>freemarker</artifactId>
-            <version>2.3.34</version>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20251224</version>
         </dependency>
 
         <!-- Apache Commons -->
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.21.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -165,11 +136,6 @@
             <version>2.0.0-M1</version>
         </dependency>
         <dependency>
-            <groupId>commons-fileupload</groupId>
-            <artifactId>commons-fileupload</artifactId>
-            <version>1.5</version>
-        </dependency>
-        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.21.0</version>
@@ -177,21 +143,6 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.20.0</version>
-        </dependency>
-
-        <!-- Mail -->
-
-        <!-- Logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>2.0.17</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-jdk14</artifactId>
-            <version>2.0.17</version>
         </dependency>
 
         <!-- 2FA / QR -->
@@ -211,92 +162,16 @@
             <version>3.5.4</version>
         </dependency>
 
-        <!-- Servlet API (provided by container) -->
-        <dependency>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-            <version>5.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- Required at compile time by commons-fileupload / restlet ext.fileupload -->
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>4.0.1</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Jetty (provided scope for compilation; standalone profile overrides to runtime) -->
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-server</artifactId>
-            <version>11.0.24</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-webapp</artifactId>
-            <version>11.0.24</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Restlet -->
-        <dependency>
-            <groupId>org.restlet</groupId>
-            <artifactId>org.restlet</artifactId>
-            <version>${restlet.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.restlet</groupId>
-            <artifactId>org.restlet.ext.fileupload</artifactId>
-            <version>2.5.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.servlet</groupId>
-                    <artifactId>javax.servlet-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.restlet</groupId>
-            <artifactId>org.restlet.ext.freemarker</artifactId>
-            <version>${restlet.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.restlet</groupId>
-            <artifactId>org.restlet.ext.json</artifactId>
-            <version>${restlet.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.restlet</groupId>
-            <artifactId>org.restlet.ext.servlet</artifactId>
-            <version>${restlet.version}</version>
-        </dependency>
-
-        <!-- JSON -->
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20251224</version>
-        </dependency>
-
         <!-- Test dependencies -->
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>5.11.4</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
             <version>4.12.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>3.27.7</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -314,20 +189,10 @@
     </dependencies>
 
     <build>
-        <finalName>${war.name}</finalName>
+        <finalName>${jar.name}</finalName>
 
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
-            </plugin>
-
-            <!-- Generate version/config/changelog via Ant tasks at initialize phase -->
+            <!-- Generate version.properties and changelog via Ant tasks -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
@@ -362,24 +227,8 @@
 
                                 <!-- Set up token filtering -->
                                 <filter token="git" value="${git}"/>
-                                <filter token="environment" value="${war.name}"/>
+                                <filter token="environment" value="${jar.name}"/>
                                 <filter token="changelog" value="${changelog}"/>
-
-                                <!-- Copy config.properties (no tokens to filter) -->
-                                <copy file="${config.dir}/config.properties"
-                                      tofile="${project.build.directory}/generated-resources/config.properties"
-                                      overwrite="true"/>
-
-                                <!-- Copy config into webapp classes for standalone Jetty -->
-                                <copy file="${config.dir}/config.properties"
-                                      tofile="src/main/webapp/WEB-INF/classes/config.properties"
-                                      overwrite="true"/>
-
-                                <!-- Copy and filter logging.properties -->
-                                <copy filtering="true"
-                                      file="conf/logging.properties"
-                                      tofile="${project.build.directory}/generated-resources/logging.properties"
-                                      overwrite="true"/>
 
                                 <!-- Generate version.properties -->
                                 <echo append="false"
@@ -387,31 +236,9 @@
 
                                 <!-- Copy and filter changelog.html -->
                                 <copy filtering="true"
-                                      file="src/main/webapp/doc/changelog.html"
-                                      tofile="${project.build.directory}/generated-webapp/doc/changelog.html"
+                                      file="src/main/resources/static/doc/changelog.html"
+                                      tofile="${project.build.directory}/generated-resources/static/doc/changelog.html"
                                       overwrite="true"/>
-
-                                <!-- Copy and filter web.xml -->
-                                <copy filtering="true"
-                                      file="src/main/webapp/WEB-INF/web.xml"
-                                      tofile="${project.build.directory}/generated-webapp/WEB-INF/web.xml"
-                                      overwrite="true"/>
-                            </target>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>compile-launcher</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <mkdir dir="${project.build.directory}/launcher-classes"/>
-                                <javac srcdir="src/main/launcher"
-                                       destdir="${project.build.directory}/launcher-classes"
-                                       source="17" target="17"
-                                       includeantruntime="false"/>
                             </target>
                         </configuration>
                     </execution>
@@ -441,34 +268,10 @@
                 </executions>
             </plugin>
 
-            <!-- WAR packaging -->
+            <!-- Spring Boot executable JAR -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <version>3.5.1</version>
-                <configuration>
-                    <webXml>${project.build.directory}/generated-webapp/WEB-INF/web.xml</webXml>
-                    <webResources>
-                        <!-- Overlay filtered changelog -->
-                        <resource>
-                            <directory>${project.build.directory}/generated-webapp</directory>
-                            <includes>
-                                <include>doc/changelog.html</include>
-                            </includes>
-                        </resource>
-                        <!-- Bootstrap launcher at WAR root for java -jar -->
-                        <resource>
-                            <directory>${project.build.directory}/launcher-classes</directory>
-                            <targetPath>/</targetPath>
-                        </resource>
-                    </webResources>
-                    <packagingExcludes>extjs/**,touch/**</packagingExcludes>
-                    <archive>
-                        <manifest>
-                            <mainClass>WarBootstrap</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
             <!-- Integration tests -->
@@ -484,16 +287,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-
-            <!-- Standalone runner -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.6.3</version>
-                <configuration>
-                    <mainClass>ca.digitalcave.buddi.live.BuddiLiveStandalone</mainClass>
-                </configuration>
             </plugin>
         </plugins>
     </build>

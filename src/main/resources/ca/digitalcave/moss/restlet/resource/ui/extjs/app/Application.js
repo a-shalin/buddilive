@@ -11,7 +11,12 @@ Ext.Loader.setConfig({
 	paths: loaderPaths
 });
 
-Ext.require(["Login.util.I18n"], function() {
+let __requires = ["Login.util.I18n"];
+if (__ac.applicationRequires) {
+	__requires = __requires.concat(__ac.applicationRequires);
+}
+
+Ext.require(__requires, function() {
 	Login.util.I18n.init(window.__authI18n);
 
 	let views = ["LoginPanel"];

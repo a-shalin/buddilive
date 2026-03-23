@@ -36,6 +36,7 @@ Ext.define("Login.controller.LoginController", {
 
 			"login button[itemId=register]": { click: this.register },
 			"login form[itemId=register] textfield": { keypress: this.register },
+			"login button[itemId=directRegister]": { click: this.directRegister },
 
 			"login button[itemId=forgotPassword]": { click: this.forgotPassword },
 			"login form[itemId=forgotPassword] textfield": { keypress: this.forgotPassword },
@@ -209,6 +210,26 @@ Ext.define("Login.controller.LoginController", {
 
 	reloadPage: function() {
 		window.location.reload();
+	},
+
+	directRegister: function(cmp, e) {
+		if (!(e.getKey()) || e.getKey() == e.ENTER) {
+			let form = cmp.up('form').getForm();
+			if (form.isValid() == false) return;
+			form.submit({
+				url: "authentication/register",
+
+				success: function() {
+					window.location.reload();
+				},
+
+				failure: function(form, action) {
+					let response = Ext.decode(action.response.responseText, true);
+					let message = response && response.message ? response.message : Login.translate("UNKNOWN_ERROR_MESSAGE");
+					cmp.up('form').down('transientlabel[itemId=messageRegister1]').setDisappearingHtml(message);
+				}
+			});
+		}
 	},
 
 	register: function(cmp, e) {

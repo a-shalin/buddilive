@@ -67,13 +67,15 @@ Ext.define("Login.view.PasswordField", {
 				height: 10,
 				itemId: "passwordbar",
 				width: "100%",
-				html: ""
+				html: "",
+				hidden: true
 			},
 			{
 				xtype: "label",
 				margin: 10,
 				itemId: "passworderrors",
-				html: ""
+				html: "",
+				hidden: true
 			}
 		];
 
@@ -123,6 +125,7 @@ Ext.define("Login.view.PasswordField", {
 
 					let passwordbar = this.down("label[itemId=passwordbar]");
 					passwordbar.setHtml("<div style='width: " + strength + "%; background-color: " + color + ";'>&nbsp;</div>");
+					passwordbar.setVisible(true);
 
 					let passwordErrors = this.down("label[itemId='passworderrors']");
 
@@ -131,17 +134,20 @@ Ext.define("Login.view.PasswordField", {
 							|| (password.length == 0 && confirmPassword.length == 0 && !passwordField.required)) {
 						passwordField.errors = null;
 						passwordErrors.setHtml("");
+						passwordErrors.setVisible(false);
 						return;
 					}
 					else if (lastCheck == null) {
 						result = Login.translate("PASSWORD_UNVALIDATED");
 						passwordField.errors = result;
 						passwordErrors.setHtml(result);
+						passwordErrors.setVisible(true);
 						return result;
 					}
 					else if (lastCheck.passed && confirmPassword == password) {
 						passwordField.errors = null;
 						passwordErrors.setHtml("");
+						passwordErrors.setVisible(false);
 						return true;
 					}
 
@@ -157,6 +163,7 @@ Ext.define("Login.view.PasswordField", {
 					if (password && confirmPassword != password) result += Login.translate("PASSWORD_CONFIRMATION_MATCH");
 					passwordField.errors = result;
 					passwordErrors.setHtml(result);
+					passwordErrors.setVisible(true);
 				}
 				finally {
 					passwordField.validate();

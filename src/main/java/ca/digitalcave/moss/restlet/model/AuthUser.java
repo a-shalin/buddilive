@@ -7,34 +7,31 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.lang3.StringUtils;
-import org.restlet.security.User;
 
-public class AuthUser extends User implements Serializable {
+public class AuthUser implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-	
-	//The primary key ID number
+
 	private int id;
-	
-	//These are the same as the ones in User, and the setters set the super class ones as well.  The ones in User are not serializable.
+
 	private String email;
 	private String firstName;
 	private String identifier;
 	private String lastName;
 	private char[] secret;
-	
+
 	private transient String impersonatedIdentifier;
-	
+
 	private String passwordHash;
 	private String activationKey;
 	private boolean passwordChangeRequired;
 	private Date passwordLastChanged;
-	
+
 	private boolean twoFactorRequired;
 	private String twoFactorSecret;
-	
+
 	private List<String> twoFactorBackupCodes;
-	
+
 	private Integer version;
 	private Date created;
 	private Date modified;
@@ -114,53 +111,43 @@ public class AuthUser extends User implements Serializable {
 	public void setPasswordLastChanged(Date passwordLastChanged) {
 		this.passwordLastChanged = passwordLastChanged;
 	}
-	
-	
-	
+
 	public String getEmail() {
 		return email;
 	}
 	public void setEmail(String email) {
 		this.email = email;
-		super.setEmail(email);
 	}
 	public String getFirstName() {
 		return firstName;
 	}
 	public void setFirstName(String firstName) {
 		this.firstName = firstName;
-		super.setFirstName(firstName);
 	}
 	public String getIdentifier() {
 		return identifier;
 	}
 	public void setIdentifier(String identifier) {
 		this.identifier = identifier;
-		super.setIdentifier(identifier);
 	}
 	public String getLastName() {
 		return lastName;
 	}
 	public void setLastName(String lastName) {
 		this.lastName = lastName;
-		super.setLastName(lastName);
 	}
 	public char[] getSecret() {
 		return secret;
 	}
 	public void setSecret(char[] secret) {
 		this.secret = secret;
-		super.setSecret(secret);
 	}
-	
-	/**
-	 * Override this in extending class to allow impersonation
-	 */
-	public boolean isImpersonateAllowed(String impersonatedUsername){
+
+	public boolean isImpersonateAllowed(String impersonatedUsername) {
 		return false;
 	}
-	
-	public <T extends AuthUser> T clone(Class<T> targetClass){
+
+	public <T extends AuthUser> T clone(Class<T> targetClass) {
 		T target;
 		try {
 			target = targetClass.getConstructor().newInstance();
@@ -169,10 +156,10 @@ public class AuthUser extends User implements Serializable {
 			Logger.getLogger(this.getClass().getName()).log(Level.WARNING, e.getMessage(), e);
 			throw new RuntimeException(e);
 		}
-		
+
 		target.setId(this.getId());
 		target.setIdentifier(this.getIdentifier());
-		
+
 		target.setActivationKey(this.getActivationKey());
 		target.setCreated(this.getCreated());
 		target.setEmail(this.getEmail());
@@ -188,7 +175,7 @@ public class AuthUser extends User implements Serializable {
 		target.setTwoFactorRequired(this.isTwoFactorRequired());
 		target.setTwoFactorSecret(this.getTwoFactorSecret());
 		target.setVersion(this.getVersion());
-		
+
 		return target;
 	}
 }

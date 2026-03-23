@@ -11,6 +11,7 @@ import ca.digitalcave.buddi.live.model.Entry;
 import ca.digitalcave.buddi.live.model.User;
 
 
+@org.apache.ibatis.annotations.Mapper
 public interface Entries {
 	public List<Entry> selectEntries(@Param("user") User user);
 	

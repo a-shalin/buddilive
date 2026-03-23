@@ -176,45 +176,70 @@ Ext.define('Login.view.LoginPanel', {
 		}
 
 		if (__ac.showRegister) {
-			let registerItems = [
-				{ fieldLabel: Login.translate("EMAIL_LABEL"), name: "email", vtype: "email" }
-			];
-			if (__ac.extraRegisterStep1Fields) {
-				registerItems = registerItems.concat(__ac.extraRegisterStep1Fields);
-			}
-			registerItems.push({ xtype: "transientlabel", itemId: "messageRegister1" });
+			if (__ac.directRegistration) {
+				let registerItems = [
+					{ fieldLabel: Login.translate("EMAIL_LABEL"), name: "email", vtype: "email" },
+					{ fieldLabel: Login.translate("PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
+				];
+				if (__ac.extraRegisterStep1Fields) {
+					registerItems = registerItems.concat(__ac.extraRegisterStep1Fields);
+				}
+				registerItems.push({ xtype: "transientlabel", itemId: "messageRegister1" });
 
-			let registerStep2Items = [
-				{ fieldLabel: Login.translate("ACTIVATION_KEY_LABEL"), name: "activationKey" },
-				{ fieldLabel: Login.translate("PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
-			];
-			if (__ac.extraRegisterStep2Fields) {
-				registerStep2Items = registerStep2Items.concat(__ac.extraRegisterStep2Fields);
-			}
-			registerStep2Items.push({ xtype: "transientlabel", itemId: "messageRegister2" });
+				items.push({
+					title: Login.translate("REGISTER_TITLE"),
+					items: [
+						{
+							itemId: "register",
+							items: registerItems,
+							buttons: [
+								"->",
+								{ text: Login.translate("CREATE_ACCOUNT_BUTTON"), itemId: "directRegister" }
+							]
+						}
+					]
+				});
+			} else {
+				let registerItems = [
+					{ fieldLabel: Login.translate("EMAIL_LABEL"), name: "email", vtype: "email" }
+				];
+				if (__ac.extraRegisterStep1Fields) {
+					registerItems = registerItems.concat(__ac.extraRegisterStep1Fields);
+				}
+				registerItems.push({ xtype: "transientlabel", itemId: "messageRegister1" });
 
-			items.push({
-				title: Login.translate("REGISTER_TITLE"),
-				items: [
-					{
-						itemId: "register",
-						items: registerItems,
-						buttons: [
-							{ text: Login.translate("EXISTING_KEY_BUTTON"), itemId: "forward" },
-							"->",
-							{ text: Login.translate("GENERATE_KEY_BUTTON"), itemId: "register" }
-						]
-					},
-					{
-						itemId: "resetPassword",
-						items: registerStep2Items,
-						buttons: [
-							{ text: Login.translate("BACK_BUTTON"), itemId: "back" },
-							{ text: Login.translate("CREATE_ACCOUNT_BUTTON"), itemId: "resetPassword" }
-						]
-					}
-				]
-			});
+				let registerStep2Items = [
+					{ fieldLabel: Login.translate("ACTIVATION_KEY_LABEL"), name: "activationKey" },
+					{ fieldLabel: Login.translate("PASSWORD_LABEL"), name: "password", xtype: "passwordfield" }
+				];
+				if (__ac.extraRegisterStep2Fields) {
+					registerStep2Items = registerStep2Items.concat(__ac.extraRegisterStep2Fields);
+				}
+				registerStep2Items.push({ xtype: "transientlabel", itemId: "messageRegister2" });
+
+				items.push({
+					title: Login.translate("REGISTER_TITLE"),
+					items: [
+						{
+							itemId: "register",
+							items: registerItems,
+							buttons: [
+								{ text: Login.translate("EXISTING_KEY_BUTTON"), itemId: "forward" },
+								"->",
+								{ text: Login.translate("GENERATE_KEY_BUTTON"), itemId: "register" }
+							]
+						},
+						{
+							itemId: "resetPassword",
+							items: registerStep2Items,
+							buttons: [
+								{ text: Login.translate("BACK_BUTTON"), itemId: "back" },
+								{ text: Login.translate("CREATE_ACCOUNT_BUTTON"), itemId: "resetPassword" }
+							]
+						}
+					]
+				});
+			}
 		}
 
 		if (__ac.showForgotPassword !== false) {

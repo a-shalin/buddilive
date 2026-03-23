@@ -5,7 +5,7 @@ import org.apache.ibatis.annotations.Param;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.moss.restlet.model.AuthUser;
 
-
+@org.apache.ibatis.annotations.Mapper
 public interface Users {
 	public User selectUser(@Param("identifier") String identifier);
 	public User selectUserByActivationKey(@Param("activationKey") String activationKey);

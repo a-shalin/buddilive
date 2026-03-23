@@ -1,38 +1,31 @@
 package ca.digitalcave.buddi.live.e2e;
 
 import java.io.File;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.webapp.WebAppContext;
 import org.junit.jupiter.api.BeforeAll;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
-import ca.digitalcave.buddi.live.BuddiLiveStandalone;
+import ca.digitalcave.buddi.live.BuddiSpringApplication;
 
 public abstract class BaseIT {
 
-	private static Server server;
 	private static int port;
 	private static GreenMail greenMail;
 	private static boolean started = false;
-	private static final Path CONFIG_TARGET = Path.of("src/main/webapp/WEB-INF/classes/config.properties");
+	private static ConfigurableApplicationContext context;
 
 	@BeforeAll
 	static void ensureServerStarted() throws Exception {
 		if (started) return;
 		started = true;
 
-		Class.forName("org.apache.derby.iapi.jdbc.AutoloadedDriver");
-
-		Path derbyDir = Path.of("target/e2etest-derby");
+		final Path derbyDir = Path.of("target/e2etest-derby");
 		if (Files.exists(derbyDir)) {
 			Files.walk(derbyDir)
 				.sorted(Comparator.reverseOrder())
@@ -40,42 +33,24 @@ public abstract class BaseIT {
 				.forEach(File::delete);
 		}
 
-		Files.createDirectories(CONFIG_TARGET.getParent());
-		Files.copy(Path.of("conf/e2etest/config.properties"), CONFIG_TARGET, StandardCopyOption.REPLACE_EXISTING);
-
 		greenMail = new GreenMail(new ServerSetup(8025, "localhost", ServerSetup.PROTOCOL_SMTP));
 		greenMail.start();
 
-		server = new Server(0);
-		URL warUrl = new File("target/buddilive").toURI().toURL();
-		WebAppContext context = new WebAppContext(warUrl.toExternalForm(), "/buddilive");
-		context.setClassLoader(BuddiLiveStandalone.class.getClassLoader());
-		server.setHandler(context);
-		server.start();
-
-		port = ((ServerConnector) server.getConnectors()[0]).getLocalPort();
-
-		// Warm up the connection pool by making a request that triggers DB activity.
-		// The Liquibase migration may leave a dead connection in the c3p0 pool;
-		// this request forces c3p0 to cycle it out before the real tests begin.
-		for (int i = 0; i < 3; i++) {
-			try {
-				HttpURLConnection conn = (HttpURLConnection) new URL(getBaseUrl() + "/stores/currencies").openConnection();
-				conn.setConnectTimeout(5000);
-				conn.setReadTimeout(5000);
-				conn.getResponseCode();
-				conn.disconnect();
-			} catch (Exception ignored) {}
-		}
+		final SpringApplication app = new SpringApplication(BuddiSpringApplication.class);
+		context = app.run(
+			"--spring.profiles.active=e2etest",
+			"--server.port=0"
+		);
+		port = context.getEnvironment().getProperty("local.server.port", Integer.class);
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			try { server.stop(); } catch (Exception ignored) {}
+			try { if (context != null) context.close(); } catch (Exception ignored) {}
 			try { if (greenMail != null) greenMail.stop(); } catch (Exception ignored) {}
 		}));
 	}
 
 	protected static String getBaseUrl() {
-		return "http://localhost:" + port + "/buddilive";
+		return "http://localhost:" + port;
 	}
 
 	protected static String getDbUrl() {

@@ -80,8 +80,16 @@ public class AuthenticationConfiguration implements Cloneable {
 	 */
 	public String[] applicationViews;
 	/**
+	 * When true, registration creates the account immediately with email + password (no activation email).
+	 */
+	public boolean directRegistration = false;
+	/**
+	 * A list of extra EXT JS class names to be required before the login application starts.
+	 */
+	public String[] applicationRequires;
+	/**
 	 * A mapping between application names (e.g. MyApplication) and top level paths (e.g. app).
-	 * This is only needed when you integrate components from a different application into the 
+	 * This is only needed when you integrate components from a different application into the
 	 * login application.
 	 */
 	public Map<String, String> applicationLoaderPaths;
