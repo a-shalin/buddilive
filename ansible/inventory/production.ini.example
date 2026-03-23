@@ -1,8 +1,8 @@
 [webservers]
-buddilive_server ansible_host=ora.cloudinfosys.ru ansible_user=ashalin
+buddilive_server ansible_host=your-server-hostname ansible_user=your-server-username
 
 [webservers:vars]
-domain_name=buddilive.cloudinfosys.ru
+domain_name=your-domain-name
 app_name=buddilive
 
 db_name=buddilive
@@ -15,4 +15,4 @@ mail_tls=true
 
 app_port=8080
 
-certbot_email=andrey.shalin.reggs@gmail.com
+certbot_email=your-email@example.com

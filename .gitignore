@@ -7,4 +7,5 @@
 /conf/test/config.properties
 /src/main/webapp/WEB-INF/classes/
 /.env
+/ansible/inventory/production.ini
 /buddilive-data/
