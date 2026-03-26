@@ -185,4 +185,29 @@ public class TransactionsIT extends BaseIT {
 		}
 		assertThat(found).as("Deleted transaction should not appear").isFalse();
 	}
+
+	@Test
+	@Order(6)
+	void testDescriptionsEndpointIncludesTransactionTemplate() throws Exception {
+		final String description = "Descriptions Endpoint Smoke";
+		helper.createTransaction(client, description, "2024-03-19", accountId, categoryId, "42.00");
+
+		final JSONObject descriptions = helper.getJson(client, "/data/transactions/descriptions");
+		assertThat(descriptions.getBoolean("success")).isTrue();
+		final JSONArray data = descriptions.getJSONArray("data");
+
+		JSONObject found = null;
+		for (int i = 0; i < data.length(); i++) {
+			final JSONObject item = data.getJSONObject(i);
+			if (description.equals(item.optString("value"))) {
+				found = item;
+				break;
+			}
+		}
+
+		assertThat(found).isNotNull();
+		final JSONObject transaction = found.getJSONObject("transaction");
+		assertThat(transaction.getString("description")).isEqualTo(description);
+		assertThat(transaction.getJSONArray("splits").length()).isGreaterThan(0);
+	}
 }

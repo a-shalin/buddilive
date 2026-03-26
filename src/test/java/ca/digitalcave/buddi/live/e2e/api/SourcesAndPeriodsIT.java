@@ -73,6 +73,18 @@ public class SourcesAndPeriodsIT extends BaseIT {
 		assertThat(findByValue(toData, expenseCategoryId)).isNotNull();
 	}
 
+	@Test
+	@Order(3)
+	void testGetParentsContainsTopLevelAndCategories() throws Exception {
+		final JSONObject parents = helper.getJson(client, "/data/categories/parents");
+		assertThat(parents.getBoolean("success")).isTrue();
+		final JSONArray data = parents.getJSONArray("data");
+
+		assertThat(hasTextEntry(data, "Top Level")).isTrue();
+		assertThat(findByValue(data, incomeCategoryId)).isNotNull();
+		assertThat(findByValue(data, expenseCategoryId)).isNotNull();
+	}
+
 	private boolean hasPeriod(final JSONArray data, final String value) {
 		for (int i = 0; i < data.length(); i++) {
 			final JSONObject item = data.getJSONObject(i);

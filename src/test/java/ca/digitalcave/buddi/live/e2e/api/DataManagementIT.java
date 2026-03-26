@@ -151,6 +151,19 @@ public class DataManagementIT extends BaseIT {
 		}
 	}
 
+	@Test
+	@Order(4)
+	void testExportRequiresPremium() throws Exception {
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/data/export?interval=PLUGIN_FILTER_THIS_YEAR&type=csv")
+			.get()
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(401);
+		}
+	}
+
 	private int findAccountIdByName(JSONObject accounts, String name) {
 		JSONArray groups = accounts.optJSONArray("children");
 		if (groups == null) return -1;

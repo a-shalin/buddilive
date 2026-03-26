@@ -206,6 +206,181 @@ public class AuthenticationIT extends BaseIT {
 		assertThat(postDisableLogin.body.has("next")).isFalse();
 	}
 
+	@Test
+	@Order(9)
+	void testLogoutEndpointClearsSession() throws Exception {
+		final OkHttpClient client = helper.login(EMAIL, PASSWORD);
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/logout")
+			.get()
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(302);
+			assertThat(response.header("Location", "")).isEqualTo("/");
+		}
+
+		final int dataCode = helper.getResponseCode(client, "GET", "/data/accounts");
+		assertThat(dataCode).isNotEqualTo(200);
+	}
+
+	@Test
+	@Order(10)
+	void testResetPasswordValidation() throws Exception {
+		final OkHttpClient client = helper.newClient();
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/resetPassword")
+			.post(new FormBody.Builder().build())
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(400);
+			final JSONObject body = new JSONObject(response.body().string());
+			assertThat(body.getBoolean("success")).isFalse();
+		}
+	}
+
+	@Test
+	@Order(11)
+	void testForgotPasswordReturnsNoContent() throws Exception {
+		final OkHttpClient client = helper.newClient();
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/forgotPassword")
+			.post(new FormBody.Builder().add("identifier", EMAIL).build())
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(204);
+		}
+	}
+
+	@Test
+	@Order(12)
+	void testForgotUsernameReturnsNoContent() throws Exception {
+		final OkHttpClient client = helper.newClient();
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/forgotUsername")
+			.post(new FormBody.Builder().add("email", EMAIL).build())
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(204);
+		}
+	}
+
+	@Test
+	@Order(13)
+	void testCheckPasswordReturnsStrengthPayload() throws Exception {
+		final OkHttpClient client = helper.newClient();
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/checkPassword")
+			.post(new FormBody.Builder().add("identifier", EMAIL).add("secret", "Password123").build())
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(200);
+			final JSONObject body = new JSONObject(response.body().string());
+			assertThat(body.has("score")).isTrue();
+			assertThat(body.has("passed")).isTrue();
+		}
+	}
+
+	@Test
+	@Order(14)
+	void testPasswordExpiredRequiresAuthentication() throws Exception {
+		final OkHttpClient client = helper.newClient();
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/passwordExpired")
+			.post(new FormBody.Builder().add("password", "NewPassword123!").build())
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(401);
+			final JSONObject body = new JSONObject(response.body().string());
+			assertThat(body.getBoolean("success")).isFalse();
+		}
+	}
+
+	@Test
+	@Order(15)
+	void testTotpSetupEndpointsRequireAuthentication() throws Exception {
+		final OkHttpClient client = helper.newClient();
+
+		final Request getRequest = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/totpSetup")
+			.get()
+			.build();
+		try (Response response = client.newCall(getRequest).execute()) {
+			assertThat(response.code()).isEqualTo(401);
+		}
+
+		final Request postRequest = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/totpSetup")
+			.post(new FormBody.Builder().add("totpToken", "000000").build())
+			.build();
+		try (Response response = client.newCall(postRequest).execute()) {
+			assertThat(response.code()).isEqualTo(401);
+		}
+
+		final Request deleteRequest = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/totpSetup")
+			.delete()
+			.build();
+		try (Response response = client.newCall(deleteRequest).execute()) {
+			assertThat(response.code()).isEqualTo(401);
+		}
+	}
+
+	@Test
+	@Order(16)
+	void testTotpTokenRequiresAuthentication() throws Exception {
+		final OkHttpClient client = helper.newClient();
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/totpToken")
+			.post(new FormBody.Builder().add("totpToken", "000000").build())
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(401);
+		}
+	}
+
+	@Test
+	@Order(17)
+	void testGenerateBackupCodesRequiresValidatedAuthentication() throws Exception {
+		final OkHttpClient client = helper.newClient();
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/generateBackupCodes")
+			.post(RequestBody.create("", JSON))
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(403);
+		}
+	}
+
+	@Test
+	@Order(18)
+	void testImpersonateEndpointsRequireAuthentication() throws Exception {
+		final OkHttpClient client = helper.newClient();
+
+		final Request postRequest = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/impersonate")
+			.post(new FormBody.Builder().add("impersonate", "someone@example.com").build())
+			.build();
+		try (Response response = client.newCall(postRequest).execute()) {
+			assertThat(response.code()).isEqualTo(401);
+		}
+
+		final Request deleteRequest = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/impersonate")
+			.delete()
+			.build();
+		try (Response response = client.newCall(deleteRequest).execute()) {
+			assertThat(response.code()).isEqualTo(401);
+		}
+	}
+
 	private int postRegister(OkHttpClient client, String email) throws Exception {
 		RequestBody formBody = new FormBody.Builder()
 			.add("email", email)

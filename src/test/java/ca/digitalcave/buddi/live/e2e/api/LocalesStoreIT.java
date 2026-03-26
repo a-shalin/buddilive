@@ -44,7 +44,21 @@ public class LocalesStoreIT extends BaseIT {
 			.containsExactlyInAnyOrderElementsOf(supportedLocales);
 	}
 
+	@Test
+	void testCurrenciesStoreContainsCommonCurrencies() throws Exception {
+		JSONObject response = helper.getJson(client, "/stores/currencies");
+		assertThat(response.getBoolean("success")).isTrue();
+
+		JSONArray data = response.getJSONArray("data");
+		Set<String> returnedValues = extractValues(data);
+		assertThat(returnedValues).contains("CAD", "USD", "EUR", "GBP", "AUD");
+	}
+
 	private Set<String> extractLocaleValues(JSONArray data) {
+		return extractValues(data);
+	}
+
+	private Set<String> extractValues(JSONArray data) {
 		return data.toList().stream()
 			.filter(item -> item instanceof java.util.Map<?, ?>)
 			.map(item -> (java.util.Map<?, ?>) item)

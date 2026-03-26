@@ -1,6 +1,10 @@
 package ca.digitalcave.buddi.live.e2e.api;
 
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -17,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ScheduledTransactionsIT extends BaseIT {
+
+	private static final MediaType TEXT = MediaType.get("text/plain; charset=utf-8");
 
 	private static TestHelper helper;
 	private static OkHttpClient client;
@@ -59,6 +65,22 @@ public class ScheduledTransactionsIT extends BaseIT {
 
 	@Test
 	@Order(2)
+	void testExecuteScheduledTransactionsEndpoint() throws Exception {
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/data/scheduledtransactions/execute")
+			.post(RequestBody.create("2024-03-20", TEXT))
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(200);
+			final JSONObject body = new JSONObject(response.body().string());
+			assertThat(body.getBoolean("success")).isTrue();
+			assertThat(body.has("messages")).isTrue();
+		}
+	}
+
+	@Test
+	@Order(3)
 	void testDeleteScheduledTransaction() throws Exception {
 		JSONObject delete = new JSONObject();
 		delete.put("action", "delete");
