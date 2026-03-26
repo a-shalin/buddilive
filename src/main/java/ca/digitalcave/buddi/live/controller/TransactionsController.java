@@ -23,6 +23,8 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
+
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
 import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
@@ -143,7 +145,7 @@ public class TransactionsController {
 
 	@PostMapping
 	@Transactional
-	public String post(@AuthenticationPrincipal User user, @RequestBody String body) {
+	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody String body) {
 		try {
 			final JSONObject json = new JSONObject(body);
 			final String action = json.optString("action");
@@ -189,9 +191,7 @@ public class TransactionsController {
 
 			DataUpdater.updateBalances(user, sources, transactions, crypto);
 
-			final JSONObject result = new JSONObject();
-			result.put("success", true);
-			return result.toString();
+			return new SuccessResponseDto(true);
 		}
 		catch (DatabaseException e) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);

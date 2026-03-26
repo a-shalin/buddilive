@@ -7,12 +7,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import ca.digitalcave.buddi.live.api.converter.ReportResponseConverter;
+import ca.digitalcave.buddi.live.api.dto.ReportDataResponseDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -51,6 +52,9 @@ public class ReportController {
 	@Autowired
 	private Entries entries;
 
+	@Autowired
+	private ReportResponseConverter reportResponseConverter;
+
 	private Date[] processInterval(String interval, String startDate, String endDate) {
 		final Interval i = Interval.valueOf(interval);
 		if (i == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An interval parameter is required.");
@@ -66,7 +70,7 @@ public class ReportController {
 	}
 
 	@GetMapping("/pietotalsbycategory")
-	public String pieTotalsByCategory(@AuthenticationPrincipal User user,
+	public ReportDataResponseDto pieTotalsByCategory(@AuthenticationPrincipal User user,
 			@RequestParam String interval,
 			@RequestParam String type,
 			@RequestParam(required = false) String startDate,
@@ -77,8 +81,8 @@ public class ReportController {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final Map<Integer, BigDecimal> totalsByCategory = new HashMap<>();
 			final Map<Integer, String> labelsByCategory = new HashMap<>();
-			final List<Transaction> data = transactions.selectTransactions(user, type, dates[0], dates[1]);
-			for (Transaction transaction : data) {
+			final List<Transaction> txns = transactions.selectTransactions(user, type, dates[0], dates[1]);
+			for (Transaction transaction : txns) {
 				for (Split split : transaction.getSplits()) {
 					final Integer categoryId = type.equals(split.getFromType()) ? split.getFromSource() : split.getToSource();
 					final BigDecimal amount = CryptoUtil.decryptWrapperBigDecimal(split.getAmount(), user, true);
@@ -103,19 +107,18 @@ public class ReportController {
 				}
 			});
 
-			final JSONObject result = new JSONObject();
+			final List<Map<String, Object>> data = new ArrayList<>();
 			for (Integer categoryId : categories) {
-				final JSONObject object = new JSONObject();
+				final Map<String, Object> object = new LinkedHashMap<>();
 				final BigDecimal amount = totalsByCategory.get(categoryId);
 				object.put("label", CryptoUtil.decryptWrapper(labelsByCategory.get(categoryId), user) + " - " + FormatUtil.formatCurrency(amount, user));
 				object.put("amount", amount);
 				object.put("formattedAmount", FormatUtil.formatCurrency(amount, user));
 				object.put("percent", amount.divide(total, RoundingMode.HALF_UP));
-				result.append("data", object);
+				data.add(object);
 			}
 
-			result.put("success", true);
-			return result.toString();
+			return reportResponseConverter.convert(data);
 		}
 		catch (CryptoException e) {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
@@ -123,7 +126,7 @@ public class ReportController {
 	}
 
 	@GetMapping("/incomeandexpensesbycategory")
-	public String incomeAndExpensesByCategory(@AuthenticationPrincipal User user,
+	public ReportDataResponseDto incomeAndExpensesByCategory(@AuthenticationPrincipal User user,
 			@RequestParam String interval,
 			@RequestParam(required = false) String startDate,
 			@RequestParam(required = false) String endDate) {
@@ -131,15 +134,15 @@ public class ReportController {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final List<Transaction> txns = transactions.selectTransactions(user, dates[0], dates[1]);
 
-			final JSONObject result = new JSONObject();
+			final List<Map<String, Object>> data = new ArrayList<>();
 
-			final BigDecimal[] income = calculateIncomeExpenseCategories(result, true, user, sources.selectCategories(user, true), txns, dates);
-			final BigDecimal[] expenses = calculateIncomeExpenseCategories(result, false, user, sources.selectCategories(user, false), txns, dates);
+			final BigDecimal[] income = calculateIncomeExpenseCategories(data, true, user, sources.selectCategories(user, true), txns, dates);
+			final BigDecimal[] expenses = calculateIncomeExpenseCategories(data, false, user, sources.selectCategories(user, false), txns, dates);
 
 			final BigDecimal totalActual = income[0].add(expenses[0]);
 			final BigDecimal totalBudgeted = income[1].add(expenses[1]);
 
-			final JSONObject object = new JSONObject();
+			final Map<String, Object> object = new LinkedHashMap<>();
 			object.put("source", LocaleUtil.getTranslation(user).getString("TOTAL"));
 			object.put("sourceStyle", "font-weight: bold;");
 			object.put("actual", FormatUtil.formatCurrency(totalActual, user));
@@ -149,17 +152,16 @@ public class ReportController {
 			final BigDecimal difference = (totalActual.subtract(totalBudgeted != null ? totalBudgeted : BigDecimal.ZERO));
 			object.put("difference", FormatUtil.formatCurrency(difference, user));
 			object.put("differenceStyle", (FormatUtil.isRed(difference) ? FormatUtil.formatRed() : "") + " font-weight: bold; ");
-			result.append("data", object);
+			data.add(object);
 
-			result.put("success", true);
-			return result.toString();
+			return reportResponseConverter.convert(data);
 		}
 		catch (CryptoException e) {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
 		}
 	}
 
-	private BigDecimal[] calculateIncomeExpenseCategories(JSONObject result, boolean income, User user, List<Category> categories, List<Transaction> txns, Date[] dates) throws CryptoException {
+	private BigDecimal[] calculateIncomeExpenseCategories(List<Map<String, Object>> data, boolean income, User user, List<Category> categories, List<Transaction> txns, Date[] dates) throws CryptoException {
 		Collections.sort(categories, new Comparator<Category>() {
 			@Override
 			public int compare(Category o1, Category o2) {
@@ -216,7 +218,7 @@ public class ReportController {
 			totalActual = totalActual.add(category.isIncome() ? actualAmount : actualAmount.negate());
 			totalBudgeted = totalBudgeted.add(category.isIncome() ? budgetedAmount : budgetedAmount.negate());
 			if (budgetedAmount.compareTo(BigDecimal.ZERO) != 0 || actualAmount.compareTo(BigDecimal.ZERO) != 0) {
-				final JSONObject object = new JSONObject();
+				final Map<String, Object> object = new LinkedHashMap<>();
 				object.put("source", CryptoUtil.decryptWrapper(category.getName(), user));
 				object.put("actual", FormatUtil.formatCurrency(actualAmount, user));
 				object.put("actualStyle", (FormatUtil.isRed(category, actualAmount) ? FormatUtil.formatRed() : ""));
@@ -235,9 +237,9 @@ public class ReportController {
 							return o1.getDate().compareTo(o2.getDate());
 						}
 					});
-					final JSONArray ts = new JSONArray();
+					final List<Map<String, Object>> ts = new ArrayList<>();
 					for (Transaction t : transactionsInCategory) {
-						final JSONObject o = new JSONObject();
+						final Map<String, Object> o = new LinkedHashMap<>();
 						o.put("date", FormatUtil.formatDate(t.getDate(), user));
 						o.put("description", CryptoUtil.decryptWrapper(t.getDescription(), user));
 						o.put("number", CryptoUtil.decryptWrapper(t.getNumber(), user));
@@ -247,15 +249,15 @@ public class ReportController {
 						final BigDecimal splitAmount = CryptoUtil.decryptWrapperBigDecimal(s.getAmount(), user, true);
 						o.put("amount", FormatUtil.formatCurrency(splitAmount, user));
 						o.put("amountStyle", (FormatUtil.isRed(category, splitAmount) ? FormatUtil.formatRed() : ""));
-						ts.put(o);
+						ts.add(o);
 					}
 					object.put("transactions", ts);
 				}
-				result.append("data", object);
+				data.add(object);
 			}
 		}
 
-		final JSONObject object = new JSONObject();
+		final Map<String, Object> object = new LinkedHashMap<>();
 		object.put("source", LocaleUtil.getTranslation(user).getString(income ? "TOTAL_INCOME" : "TOTAL_EXPENSES"));
 		object.put("sourceStyle", "font-weight: bold;");
 		object.put("actual", FormatUtil.formatCurrency(totalActual, user));
@@ -265,13 +267,13 @@ public class ReportController {
 		final BigDecimal diff = (totalActual.subtract(totalBudgeted != null ? totalBudgeted : BigDecimal.ZERO));
 		object.put("difference", FormatUtil.formatCurrency(diff, user));
 		object.put("differenceStyle", (FormatUtil.isRed(diff) ? FormatUtil.formatRed() : "") + " font-weight: bold; ");
-		result.append("data", object);
+		data.add(object);
 
 		return new BigDecimal[]{totalActual, totalBudgeted};
 	}
 
 	@GetMapping("/averageincomeandexpensesbycategory")
-	public String averageIncomeAndExpensesByCategory(@AuthenticationPrincipal User user,
+	public ReportDataResponseDto averageIncomeAndExpensesByCategory(@AuthenticationPrincipal User user,
 			@RequestParam String interval,
 			@RequestParam(required = false) String startDate,
 			@RequestParam(required = false) String endDate) {
@@ -279,20 +281,19 @@ public class ReportController {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final List<Transaction> txns = transactions.selectTransactions(user, dates[0], dates[1]);
 
-			final JSONObject result = new JSONObject();
+			final List<Map<String, Object>> data = new ArrayList<>();
 
-			calculateAverageCategories(result, true, user, sources.selectCategories(user, true), txns, dates);
-			calculateAverageCategories(result, false, user, sources.selectCategories(user, false), txns, dates);
+			calculateAverageCategories(data, true, user, sources.selectCategories(user, true), txns, dates);
+			calculateAverageCategories(data, false, user, sources.selectCategories(user, false), txns, dates);
 
-			result.put("success", true);
-			return result.toString();
+			return reportResponseConverter.convert(data);
 		}
 		catch (CryptoException e) {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
 		}
 	}
 
-	private void calculateAverageCategories(JSONObject result, boolean income, User user, List<Category> categories, List<Transaction> txns, Date[] dates) throws CryptoException {
+	private void calculateAverageCategories(List<Map<String, Object>> data, boolean income, User user, List<Category> categories, List<Transaction> txns, Date[] dates) throws CryptoException {
 		Collections.sort(categories, new Comparator<Category>() {
 			@Override
 			public int compare(Category o1, Category o2) {
@@ -332,7 +333,7 @@ public class ReportController {
 			final BigDecimal actualAmount = totalsBySource.get(category.getId()) == null ? BigDecimal.ZERO : totalsBySource.get(category.getId());
 
 			if (budgetedAmount.compareTo(BigDecimal.ZERO) != 0 || actualAmount.compareTo(BigDecimal.ZERO) != 0) {
-				final JSONObject object = new JSONObject();
+				final Map<String, Object> object = new LinkedHashMap<>();
 				object.put("source", CryptoUtil.decryptWrapper(category.getName(), user));
 
 				final BigDecimal daysInPeriod = new BigDecimal(CategoryPeriods.valueOf(category.getPeriodType()).getDaysInPeriod(dates[0]));
@@ -354,12 +355,12 @@ public class ReportController {
 				totalActualByPeriod.put(category.getPeriodType(), (totalActualByPeriod.get(category.getPeriodType()) == null ? BigDecimal.ZERO : totalActualByPeriod.get(category.getPeriodType())).add(averageAmount));
 				totalBudgetedByPeriod.put(category.getPeriodType(), (totalBudgetedByPeriod.get(category.getPeriodType()) == null ? BigDecimal.ZERO : totalBudgetedByPeriod.get(category.getPeriodType())).add(averageBudgeted));
 
-				result.append("data", object);
+				data.add(object);
 			}
 		}
 
 		for (String period : totalActualByPeriod.keySet()) {
-			final JSONObject object = new JSONObject();
+			final Map<String, Object> object = new LinkedHashMap<>();
 			object.put("source", LocaleUtil.getTranslation(user).getString(income ? "AVERAGE_INCOME" : "AVERAGE_EXPENSES") + " / " + LocaleUtil.getTranslation(user).getString("BUDGET_CATEGORY_TYPE_" + period));
 			object.put("sourceStyle", "font-weight: bold;");
 			object.put("average", FormatUtil.formatCurrency(totalActualByPeriod.get(period), user));
@@ -371,12 +372,12 @@ public class ReportController {
 			object.put("differenceStyle", "font-weight: bold;" + (FormatUtil.isRed(diff) ? FormatUtil.formatRed() : ""));
 			object.put("period", LocaleUtil.getTranslation(user).getString("BUDGET_CATEGORY_TYPE_" + period));
 			object.put("periodStyle", "font-weight: bold;" + FormatUtil.formatRed());
-			result.append("data", object);
+			data.add(object);
 		}
 	}
 
 	@GetMapping("/inflowandoutflowbyaccount")
-	public String inflowAndOutflowByAccount(@AuthenticationPrincipal User user,
+	public ReportDataResponseDto inflowAndOutflowByAccount(@AuthenticationPrincipal User user,
 			@RequestParam String interval,
 			@RequestParam(required = false) String startDate,
 			@RequestParam(required = false) String endDate) {
@@ -384,18 +385,17 @@ public class ReportController {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final List<Transaction> txns = transactions.selectTransactions(user, dates[0], dates[1]);
 
-			final JSONObject result = new JSONObject();
-			calculateInflowOutflowByAccount(result, user, sources.selectAccounts(user), txns);
+			final List<Map<String, Object>> data = new ArrayList<>();
+			calculateInflowOutflowByAccount(data, user, sources.selectAccounts(user), txns);
 
-			result.put("success", true);
-			return result.toString();
+			return reportResponseConverter.convert(data);
 		}
 		catch (CryptoException e) {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
 		}
 	}
 
-	private void calculateInflowOutflowByAccount(JSONObject result, User user, List<Account> accounts, List<Transaction> txns) throws CryptoException {
+	private void calculateInflowOutflowByAccount(List<Map<String, Object>> data, User user, List<Account> accounts, List<Transaction> txns) throws CryptoException {
 		Collections.sort(accounts, new Comparator<Account>() {
 			@Override
 			public int compare(Account o1, Account o2) {
@@ -460,7 +460,7 @@ public class ReportController {
 			final BigDecimal outflow = totalOutflowsBySource.get(account.getId()) == null ? BigDecimal.ZERO : totalOutflowsBySource.get(account.getId());
 
 			if (inflow.compareTo(BigDecimal.ZERO) != 0 || outflow.compareTo(BigDecimal.ZERO) != 0) {
-				final JSONObject object = new JSONObject();
+				final Map<String, Object> object = new LinkedHashMap<>();
 				object.put("source", CryptoUtil.decryptWrapper(account.getName(), user));
 				object.put("sourceStyle", (account.isDebit() ? "" : FormatUtil.formatRed()));
 				object.put("inflow", FormatUtil.formatCurrency(inflow, user));
@@ -480,9 +480,9 @@ public class ReportController {
 							return o1.getDate().compareTo(o2.getDate());
 						}
 					});
-					final JSONArray ts = new JSONArray();
+					final List<Map<String, Object>> ts = new ArrayList<>();
 					for (Transaction t : transactionsInCategory) {
-						final JSONObject o = new JSONObject();
+						final Map<String, Object> o = new LinkedHashMap<>();
 						o.put("date", FormatUtil.formatDate(t.getDate(), user));
 						o.put("description", CryptoUtil.decryptWrapper(t.getDescription(), user));
 						o.put("number", CryptoUtil.decryptWrapper(t.getNumber(), user));
@@ -492,17 +492,17 @@ public class ReportController {
 						final BigDecimal splitAmount = CryptoUtil.decryptWrapperBigDecimal(s.getAmount(), user, true);
 						o.put("amount", FormatUtil.formatCurrency(splitAmount, user));
 						o.put("amountStyle", (FormatUtil.isRed(account, splitAmount) ? FormatUtil.formatRed() : ""));
-						ts.put(o);
+						ts.add(o);
 					}
 					object.put("transactions", ts);
 				}
-				result.append("data", object);
+				data.add(object);
 			}
 		}
 	}
 
 	@GetMapping("/inflowandoutflowbypayee")
-	public String inflowAndOutflowByPayee(@AuthenticationPrincipal User user,
+	public ReportDataResponseDto inflowAndOutflowByPayee(@AuthenticationPrincipal User user,
 			@RequestParam String interval,
 			@RequestParam(required = false) String startDate,
 			@RequestParam(required = false) String endDate) {
@@ -510,18 +510,17 @@ public class ReportController {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final List<Transaction> txns = transactions.selectTransactions(user, dates[0], dates[1]);
 
-			final JSONObject result = new JSONObject();
-			calculateInflowOutflowByPayee(result, user, txns);
+			final List<Map<String, Object>> data = new ArrayList<>();
+			calculateInflowOutflowByPayee(data, user, txns);
 
-			result.put("success", true);
-			return result.toString();
+			return reportResponseConverter.convert(data);
 		}
 		catch (CryptoException e) {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
 		}
 	}
 
-	private void calculateInflowOutflowByPayee(JSONObject result, User user, List<Transaction> txns) throws CryptoException {
+	private void calculateInflowOutflowByPayee(List<Map<String, Object>> data, User user, List<Transaction> txns) throws CryptoException {
 		final Map<String, BigDecimal> totalInflowsByPayee = new HashMap<>();
 		final Map<String, BigDecimal> totalOutflowsByPayee = new HashMap<>();
 		final Map<String, List<Transaction>> transactionsByPayee = new HashMap<>();
@@ -555,7 +554,7 @@ public class ReportController {
 			final BigDecimal outflow = totalOutflowsByPayee.get(payee) == null ? BigDecimal.ZERO : totalOutflowsByPayee.get(payee);
 
 			if (inflow.compareTo(BigDecimal.ZERO) != 0 || outflow.compareTo(BigDecimal.ZERO) != 0) {
-				final JSONObject object = new JSONObject();
+				final Map<String, Object> object = new LinkedHashMap<>();
 				object.put("source", payee);
 				object.put("inflow", FormatUtil.formatCurrency(inflow, user));
 				object.put("inflowStyle", (FormatUtil.isRed(inflow) ? FormatUtil.formatRed() : ""));
@@ -574,9 +573,9 @@ public class ReportController {
 							return o1.getDate().compareTo(o2.getDate());
 						}
 					});
-					final JSONArray ts = new JSONArray();
+					final List<Map<String, Object>> ts = new ArrayList<>();
 					for (Transaction t : transactionsForPayee) {
-						final JSONObject o = new JSONObject();
+						final Map<String, Object> o = new LinkedHashMap<>();
 						o.put("date", FormatUtil.formatDate(t.getDate(), user));
 						o.put("description", CryptoUtil.decryptWrapper(t.getDescription(), user));
 						o.put("number", CryptoUtil.decryptWrapper(t.getNumber(), user));
@@ -586,17 +585,17 @@ public class ReportController {
 						final BigDecimal splitAmount = CryptoUtil.decryptWrapperBigDecimal(s.getAmount(), user, true);
 						o.put("amount", FormatUtil.formatCurrency(splitAmount, user));
 						o.put("amountStyle", (FormatUtil.isRed(splitAmount) ? FormatUtil.formatRed() : ""));
-						ts.put(o);
+						ts.add(o);
 					}
 					object.put("transactions", ts);
 				}
-				result.append("data", object);
+				data.add(object);
 			}
 		}
 	}
 
 	@GetMapping("/balancesovertime")
-	public String balancesOverTime(@AuthenticationPrincipal User user,
+	public ReportDataResponseDto balancesOverTime(@AuthenticationPrincipal User user,
 			@RequestParam String interval,
 			@RequestParam(required = false, defaultValue = "false") boolean netWorthOnly,
 			@RequestParam(required = false) String startDate,
@@ -610,7 +609,7 @@ public class ReportController {
 			int numberOfDaysBetween = DateUtil.getDaysBetween(dates[0], dates[1], false);
 			int daysBetweenReport = Math.max(1, numberOfDaysBetween / 500);
 
-			final JSONObject result = new JSONObject();
+			final List<Map<String, Object>> data = new ArrayList<>();
 			int accountBalancesIndex = 0;
 
 			while (dates[0].before(dates[1])) {
@@ -623,7 +622,7 @@ public class ReportController {
 					accountBalancesIndex++;
 				}
 
-				final JSONObject dataItem = new JSONObject();
+				final Map<String, Object> dataItem = new LinkedHashMap<>();
 				dataItem.put("date", FormatUtil.formatDate(dates[0], user));
 				BigDecimal netWorth = BigDecimal.ZERO;
 				for (int j : balances.keySet()) {
@@ -632,11 +631,10 @@ public class ReportController {
 				}
 				dates[0] = DateUtil.addDays(dates[0], daysBetweenReport);
 				dataItem.put("netWorth", netWorth);
-				result.append("data", dataItem);
+				data.add(dataItem);
 			}
 
-			result.put("success", true);
-			return result.toString();
+			return reportResponseConverter.convert(data);
 		}
 		catch (CryptoException e) {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);

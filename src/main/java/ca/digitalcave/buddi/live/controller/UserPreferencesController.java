@@ -3,7 +3,6 @@ package ca.digitalcave.buddi.live.controller;
 import java.util.Currency;
 import java.util.Locale;
 
-import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import ca.digitalcave.buddi.live.api.converter.UserPreferencesResponseConverter;
+import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
+import ca.digitalcave.buddi.live.api.dto.UserPreferencesResponseDto;
 import ca.digitalcave.buddi.live.db.Entries;
 import ca.digitalcave.buddi.live.db.ScheduledTransactions;
 import ca.digitalcave.buddi.live.db.Sources;
@@ -27,10 +29,10 @@ import ca.digitalcave.buddi.live.db.util.DatabaseException;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.security.CookieUtil;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import ca.digitalcave.moss.crypto.DefaultHash;
-import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -59,30 +61,20 @@ public class UserPreferencesController {
 	@Autowired
 	private AuthenticationHelper authenticationHelper;
 
+	@Autowired
+	private UserPreferencesResponseConverter userPreferencesResponseConverter;
+
 	@GetMapping
-	public String get(@AuthenticationPrincipal User user) {
-		final JSONObject result = new JSONObject();
-		result.put("encrypt", user.isEncrypted());
-		result.put("storeEmail", StringUtils.isNotBlank(user.getEmail()));
-		result.put("locale", user.getLocale().toString());
-		result.put("currency", user.getCurrency().getCurrencyCode());
-		result.put("dateFormat", user.getOverrideDateFormat());
-		result.put("currencyAfter", user.isCurrencyAfter());
-		result.put("decimalSeparator", user.getOverrideDecimalSeparator());
-		result.put("thousandSeparator", user.getOverrideThousandsSeparator());
-		result.put("negativeFormat", user.getNegativeFormat());
-		result.put("showCurrencySymbol", user.isShowCurrencySymbol());
-		result.put("currencySpacing", user.useCurrencySpacing());
-		result.put("useTwoFactor", user.isTwoFactorRequired());
-		result.put("showDeleted", user.isShowDeleted());
-		result.put("success", true);
-		return result.toString();
+	public UserPreferencesResponseDto get(@AuthenticationPrincipal final User user) {
+		return userPreferencesResponseConverter.convert(user);
 	}
 
 	@PostMapping
 	@Transactional
-	public String post(@AuthenticationPrincipal User user, @RequestBody String body,
-			HttpServletRequest request, HttpServletResponse response) {
+	public SuccessResponseDto post(@AuthenticationPrincipal final User user,
+			@RequestBody final String body,
+			final HttpServletRequest request,
+			final HttpServletResponse response) {
 		try {
 			final JSONObject json = new JSONObject(body);
 			final String action = json.optString("action");
@@ -94,8 +86,12 @@ public class UserPreferencesController {
 						throw new ResponseStatusException(HttpStatus.FORBIDDEN, LocaleUtil.getTranslation(user).getString("INCORRECT_PASSWORD"));
 					}
 
-					if (user.isEncrypted()) DataUpdater.turnOffEncryption(user, sources, entries, transactions, scheduledTransactions, users, crypto);
-					else DataUpdater.turnOnEncryption(user, sources, entries, transactions, scheduledTransactions, users, crypto);
+					if (user.isEncrypted()) {
+						DataUpdater.turnOffEncryption(user, sources, entries, transactions, scheduledTransactions, users, crypto);
+					}
+					else {
+						DataUpdater.turnOnEncryption(user, sources, entries, transactions, scheduledTransactions, users, crypto);
+					}
 				}
 				user.setEmail(json.optBoolean("storeEmail", false) ? user.getPlaintextIdentifier() : null);
 				user.setLocale(LocaleUtil.parseLocale(json.optString("locale", "en_US"), Locale.US));
@@ -112,8 +108,10 @@ public class UserPreferencesController {
 
 				ConstraintsChecker.checkUpdateUserPreferences(user);
 
-				int count = users.updateUser(user);
-				if (count != 1) throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
+				final int count = users.updateUser(user);
+				if (count != 1) {
+					throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
+				}
 
 				if (!user.isTwoFactorRequired()) {
 					CookieUtil.setTwoFactorInvalid(request, response, authenticationHelper);
@@ -135,14 +133,12 @@ public class UserPreferencesController {
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
 
-			final JSONObject result = new JSONObject();
-			result.put("success", true);
-			return result.toString();
+			return new SuccessResponseDto(true);
 		}
-		catch (DatabaseException e) {
+		catch (final DatabaseException e) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
 		}
-		catch (CryptoException e) {
+		catch (final CryptoException e) {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
 		}
 	}

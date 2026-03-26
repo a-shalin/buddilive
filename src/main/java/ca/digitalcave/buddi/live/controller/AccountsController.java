@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import ca.digitalcave.buddi.live.api.converter.AccountsResponseConverter;
 import ca.digitalcave.buddi.live.api.dto.AccountsResponseDto;
+import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
 import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
@@ -57,7 +58,7 @@ public class AccountsController {
 
 	@PostMapping
 	@Transactional
-	public String post(@AuthenticationPrincipal User user, @RequestBody String body) {
+	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody String body) {
 		try {
 			final JSONObject request = new JSONObject(body);
 			final String action = request.optString("action");
@@ -90,9 +91,7 @@ public class AccountsController {
 
 			DataUpdater.updateBalances(user, sources, transactions, crypto);
 
-			final JSONObject result = new JSONObject();
-			result.put("success", true);
-			return result.toString();
+			return new SuccessResponseDto(true);
 		}
 		catch (DatabaseException e) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);

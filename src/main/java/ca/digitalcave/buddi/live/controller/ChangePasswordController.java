@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
 import ca.digitalcave.buddi.live.db.Users;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
 import ca.digitalcave.buddi.live.model.User;
@@ -37,7 +38,7 @@ public class ChangePasswordController {
 
 	@PostMapping
 	@Transactional
-	public String post(@AuthenticationPrincipal User user, @RequestBody String body) {
+	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody String body) {
 		try {
 			final JSONObject json = new JSONObject(body);
 			final String action = json.optString("action");
@@ -58,9 +59,7 @@ public class ChangePasswordController {
 							if (count != 1) throw new DatabaseException(String.format("Encryption key update failed; expected 1 row, returned %s", count));
 						}
 
-						final JSONObject result = new JSONObject();
-						result.put("success", true);
-						return result.toString();
+						return new SuccessResponseDto(true);
 					}
 					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("PASSWORD_CHECK_FAILED"));
 				}
