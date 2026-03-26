@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE" />
+		<title>Buddi Live</title>
+		<link rel="stylesheet" type="text/css" href="lib/extjs/theme-gray-all-debug.css">
+		<link rel="stylesheet" type="text/css" href="lib/extjs/charts-all.css">
+		<link href="css/buddilive.css" rel="stylesheet" />
+
+		<script type="text/javascript" src="lib/extjs/ext-all-debug.js"></script>
+		<script type="text/javascript" src="lib/extjs/charts.js"></script>
+		<script th:if="${user != null}" type="text/javascript" th:inline="javascript">
+			window.__buddiI18n = JSON.parse(/*[[${translationsJson}]]*/ '{}');
+			window.__buddiConfig = JSON.parse(/*[[${userConfigJson}]]*/ '{}');
+		</script>
+		<script th:if="${user != null}" type="text/javascript" src="buddilive/Application.js"></script>
+		<script th:if="${newUser != null}" type="text/javascript">
+			var newUserMessage = function(){
+				if (Ext.MessageBox){
+					Ext.MessageBox.show({
+						"title": BuddiLive.translate("HELP_GETTING_STARTED_TITLE"),
+						"msg": BuddiLive.translate("HELP_GETTING_STARTED"),
+						"buttons": Ext.Msg.OK
+					});
+				}
+				else {
+					Ext.defer(newUserMessage, 500);
+				}
+			};
+			Ext.defer(newUserMessage, 500);
+		</script>
+		<link th:if="${user == null}" href="css/login.css" rel="stylesheet" />
+		<script th:if="${user == null}" type="text/javascript" th:inline="javascript">
+			window.__authConfig = JSON.parse(/*[[${authConfigJson}]]*/ '{}');
+			window.__authI18n = JSON.parse(/*[[${authI18nJson}]]*/ '{}');
+		</script>
+		<script th:if="${user == null}" type="text/javascript" src="authentication/app/Application.js"></script>
+	</head>
+	<body>
+		<div th:if="${user == null}">
+			<div class="title"></div>
+			<div class="background-top"></div>
+			<div class="background-bottom"></div>
+			<div class="version-info">
+				&copy; Wyatt Olson  <a href='http://digitalcave.ca' target='_blank'>http://digitalcave.ca</a>
+				<br/>
+				Build Date: <span th:text="${buildDate} ?: 'N/A'">N/A</span>; Version: <a href='doc/changelog.html' target='_blank' th:text="${version} ?: 'N/A'">N/A</a>
+			</div>
+
+
+			<div class="messages">
+				<div id="loginform"></div>
+
+				<p>&nbsp;</p>
+				<p>Buddi Live is an online, personal budgeting application.  It is designed from the ground up for anonymous access.  Please see the following pages for information on Buddi Live:</p>
+				<p>
+					<ul>
+						<li><a href='doc/encryption.html'>Encryption and Data Protection Details</a></li>
+						<li><a href='doc/termsandconditions.html'>Terms and Conditions of use, and Cookie Policy</a></li>
+						<li><a href='doc/tutorial.html'>Buddi Live Tutorial</a></li>
+						<li><a href='doc/gpl.html'>Source Code License</a></li>
+						<li><a href='doc/donation.html'>Donations</a></li>
+					</ul>
+				</p>
+				<p>&nbsp;</p>
+				<p>Please <a href="mailto:buddilive@digitalcave.ca">contact me</a> if you encounter bugs or have comments.</p>
+				<p>&nbsp;</p>
+				<p>If you find this software useful, I would greatly appreciate a <a href='doc/donation.html'>donation</a>.  I write and maintain Buddi Live in my spare time, and any support really helps.</p>
+			</div>
+		</div>
+	</body>
+</html>
