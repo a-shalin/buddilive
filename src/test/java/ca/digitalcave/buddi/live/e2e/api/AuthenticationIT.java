@@ -5,17 +5,20 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import org.json.JSONObject;
+
 import okhttp3.FormBody;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import ca.digitalcave.buddi.live.e2e.BaseIT;
 import ca.digitalcave.buddi.live.e2e.TestHelper;
@@ -24,6 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AuthenticationIT extends BaseIT {
+
+	private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
 	private static TestHelper helper;
 	private static final String EMAIL = "auth-test@example.com";
@@ -137,6 +142,70 @@ public class AuthenticationIT extends BaseIT {
 		}
 	}
 
+	@Test
+	@Order(7)
+	void testChangePasswordApi() throws Exception {
+		final String email = "auth-change-password@example.com";
+		final String oldPassword = "OldPassword123!";
+		final String newPassword = "NewPassword123!";
+
+		helper.registerUser(email, oldPassword, "en_US", "USD");
+		final OkHttpClient client = helper.login(email, oldPassword);
+
+		final JSONObject requestBody = new JSONObject();
+		requestBody.put("action", "update");
+		requestBody.put("currentPassword", oldPassword);
+		requestBody.put("newPassword", newPassword);
+
+		final Request changePasswordRequest = new Request.Builder()
+			.url(getBaseUrl() + "/data/changepassword")
+			.post(RequestBody.create(requestBody.toString(), JSON))
+			.build();
+
+		try (Response response = client.newCall(changePasswordRequest).execute()) {
+			assertThat(response.code()).isEqualTo(200);
+			final JSONObject body = new JSONObject(response.body().string());
+			assertThat(body.getBoolean("success")).isTrue();
+		}
+
+		final LoginResult oldLogin = login(helper.newClient(), email, oldPassword);
+		assertThat(oldLogin.code).isEqualTo(400);
+		assertThat(oldLogin.body.getBoolean("success")).isFalse();
+
+		final LoginResult newLogin = login(helper.newClient(), email, newPassword);
+		assertThat(newLogin.code).isEqualTo(200);
+		assertThat(newLogin.body.getBoolean("success")).isTrue();
+	}
+
+	@Test
+	@Order(8)
+	void testTotpEnableDisableApi() throws Exception {
+		final String email = "auth-totp-enable-disable@example.com";
+		final String password = "TotpPassword123!";
+
+		helper.registerUser(email, password, "en_US", "USD");
+		final OkHttpClient preferencesClient = helper.login(email, password);
+
+		final JSONObject prefs = helper.getUserPreferences(preferencesClient);
+		prefs.put("useTwoFactor", true);
+		helper.updateUserPreferences(preferencesClient, prefs);
+
+		final LoginResult setupLogin = login(helper.newClient(), email, password);
+		assertThat(setupLogin.code).isEqualTo(200);
+		assertThat(setupLogin.body.getBoolean("success")).isFalse();
+		assertThat(setupLogin.body.optString("next")).isEqualTo("totpSetup");
+
+		final JSONObject prefsWithTotp = helper.getUserPreferences(preferencesClient);
+		assertThat(prefsWithTotp.getBoolean("useTwoFactor")).isTrue();
+		prefsWithTotp.put("useTwoFactor", false);
+		helper.updateUserPreferences(preferencesClient, prefsWithTotp);
+
+		final LoginResult postDisableLogin = login(helper.newClient(), email, password);
+		assertThat(postDisableLogin.code).isEqualTo(200);
+		assertThat(postDisableLogin.body.getBoolean("success")).isTrue();
+		assertThat(postDisableLogin.body.has("next")).isFalse();
+	}
+
 	private int postRegister(OkHttpClient client, String email) throws Exception {
 		RequestBody formBody = new FormBody.Builder()
 			.add("email", email)
@@ -156,13 +225,40 @@ public class AuthenticationIT extends BaseIT {
 
 	private String getLatestActivationKey() throws Exception {
 		try (Connection conn = DriverManager.getConnection(getDbUrl());
-			 Statement stmt = conn.createStatement();
-			 ResultSet rs = stmt.executeQuery(
-				 "SELECT activation_key FROM user_activations ORDER BY created DESC FETCH FIRST 1 ROWS ONLY")) {
+				 Statement stmt = conn.createStatement();
+				 ResultSet rs = stmt.executeQuery(
+					 "SELECT activation_key FROM user_activations ORDER BY created DESC FETCH FIRST 1 ROWS ONLY")) {
 			if (rs.next()) {
 				return rs.getString(1);
 			}
 		}
 		return null;
+	}
+
+	private LoginResult login(final OkHttpClient client, final String email, final String password) throws Exception {
+		final RequestBody formBody = new FormBody.Builder()
+			.add("identifier", email)
+			.add("password", password)
+			.add("disableIpLock", "on")
+			.build();
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/authentication/login")
+			.post(formBody)
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			final String body = response.body().string();
+			return new LoginResult(response.code(), new JSONObject(body));
+		}
+	}
+
+	private static class LoginResult {
+		private final int code;
+		private final JSONObject body;
+
+		private LoginResult(final int code, final JSONObject body) {
+			this.code = code;
+			this.body = body;
+		}
 	}
 }
