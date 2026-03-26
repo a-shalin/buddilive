@@ -28,7 +28,7 @@ public class SourcesResponseConverter {
 		final Map<String, AccountType> accountTypeMap = new TreeMap<>();
 		for (final AccountType accountType : accountsByType) {
 			final String key = (accountType.isDebit() ? "1" : "2") + CryptoUtil.decryptWrapper(accountType.getAccountType(), user);
-			if (accountTypeMap.containsKey(key) == false) {
+			if (!accountTypeMap.containsKey(key)) {
 				accountTypeMap.put(key, accountType);
 			}
 			else {
@@ -42,7 +42,7 @@ public class SourcesResponseConverter {
 		final StringBuilder sb = new StringBuilder();
 		for (final String key : accountTypeMap.keySet()) {
 			final AccountType accountType = accountTypeMap.get(key);
-			if (accountType.isDeleted() == false || user.isShowDeleted()) {
+			if (!accountType.isDeleted() || user.isShowDeleted()) {
 				if (accountType.isDeleted()) sb.append(" text-decoration: line-through;");
 				sb.append(" color: " + (accountType.isDebit() ? FormatUtil.HTML_GRAY : FormatUtil.HTML_DISABLED_RED) + ";");
 				data.add(new SourceItemDto(
@@ -54,9 +54,9 @@ public class SourcesResponseConverter {
 
 				final List<Account> accounts = accountType.getAccounts() == null ? Collections.emptyList() : accountType.getAccounts();
 				for (final Account account : accounts) {
-					if (account.isDeleted() == false || user.isShowDeleted()) {
+					if (!account.isDeleted() || user.isShowDeleted()) {
 						if (account.isDeleted()) sb.append(" text-decoration: line-through;");
-						if (account.isDebit() == false) sb.append(" color: " + FormatUtil.HTML_RED + ";");
+						if (!account.isDebit()) sb.append(" color: " + FormatUtil.HTML_RED + ";");
 						data.add(new SourceItemDto(
 								account.getId(),
 								StringUtils.repeat("\u00a0", 2) + CryptoUtil.decryptWrapper(account.getName(), user).replaceAll(" ", "\u00a0"),
@@ -80,9 +80,9 @@ public class SourcesResponseConverter {
 			final int depth) throws CryptoException {
 		final StringBuilder sb = new StringBuilder();
 		for (final Category category : categories) {
-			if (category.isDeleted() == false || user.isShowDeleted()) {
+			if (!category.isDeleted() || user.isShowDeleted()) {
 				if (category.isDeleted()) sb.append(" text-decoration: line-through;");
-				if (category.isIncome() == false) sb.append(" color: " + FormatUtil.HTML_RED + ";");
+				if (!category.isIncome()) sb.append(" color: " + FormatUtil.HTML_RED + ";");
 				data.add(new SourceItemDto(
 						category.getId(),
 						StringUtils.repeat("\u00a0", depth * 2) + CryptoUtil.decryptWrapper(category.getName(), user).replaceAll(" ", "\u00a0"),
