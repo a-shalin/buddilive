@@ -15,6 +15,8 @@
 - **Code documentation**: add only when behavior is non-obvious; avoid documenting variables, arguments, method names.
 - **Java**:
     - Prefer `final` for method parameters and local variables unless mutation is required
+    - Do not add hardcoded string constants in code; use an `enum` for defined sets of values, or a `static final` class constant for a one-off value
+    - Use lambdas for anonymous classes and method references wherever possible
 - **For newly written SQL**:
     - Lowercase keywords, table names, column names, and aliases
     - Snake_case identifiers
