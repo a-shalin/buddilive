@@ -61,26 +61,26 @@ public class AccountsController {
 	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody String body) {
 		try {
 			final JSONObject request = new JSONObject(body);
-			final String action = request.optString("action");
+			final Action action = Action.fromString(request.optString("action"));
 			final Account account = new Account(request);
 
-			if ("insert".equals(action)) {
+			if (Action.INSERT == action) {
 				ConstraintsChecker.checkInsertAccount(account, user, sources, crypto);
 				final int count = sources.insertAccount(user, account);
 				if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
 			}
-			else if ("delete".equals(action) || "undelete".equals(action)) {
+			else if (Action.DELETE == action || Action.UNDELETE == action) {
 				if (sources.selectSourceAssociatedCount(user, account) == 0) {
 					final int count = sources.deleteSource(user, account);
 					if (count != 1) throw new DatabaseException(String.format("Delete failed; expected 1 row, returned %s", count));
 				}
 				else {
-					account.setDeleted("delete".equals(action));
+					account.setDeleted(Action.DELETE == action);
 					final int count = sources.updateSourceDeleted(user, account);
 					if (count != 1) throw new DatabaseException(String.format("Delete / undelete failed; expected 1 row, returned %s", count));
 				}
 			}
-			else if ("update".equals(action)) {
+			else if (Action.UPDATE == action) {
 				ConstraintsChecker.checkUpdateAccount(account, user, sources, crypto);
 				final int count = sources.updateAccount(user, account);
 				if (count != 1) throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));

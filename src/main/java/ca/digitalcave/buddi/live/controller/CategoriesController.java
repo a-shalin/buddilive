@@ -80,18 +80,18 @@ public class CategoriesController {
 	public CategoriesMutationResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final String body) {
 		try {
 			final JSONObject request = new JSONObject(body);
-			final String action = request.optString("action");
+			final Action action = Action.fromString(request.optString("action"));
 			final Category category = new Category(request);
 			CategoryNodeDto data = null;
 
-			if ("insert".equals(action)) {
+			if (Action.INSERT == action) {
 				ConstraintsChecker.checkInsertCategory(category, user, sources, crypto);
 				final int count = sources.insertCategory(user, category);
 				if (count != 1) {
 					throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
 				}
 			}
-			else if ("delete".equals(action) || "undelete".equals(action)) {
+			else if (Action.DELETE == action || Action.UNDELETE == action) {
 				if (sources.selectSourceAssociatedCount(user, category) == 0) {
 					final int count = sources.deleteSource(user, category);
 					if (count != 1) {
@@ -99,21 +99,21 @@ public class CategoriesController {
 					}
 				}
 				else {
-					category.setDeleted("delete".equals(action));
+					category.setDeleted(Action.DELETE == action);
 					final int count = sources.updateSourceDeleted(user, category);
 					if (count != 1) {
 						throw new DatabaseException(String.format("Delete / undelete failed; expected 1 row, returned %s", count));
 					}
 				}
 			}
-			else if ("update".equals(action)) {
+			else if (Action.UPDATE == action) {
 				ConstraintsChecker.checkUpdateCategory(category, user, sources, crypto);
 				final int count = sources.updateCategory(user, category);
 				if (count != 1) {
 					throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
 				}
 			}
-			else if ("copyFromPrevious".equals(action)) {
+			else if (Action.COPY_FROM_PREVIOUS == action) {
 				final CategoryPeriods period = CategoryPeriods.valueOf(request.getString("type"));
 				final Date currentDate = period.getStartOfBudgetPeriod(FormatUtil.parseDateInternal(request.getString("date")));
 				final Date previousDate = period.getBudgetPeriodOffset(currentDate, -1);
@@ -143,7 +143,7 @@ public class CategoriesController {
 					}
 				}
 			}
-			else if ("set".equals(action)) {
+			else if (Action.SET == action) {
 				final Entry entry = new Entry(request);
 				final Entry existingEntry = entries.selectEntry(user, entry);
 

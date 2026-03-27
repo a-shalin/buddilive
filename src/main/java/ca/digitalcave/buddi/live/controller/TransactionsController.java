@@ -148,9 +148,9 @@ public class TransactionsController {
 	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody String body) {
 		try {
 			final JSONObject json = new JSONObject(body);
-			final String action = json.optString("action");
+			final Action action = Action.fromString(json.optString("action"));
 
-			if ("insert".equals(action)) {
+			if (Action.INSERT == action) {
 				final Transaction transaction = new Transaction(json);
 				ConstraintsChecker.checkInsertTransaction(transaction, user, sources, crypto);
 
@@ -163,7 +163,7 @@ public class TransactionsController {
 					if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
 				}
 			}
-			else if ("update".equals(action)) {
+			else if (Action.UPDATE == action) {
 				final Transaction transaction = new Transaction(json);
 				ConstraintsChecker.checkUpdateTransaction(transaction, user, sources, crypto);
 
@@ -179,7 +179,7 @@ public class TransactionsController {
 					if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
 				}
 			}
-			else if ("delete".equals(action)) {
+			else if (Action.DELETE == action) {
 				final Transaction transaction = new Transaction();
 				transaction.setId(json.getLong("id"));
 				int count = transactions.deleteTransaction(user, transaction);

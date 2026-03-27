@@ -77,9 +77,9 @@ public class UserPreferencesController {
 			final HttpServletResponse response) {
 		try {
 			final JSONObject json = new JSONObject(body);
-			final String action = json.optString("action");
+			final Action action = Action.fromString(json.optString("action"));
 
-			if ("update".equals(action)) {
+			if (Action.UPDATE == action) {
 				if (json.optBoolean("encrypt", false) != user.isEncrypted()) {
 					final String encryptPassword = json.getString("encryptPassword");
 					if (!DefaultHash.verify(new String(user.getSecret()), encryptPassword)) {
@@ -120,10 +120,10 @@ public class UserPreferencesController {
 
 				DataUpdater.updateBalances(user, sources, transactions, crypto);
 			}
-			else if ("invalidatetotpbackups".equals(action)) {
+			else if (Action.INVALIDATE_TOTP_BACKUPS == action) {
 				users.deleteUnusedBackupCodes(user);
 			}
-			else if ("delete".equals(action)) {
+			else if (Action.DELETE == action) {
 				transactions.deleteAllTransactions(user);
 				scheduledTransactions.deleteAllScheduledTransactions(user);
 				sources.deleteAllSources(user);

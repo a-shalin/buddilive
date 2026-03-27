@@ -41,9 +41,9 @@ public class ChangePasswordController {
 	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody String body) {
 		try {
 			final JSONObject json = new JSONObject(body);
-			final String action = json.optString("action");
+			final Action action = Action.fromString(json.optString("action"));
 
-			if ("update".equals(action)) {
+			if (Action.UPDATE == action) {
 				final String currentPassword = json.getString("currentPassword");
 				final String newPassword = json.getString("newPassword");
 

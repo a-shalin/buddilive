@@ -69,9 +69,9 @@ public class ScheduledTransactionsController {
 	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final String body) {
 		try {
 			final JSONObject json = new JSONObject(body);
-			final String action = json.optString("action");
+			final Action action = Action.fromString(json.optString("action"));
 
-			if ("insert".equals(action)) {
+			if (Action.INSERT == action) {
 				final ScheduledTransaction scheduledTransaction = new ScheduledTransaction(json);
 				ConstraintsChecker.checkInsertScheduledTransaction(scheduledTransaction, user, sources, crypto);
 
@@ -88,7 +88,7 @@ public class ScheduledTransactionsController {
 					}
 				}
 			}
-			else if ("update".equals(action)) {
+			else if (Action.UPDATE == action) {
 				final ScheduledTransaction scheduledTransaction = new ScheduledTransaction(json);
 				ConstraintsChecker.checkUpdateScheduledTransaction(scheduledTransaction, user, sources, crypto);
 
@@ -109,7 +109,7 @@ public class ScheduledTransactionsController {
 					}
 				}
 			}
-			else if ("delete".equals(action)) {
+			else if (Action.DELETE == action) {
 				final ScheduledTransaction scheduledTransaction = new ScheduledTransaction();
 				scheduledTransaction.setId(json.getLong("id"));
 				final int count = scheduledTransactions.deleteScheduledTransaction(user, scheduledTransaction);
