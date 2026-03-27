@@ -227,7 +227,7 @@
 		<addForeignKeyConstraint constraintName="fk_users_totp_backups" referencedTableName="users" referencedColumnNames="id" baseTableName="user_totp_backups" baseColumnNames="user_id" onDelete="CASCADE"/>
 	</changeSet>
 
-	<changeSet id="add currency symbol and spacing preferences" author="Andrey Shalin">
+	<changeSet id="add currency symbol and spacing preferences" author="wyatt">
 		<addColumn tableName="users">
 			<column name="show_currency_symbol" type="char(1)" defaultValue="N"><constraints nullable="false"/></column>
 			<column name="currency_spacing" type="char(1)"/>
