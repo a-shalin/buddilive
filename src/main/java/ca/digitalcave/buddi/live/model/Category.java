@@ -1,21 +1,15 @@
 package ca.digitalcave.buddi.live.model;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import ca.digitalcave.buddi.live.api.dto.request.CategoriesRequestDto;
 import ca.digitalcave.buddi.live.db.Entries;
 import ca.digitalcave.buddi.live.model.CategoryPeriod.CategoryPeriods;
 import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.moss.common.DateUtil;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
 
 public class Category extends Source {
 	private String periodType;
@@ -28,23 +22,17 @@ public class Category extends Source {
 	private Entry currentEntry;
 
 	public Category() {}
-	
-	public Category(JSONObject json) throws JSONException {
-		super(json);
-		this.setPeriodType(json.optString("periodType", null));
-		this.setParent(json.optInt("parent") == 0 ? null : json.optInt("parent"));
-	}
-	
-	public JSONObject toJson() throws JSONException {
-		JSONObject result = super.toJson();
-		result.put("periodType", this.getPeriodType());
-		result.put("parent", this.getParent());
-		if (this.getChildren() != null){
-			for (Category c : getChildren()) {
-				result.accumulate("children", c.toJson());
-			}
-		}
-		return result;
+
+	public static Category fromDto(final CategoriesRequestDto dto) {
+		final Category category = new Category();
+		category.setId(dto.id());
+		category.setUuid(dto.uuid() != null ? dto.uuid() : UUID.randomUUID().toString());
+		category.setName(dto.name());
+		category.setDeleted(Boolean.TRUE.equals(dto.deleted()));
+		category.setType(dto.type());
+		category.setPeriodType(dto.periodType());
+		category.setParent(dto.parent() != null && dto.parent() != 0 ? dto.parent() : null);
+		return category;
 	}
 	
 	public String getPeriodType() {

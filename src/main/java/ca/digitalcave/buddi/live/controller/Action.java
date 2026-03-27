@@ -1,5 +1,8 @@
 package ca.digitalcave.buddi.live.controller;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum Action {
 	INSERT("insert"),
 	UPDATE("update"),
@@ -15,6 +18,12 @@ public enum Action {
 		this.value = value;
 	}
 
+	@JsonValue
+	public String getValue() {
+		return value;
+	}
+
+	@JsonCreator
 	public static Action fromString(final String value) {
 		for (final Action action : values()) {
 			if (action.value.equals(value)) {

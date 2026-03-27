@@ -1,30 +1,7 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.math.BigDecimal;
-
-import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.ibatis.session.ResultContext;
-import org.apache.ibatis.session.ResultHandler;
-import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
-
+import ca.digitalcave.buddi.live.api.dto.request.TransactionRequestDto;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
 import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
@@ -39,6 +16,21 @@ import ca.digitalcave.buddi.live.util.FormatUtil;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.ibatis.session.ResultContext;
+import org.apache.ibatis.session.ResultHandler;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/data/transactions")
@@ -145,13 +137,12 @@ public class TransactionsController {
 
 	@PostMapping
 	@Transactional
-	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody String body) {
+	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody final TransactionRequestDto request) {
 		try {
-			final JSONObject json = new JSONObject(body);
-			final Action action = Action.fromString(json.optString("action"));
+			final Action action = request.action();
 
 			if (Action.INSERT == action) {
-				final Transaction transaction = new Transaction(json);
+				final Transaction transaction = Transaction.fromDto(request);
 				ConstraintsChecker.checkInsertTransaction(transaction, user, sources, crypto);
 
 				int count = transactions.insertTransaction(user, transaction);
@@ -164,7 +155,7 @@ public class TransactionsController {
 				}
 			}
 			else if (Action.UPDATE == action) {
-				final Transaction transaction = new Transaction(json);
+				final Transaction transaction = Transaction.fromDto(request);
 				ConstraintsChecker.checkUpdateTransaction(transaction, user, sources, crypto);
 
 				int count = transactions.updateTransaction(user, transaction);
@@ -181,7 +172,7 @@ public class TransactionsController {
 			}
 			else if (Action.DELETE == action) {
 				final Transaction transaction = new Transaction();
-				transaction.setId(json.getLong("id"));
+				transaction.setId(request.id());
 				int count = transactions.deleteTransaction(user, transaction);
 				if (count != 1) throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
 			}

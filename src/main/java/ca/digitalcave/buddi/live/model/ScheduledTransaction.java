@@ -1,15 +1,13 @@
 package ca.digitalcave.buddi.live.model;
 
+import ca.digitalcave.buddi.live.api.dto.request.ScheduledTransactionRequestDto;
+import ca.digitalcave.buddi.live.api.dto.request.SplitRequestDto;
+import ca.digitalcave.buddi.live.util.FormatUtil;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-
-import org.apache.commons.lang3.StringUtils;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import ca.digitalcave.buddi.live.util.FormatUtil;
 
 public class ScheduledTransaction {
 	private Long id;
@@ -44,25 +42,30 @@ public class ScheduledTransaction {
 
 	public ScheduledTransaction() {
 	}
-	public ScheduledTransaction(JSONObject json) throws JSONException {
-		this.setId(StringUtils.isNotBlank(json.optString("id", null)) ? Long.parseLong(json.getString("id")) : null);
-		this.setUuid(json.has("uuid") ? json.getString("uuid") : UUID.randomUUID().toString());
-		this.setScheduleName(json.getString("name"));
-		this.setScheduleDay(json.getInt("scheduleDay"));
-		this.setScheduleWeek(json.getInt("scheduleWeek"));
-		this.setScheduleMonth(json.getInt("scheduleMonth"));
-		this.setFrequencyType(json.getString("repeat"));
-		this.setStartDate(FormatUtil.parseDateInternal(json.getString("start")));
-		this.setEndDate(FormatUtil.parseDateInternal(json.getString("end")));
-		this.setLastCreatedDate(FormatUtil.parseDateInternal(json.getString("lastCreatedDate")));
-		this.setMessage(json.optString("message", null));
 
-		final JSONObject transaction = json.getJSONObject("transaction");
-		this.setDescription(transaction.getString("description"));
-		this.setNumber(transaction.has("number") ? transaction.getString("number") : null);
-		for (int i = 0; i < transaction.getJSONArray("splits").length(); i++){
-			splits.add(new Split(transaction.getJSONArray("splits").getJSONObject(i)));
+	public static ScheduledTransaction fromDto(final ScheduledTransactionRequestDto dto) {
+		final ScheduledTransaction st = new ScheduledTransaction();
+		st.setId(dto.id());
+		st.setUuid(dto.uuid() != null ? dto.uuid() : UUID.randomUUID().toString());
+		st.setScheduleName(dto.name());
+		st.setScheduleDay(dto.scheduleDay());
+		st.setScheduleWeek(dto.scheduleWeek());
+		st.setScheduleMonth(dto.scheduleMonth());
+		st.setFrequencyType(dto.repeat());
+		st.setStartDate(FormatUtil.parseDateInternal(dto.start()));
+		st.setEndDate(FormatUtil.parseDateInternal(dto.end()));
+		st.setLastCreatedDate(FormatUtil.parseDateInternal(dto.lastCreatedDate()));
+		st.setMessage(dto.message());
+		if (dto.transaction() != null) {
+			st.setDescription(dto.transaction().description());
+			st.setNumber(dto.transaction().number());
+			if (dto.transaction().splits() != null) {
+				for (final SplitRequestDto splitDto : dto.transaction().splits()) {
+					st.getSplits().add(Split.fromDto(splitDto));
+				}
+			}
 		}
+		return st;
 	}
 
 	public Long getId() {

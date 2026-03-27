@@ -1,11 +1,9 @@
 package ca.digitalcave.buddi.live.model;
 
-import java.util.Date;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import ca.digitalcave.buddi.live.api.dto.request.CategoriesRequestDto;
 import ca.digitalcave.buddi.live.util.FormatUtil;
+
+import java.util.Date;
 
 public class Entry {
 	private Long id;
@@ -16,23 +14,14 @@ public class Entry {
 	private Date modified;
 	private CategoryPeriod period;
 	
-	public Entry(){}
-	public Entry(JSONObject json) throws JSONException {
-		this.setId(json.has("id") ? json.getLong("id") : null);
-		this.setCategoryId(json.getInt("categoryId"));	//This field is required
-		this.setAmount(FormatUtil.parseCurrency(json.getString("amount")).toPlainString());	//This field is required, but can be zero
-		this.setDate(FormatUtil.parseDateInternal(json.getString("date")));	//This field is required
-	}
-	
-	public JSONObject toJson() throws JSONException {
-		final JSONObject result = new JSONObject();
-		result.put("id", this.getId());
-		result.put("categoryId", this.getCategoryId());
-		result.put("amount", this.getAmount());
-		result.put("date", FormatUtil.formatDateInternal((Date) this.getDate()));
-		result.put("created", FormatUtil.formatDateTimeInternal((Date) this.getCreated()));
-		result.put("modified", FormatUtil.formatDateTimeInternal((Date) this.getModified()));
-		return result;
+	public Entry() {}
+
+	public static Entry fromDto(final CategoriesRequestDto dto) {
+		final Entry entry = new Entry();
+		entry.setCategoryId(dto.categoryId());
+		entry.setAmount(FormatUtil.parseCurrency(dto.amount()).toPlainString());
+		entry.setDate(FormatUtil.parseDateInternal(dto.date()));
+		return entry;
 	}
 	
 	public Long getId() {
@@ -80,9 +69,6 @@ public class Entry {
 	
 	@Override
 	public String toString() {
-		try {
-			return toJson().toString();
-		}
-		catch (JSONException e){return "Error converting to JSON";}
+		return String.format("Entry[id=%s, categoryId=%s, amount=%s, date=%s]", id, categoryId, amount, date);
 	}
 }

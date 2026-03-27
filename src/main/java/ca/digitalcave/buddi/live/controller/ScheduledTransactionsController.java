@@ -1,24 +1,10 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.util.Date;
-import java.util.List;
-
-import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-
 import ca.digitalcave.buddi.live.api.converter.ScheduledTransactionsResponseConverter;
 import ca.digitalcave.buddi.live.api.dto.ScheduledTransactionsExecuteResponseDto;
 import ca.digitalcave.buddi.live.api.dto.ScheduledTransactionsResponseDto;
 import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
+import ca.digitalcave.buddi.live.api.dto.request.ScheduledTransactionRequestDto;
 import ca.digitalcave.buddi.live.db.ScheduledTransactions;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
@@ -33,6 +19,15 @@ import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.common.DateUtil;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Date;
+import java.util.List;
 
 @RestController
 @RequestMapping("/data/scheduledtransactions")
@@ -66,13 +61,12 @@ public class ScheduledTransactionsController {
 
 	@PostMapping
 	@Transactional
-	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final String body) {
+	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final ScheduledTransactionRequestDto request) {
 		try {
-			final JSONObject json = new JSONObject(body);
-			final Action action = Action.fromString(json.optString("action"));
+			final Action action = request.action();
 
 			if (Action.INSERT == action) {
-				final ScheduledTransaction scheduledTransaction = new ScheduledTransaction(json);
+				final ScheduledTransaction scheduledTransaction = ScheduledTransaction.fromDto(request);
 				ConstraintsChecker.checkInsertScheduledTransaction(scheduledTransaction, user, sources, crypto);
 
 				int count = scheduledTransactions.insertScheduledTransaction(user, scheduledTransaction);
@@ -89,7 +83,7 @@ public class ScheduledTransactionsController {
 				}
 			}
 			else if (Action.UPDATE == action) {
-				final ScheduledTransaction scheduledTransaction = new ScheduledTransaction(json);
+				final ScheduledTransaction scheduledTransaction = ScheduledTransaction.fromDto(request);
 				ConstraintsChecker.checkUpdateScheduledTransaction(scheduledTransaction, user, sources, crypto);
 
 				int count = scheduledTransactions.updateScheduledTransaction(user, scheduledTransaction);
@@ -111,7 +105,7 @@ public class ScheduledTransactionsController {
 			}
 			else if (Action.DELETE == action) {
 				final ScheduledTransaction scheduledTransaction = new ScheduledTransaction();
-				scheduledTransaction.setId(json.getLong("id"));
+				scheduledTransaction.setId(request.id());
 				final int count = scheduledTransactions.deleteScheduledTransaction(user, scheduledTransaction);
 				if (count != 1) {
 					throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));

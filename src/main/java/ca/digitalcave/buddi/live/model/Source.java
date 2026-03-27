@@ -1,12 +1,6 @@
 package ca.digitalcave.buddi.live.model;
 
 import java.util.Date;
-import java.util.UUID;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import ca.digitalcave.buddi.live.util.FormatUtil;
 
 public class Source {
 	private Integer id;
@@ -17,29 +11,8 @@ public class Source {
 	private Date created;
 	private Date modified;
 	private String type;
-	
+
 	public Source() {}
-	
-	public Source(JSONObject json) throws JSONException {
-		this.setId(json.has("id") ? json.getInt("id") : null);
-		this.setUuid(json.optString("uuid", UUID.randomUUID().toString()));
-		this.setName(json.optString("name", null));
-		this.setDeleted(json.optBoolean("deleted", false));
-		this.setType(json.optString("type", null));
-	}
-	
-	public JSONObject toJson() throws JSONException {
-		final JSONObject result = new JSONObject();
-		result.put("id", this.getId());
-		result.put("userId", this.getUserId());
-		result.put("uuid", this.getUuid());
-		result.put("name", this.getName());
-		result.put("deleted", this.isDeleted());
-		result.put("type", this.getType());
-		result.put("created", FormatUtil.formatDateTimeInternal((Date) this.getCreated()));
-		result.put("modified", FormatUtil.formatDateTimeInternal((Date) this.getModified()));
-		return result;
-	}
 	
 	public Integer getId() {
 		return id;
@@ -92,12 +65,9 @@ public class Source {
 	
 	@Override
 	public String toString() {
-		try {
-			return toJson().toString();
-		}
-		catch (JSONException e){return "Error converting to JSON";}
+		return String.format("Source[id=%s, uuid=%s, name=%s, type=%s]", id, uuid, name, type);
 	}
-	
+
 	//Convenience methods
 	public boolean isAccount(){
 		return "D".equals(getType()) || "C".equals(getType());

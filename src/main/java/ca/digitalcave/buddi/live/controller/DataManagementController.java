@@ -1,25 +1,28 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.io.OutputStreamWriter;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
+import ca.digitalcave.buddi.live.api.converter.DataBackupResponseConverter;
+import ca.digitalcave.buddi.live.api.dto.DataBackupResponseDto;
+import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
+import ca.digitalcave.buddi.live.api.dto.request.DataRestoreDto;
+import ca.digitalcave.buddi.live.api.dto.request.DataRestoreDto.*;
+import ca.digitalcave.buddi.live.db.Entries;
+import ca.digitalcave.buddi.live.db.ScheduledTransactions;
+import ca.digitalcave.buddi.live.db.Sources;
+import ca.digitalcave.buddi.live.db.Transactions;
+import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
+import ca.digitalcave.buddi.live.db.util.DataUpdater;
+import ca.digitalcave.buddi.live.db.util.DatabaseException;
+import ca.digitalcave.buddi.live.model.*;
+import ca.digitalcave.buddi.live.model.report.Interval;
+import ca.digitalcave.buddi.live.util.CryptoUtil;
+import ca.digitalcave.buddi.live.util.FormatUtil;
+import ca.digitalcave.moss.crypto.Crypto;
+import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,29 +33,11 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import ca.digitalcave.buddi.live.api.converter.DataBackupResponseConverter;
-import ca.digitalcave.buddi.live.api.dto.DataBackupResponseDto;
-import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
-
-import ca.digitalcave.buddi.live.db.Entries;
-import ca.digitalcave.buddi.live.db.ScheduledTransactions;
-import ca.digitalcave.buddi.live.db.Sources;
-import ca.digitalcave.buddi.live.db.Transactions;
-import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
-import ca.digitalcave.buddi.live.db.util.DataUpdater;
-import ca.digitalcave.buddi.live.db.util.DatabaseException;
-import ca.digitalcave.buddi.live.model.Account;
-import ca.digitalcave.buddi.live.model.Category;
-import ca.digitalcave.buddi.live.model.Entry;
-import ca.digitalcave.buddi.live.model.ScheduledTransaction;
-import ca.digitalcave.buddi.live.model.Split;
-import ca.digitalcave.buddi.live.model.Transaction;
-import ca.digitalcave.buddi.live.model.User;
-import ca.digitalcave.buddi.live.model.report.Interval;
-import ca.digitalcave.buddi.live.util.CryptoUtil;
-import ca.digitalcave.buddi.live.util.FormatUtil;
-import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import java.io.OutputStreamWriter;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RestController
 public class DataManagementController {
@@ -73,6 +58,9 @@ public class DataManagementController {
 
 	@Autowired
 	private Crypto crypto;
+
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	@Autowired
 	private DataBackupResponseConverter dataBackupResponseConverter;
@@ -171,13 +159,13 @@ public class DataManagementController {
 				scheduledTransactions.deleteAllScheduledTransactions(user);
 			}
 
-			final JSONObject request = new JSONObject(new String(file.getBytes()));
+			final DataRestoreDto request = objectMapper.readValue(file.getBytes(), DataRestoreDto.class);
 			final Map<String, Integer> sourceIDsByUUID = new HashMap<>();
-			restoreAccounts(request, user, sourceIDsByUUID);
-			restoreCategories(request, user, sourceIDsByUUID);
-			restoreEntries(request, user, sourceIDsByUUID);
-			restoreTransactions(request, user, sourceIDsByUUID);
-			restoreScheduledTransactions(request, user, sourceIDsByUUID);
+			restoreAccounts(request.accounts(), user, sourceIDsByUUID);
+			restoreCategories(request.categories(), user, sourceIDsByUUID, null);
+			restoreEntries(request.entries(), user, sourceIDsByUUID);
+			restoreTransactions(request.transactions(), user, sourceIDsByUUID);
+			restoreScheduledTransactions(request.scheduledTransactions(), user, sourceIDsByUUID);
 
 			DataUpdater.updateBalances(user, sources, transactions, crypto);
 
@@ -197,21 +185,19 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreAccounts(JSONObject jsonObject, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
-		final JSONArray accounts = jsonObject.optJSONArray("accounts");
+	private void restoreAccounts(List<RestoreAccountDto> accounts, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
 		if (accounts != null) {
-			for (int i = 0; i < accounts.length(); i++) {
-				final JSONObject a = accounts.getJSONObject(i);
-				final Account existing = sources.selectAccount(user, a.getString("uuid"));
+			for (final RestoreAccountDto a : accounts) {
+				final Account existing = sources.selectAccount(user, a.uuid());
 				if (existing == null) {
 					final Account account = new Account();
-					account.setUuid(a.getString("uuid"));
-					account.setName(a.getString("name"));
-					account.setStartDate(FormatUtil.parseDateInternal(a.getString("startDate")));
-					account.setDeleted(a.optBoolean("deleted", false));
-					account.setType(a.getString("type"));
-					account.setStartBalance(FormatUtil.parseCurrency(a.getString("startBalance")).toPlainString());
-					account.setAccountType(a.getString("accountType"));
+					account.setUuid(a.uuid());
+					account.setName(a.name());
+					account.setStartDate(FormatUtil.parseDateInternal(a.startDate()));
+					account.setDeleted(Boolean.TRUE.equals(a.deleted()));
+					account.setType(a.type());
+					account.setStartBalance(FormatUtil.parseCurrency(a.startBalance()).toPlainString());
+					account.setAccountType(a.accountType());
 
 					ConstraintsChecker.checkInsertAccount(account, user, sources, crypto);
 					int count = sources.insertAccount(user, account);
@@ -225,22 +211,20 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreCategories(JSONObject jsonObject, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
-		final JSONArray categories = jsonObject.optJSONArray("categories");
+	private void restoreCategories(List<RestoreCategoryDto> categories, User user, Map<String, Integer> sourceIDsByUUID, String parentUuid) throws DatabaseException, CryptoException {
 		if (categories != null) {
-			for (int i = 0; i < categories.length(); i++) {
-				final JSONObject c = categories.getJSONObject(i);
-				final Category existing = sources.selectCategory(user, c.getString("uuid"));
+			for (final RestoreCategoryDto c : categories) {
+				final Category existing = sources.selectCategory(user, c.uuid());
 				if (existing == null) {
 					final Category category = new Category();
-					category.setUuid(c.getString("uuid"));
-					category.setName(c.getString("name"));
-					category.setDeleted(c.optBoolean("deleted", false));
-					category.setType(c.getString("type"));
-					final Integer impliedParent = sourceIDsByUUID.get(jsonObject.optString("uuid"));
-					final Integer explicitParent = sourceIDsByUUID.get(c.optString("parent"));
+					category.setUuid(c.uuid());
+					category.setName(c.name());
+					category.setDeleted(Boolean.TRUE.equals(c.deleted()));
+					category.setType(c.type());
+					final Integer impliedParent = parentUuid != null ? sourceIDsByUUID.get(parentUuid) : null;
+					final Integer explicitParent = c.parent() != null ? sourceIDsByUUID.get(c.parent()) : null;
 					category.setParent(impliedParent != null ? impliedParent : explicitParent);
-					category.setPeriodType(c.getString("periodType"));
+					category.setPeriodType(c.periodType());
 
 					ConstraintsChecker.checkInsertCategory(category, user, sources, crypto);
 					int count = sources.insertCategory(user, category);
@@ -250,26 +234,24 @@ public class DataManagementController {
 				else {
 					sourceIDsByUUID.put(existing.getUuid(), existing.getId());
 				}
-				if (c.has("categories")) {
-					restoreCategories(c, user, sourceIDsByUUID);
+				if (c.categories() != null) {
+					restoreCategories(c.categories(), user, sourceIDsByUUID, c.uuid());
 				}
 			}
 		}
 	}
 
-	private void restoreEntries(JSONObject jsonObject, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
-		final JSONArray entryArray = jsonObject.optJSONArray("entries");
-		if (entryArray != null) {
-			for (int i = 0; i < entryArray.length(); i++) {
-				final JSONObject e = entryArray.getJSONObject(i);
+	private void restoreEntries(List<RestoreEntryDto> entryList, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+		if (entryList != null) {
+			for (final RestoreEntryDto e : entryList) {
 				final Entry entry = new Entry();
-				final Integer categoryId = sourceIDsByUUID.get(e.getString("category"));
+				final Integer categoryId = sourceIDsByUUID.get(e.category());
 				if (categoryId == null) {
-					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find category UUID " + e.getString("category") + " for budget entry " + e.getString("date") + " / " + e.getString("amount"));
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find category UUID " + e.category() + " for budget entry " + e.date() + " / " + e.amount());
 				}
 				entry.setCategoryId(categoryId);
-				entry.setDate(FormatUtil.parseDateInternal(e.getString("date")));
-				entry.setAmount(FormatUtil.parseCurrency(e.getString("amount")).toPlainString());
+				entry.setDate(FormatUtil.parseDateInternal(e.date()));
+				entry.setAmount(FormatUtil.parseCurrency(e.amount()).toPlainString());
 				final Entry existingEntry = entries.selectEntry(user, entry);
 				if (existingEntry == null) {
 					ConstraintsChecker.checkInsertEntry(entry, user, sources, crypto);
@@ -285,42 +267,41 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreTransactions(JSONObject jsonObject, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
-		final JSONArray txnArray = jsonObject.optJSONArray("transactions");
-		if (txnArray != null) {
-			for (int i = 0; i < txnArray.length(); i++) {
-				final JSONObject t = txnArray.getJSONObject(i);
-				if (t.optBoolean("deleted", false)) continue;
-				if (transactions.selectTransactionCount(user, t.getString("uuid")) == 0) {
+	private void restoreTransactions(List<RestoreTransactionDto> txnList, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+		if (txnList != null) {
+			for (final RestoreTransactionDto t : txnList) {
+				if (Boolean.TRUE.equals(t.deleted())) continue;
+				if (transactions.selectTransactionCount(user, t.uuid()) == 0) {
 					final Transaction transaction = new Transaction();
-					transaction.setUuid(t.getString("uuid"));
-					transaction.setDescription(t.getString("description"));
-					transaction.setNumber(t.optString("number", null));
-					transaction.setDate(FormatUtil.parseDateInternal(t.getString("date")));
-					transaction.setDeleted(t.optBoolean("deleted", false));
+					transaction.setUuid(t.uuid());
+					transaction.setDescription(t.description());
+					transaction.setNumber(t.number());
+					transaction.setDate(FormatUtil.parseDateInternal(t.date()));
+					transaction.setDeleted(Boolean.TRUE.equals(t.deleted()));
 					transaction.setSplits(new ArrayList<>());
-					final JSONArray splits = t.getJSONArray("splits");
-					for (int j = 0; j < splits.length(); j++) {
-						final JSONObject s = splits.getJSONObject(j);
-						if (FormatUtil.parseCurrency(s.getString("amount")).compareTo(BigDecimal.ZERO) != 0) {
-							final Split split = new Split();
-							final Integer fromSource = sourceIDsByUUID.get(s.getString("from"));
-							final Integer toSource = sourceIDsByUUID.get(s.getString("to"));
-							if (fromSource == null) {
-								throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find 'from' source UUID " + s.getString("from") + " for split #" + j + " in transaction " + t.getString("uuid"));
+					if (t.splits() != null) {
+						for (int j = 0; j < t.splits().size(); j++) {
+							final RestoreSplitDto s = t.splits().get(j);
+							if (FormatUtil.parseCurrency(s.amount()).compareTo(BigDecimal.ZERO) != 0) {
+								final Split split = new Split();
+								final Integer fromSource = sourceIDsByUUID.get(s.from());
+								final Integer toSource = sourceIDsByUUID.get(s.to());
+								if (fromSource == null) {
+									throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find 'from' source UUID " + s.from() + " for split #" + j + " in transaction " + t.uuid());
+								}
+								if (toSource == null) {
+									throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find 'to' source UUID " + s.to() + " for split #" + j + " in transaction " + t.uuid());
+								}
+								split.setAmount(FormatUtil.parseCurrency(s.amount()).toPlainString());
+								split.setFromSource(fromSource);
+								split.setToSource(toSource);
+								split.setMemo(s.memo() != null ? s.memo() : "");
+								transaction.getSplits().add(split);
 							}
-							if (toSource == null) {
-								throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find 'to' source UUID " + s.getString("to") + " for split #" + j + " in transaction " + t.getString("uuid"));
-							}
-							split.setAmount(FormatUtil.parseCurrency(s.getString("amount")).toPlainString());
-							split.setFromSource(fromSource);
-							split.setToSource(toSource);
-							split.setMemo(s.optString("memo", ""));
-							transaction.getSplits().add(split);
 						}
 					}
 
-					if (transaction.getSplits().size() > 0) {
+					if (!transaction.getSplits().isEmpty()) {
 						ConstraintsChecker.checkInsertTransaction(transaction, user, sources, crypto);
 						int count = transactions.insertTransaction(user, transaction);
 						if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
@@ -335,43 +316,42 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreScheduledTransactions(JSONObject jsonObject, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
-		final JSONArray txnArray = jsonObject.optJSONArray("scheduledTransactions");
-		if (txnArray != null) {
-			for (int i = 0; i < txnArray.length(); i++) {
-				final JSONObject t = txnArray.getJSONObject(i);
-				if (scheduledTransactions.selectScheduledTransactionCount(user, t.getString("uuid")) == 0) {
+	private void restoreScheduledTransactions(List<RestoreScheduledTransactionDto> txnList, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+		if (txnList != null) {
+			for (final RestoreScheduledTransactionDto t : txnList) {
+				if (scheduledTransactions.selectScheduledTransactionCount(user, t.uuid()) == 0) {
 					final ScheduledTransaction transaction = new ScheduledTransaction();
-					transaction.setUuid(t.getString("uuid"));
-					transaction.setDescription(t.getString("description"));
-					transaction.setNumber(t.optString("number", null));
-					transaction.setScheduleName(t.getString("scheduleName"));
-					transaction.setScheduleDay(t.getInt("scheduleDay"));
-					transaction.setScheduleWeek(t.getInt("scheduleWeek"));
-					transaction.setScheduleMonth(t.getInt("scheduleMonth"));
-					transaction.setFrequencyType(t.getString("frequencyType"));
-					transaction.setStartDate(FormatUtil.parseDateInternal(t.getString("startDate")));
-					transaction.setEndDate(FormatUtil.parseDateInternal(t.optString("endDate", null)));
-					transaction.setLastCreatedDate(FormatUtil.parseDateInternal(t.optString("lastCreatedDate", null)));
-					transaction.setMessage(t.optString("message", null));
+					transaction.setUuid(t.uuid());
+					transaction.setDescription(t.description());
+					transaction.setNumber(t.number());
+					transaction.setScheduleName(t.scheduleName());
+					transaction.setScheduleDay(t.scheduleDay());
+					transaction.setScheduleWeek(t.scheduleWeek());
+					transaction.setScheduleMonth(t.scheduleMonth());
+					transaction.setFrequencyType(t.frequencyType());
+					transaction.setStartDate(FormatUtil.parseDateInternal(t.startDate()));
+					transaction.setEndDate(FormatUtil.parseDateInternal(t.endDate()));
+					transaction.setLastCreatedDate(FormatUtil.parseDateInternal(t.lastCreatedDate()));
+					transaction.setMessage(t.message());
 					transaction.setSplits(new ArrayList<>());
-					final JSONArray splits = t.getJSONArray("splits");
-					for (int j = 0; j < splits.length(); j++) {
-						final JSONObject s = splits.getJSONObject(j);
-						final Split split = new Split();
-						final Integer fromSource = sourceIDsByUUID.get(s.getString("from"));
-						if (fromSource == null) {
-							throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find transaction from source UUID " + s.getString("from") + " for split #" + j + " in transaction " + t.getString("uuid"));
+					if (t.splits() != null) {
+						for (int j = 0; j < t.splits().size(); j++) {
+							final RestoreSplitDto s = t.splits().get(j);
+							final Split split = new Split();
+							final Integer fromSource = sourceIDsByUUID.get(s.from());
+							if (fromSource == null) {
+								throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find transaction from source UUID " + s.from() + " for split #" + j + " in transaction " + t.uuid());
+							}
+							final Integer toSource = sourceIDsByUUID.get(s.to());
+							if (toSource == null) {
+								throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find transaction from source UUID " + s.to() + " for split #" + j + " in transaction " + t.uuid());
+							}
+							split.setAmount(FormatUtil.parseCurrency(s.amount()).toPlainString());
+							split.setFromSource(fromSource);
+							split.setToSource(toSource);
+							split.setMemo(s.memo());
+							transaction.getSplits().add(split);
 						}
-						final Integer toSource = sourceIDsByUUID.get(s.getString("to"));
-						if (toSource == null) {
-							throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not find transaction from source UUID " + s.getString("to") + " for split #" + j + " in transaction " + t.getString("uuid"));
-						}
-						split.setAmount(FormatUtil.parseCurrency(s.getString("amount")).toPlainString());
-						split.setFromSource(fromSource);
-						split.setToSource(toSource);
-						split.setMemo(s.optString("memo", null));
-						transaction.getSplits().add(split);
 					}
 
 					ConstraintsChecker.checkInsertScheduledTransaction(transaction, user, sources, crypto);

@@ -1,12 +1,9 @@
 package ca.digitalcave.buddi.live.model;
 
-import java.math.BigDecimal;
-import java.util.Date;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import ca.digitalcave.buddi.live.api.dto.request.SplitRequestDto;
 import ca.digitalcave.buddi.live.util.FormatUtil;
+
+import java.util.Date;
 
 public class Split {
 	private Long id;
@@ -28,28 +25,18 @@ public class Split {
 	
 	public Split() {
 	}
-	public Split(JSONObject json) throws JSONException {
-		this.setId(json.has("id") ? json.getLong("id") : null);
-		this.setTransactionId(json.has("transactionId") ? json.getLong("transactionId") : null);
-		this.setAmount(FormatUtil.parseCurrency(String.valueOf(json.get("amount"))).toPlainString());
-		this.setFromSource(json.getInt("fromId"));
-		this.setToSource(json.getInt("toId"));
-		this.setMemo(json.optString("memo", null));
+
+	public static Split fromDto(final SplitRequestDto dto) {
+		final Split split = new Split();
+		split.setId(dto.id());
+		split.setTransactionId(dto.transactionId());
+		split.setAmount(FormatUtil.parseCurrency(String.valueOf(dto.amount())).toPlainString());
+		split.setFromSource(dto.fromId());
+		split.setToSource(dto.toId());
+		split.setMemo(dto.memo());
+		return split;
 	}
 	
-	public JSONObject toJson() throws JSONException {
-		final JSONObject result = new JSONObject();
-		result.put("id", this.getId());
-		result.put("transactionId", this.getTransactionId());
-		result.put("userId", this.getUserId());
-		result.put("amount", new BigDecimal(this.getAmount()).toPlainString());
-		result.put("fromId", this.getFromSource());
-		result.put("toId", this.getToSource());
-		result.put("memo", this.getMemo());
-		result.put("created", FormatUtil.formatDateTimeInternal((Date) this.getCreated()));
-		result.put("modified", FormatUtil.formatDateTimeInternal((Date) this.getModified()));
-		return result;
-	}
 	public Long getId() {
 		return id;
 	}
@@ -143,10 +130,7 @@ public class Split {
 	
 	@Override
 	public String toString() {
-		try {
-			return toJson().toString();
-		}
-		catch (JSONException e){return "Error converting to JSON";}
+		return String.format("Split[id=%s, amount=%s, from=%s, to=%s]", id, amount, fromSource, toSource);
 	}
 	
 	public String getFromSourceName() {

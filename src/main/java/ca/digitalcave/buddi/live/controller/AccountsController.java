@@ -1,22 +1,9 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.util.List;
-
-import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-
 import ca.digitalcave.buddi.live.api.converter.AccountsResponseConverter;
 import ca.digitalcave.buddi.live.api.dto.AccountsResponseDto;
 import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
+import ca.digitalcave.buddi.live.api.dto.request.AccountRequestDto;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
 import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
@@ -28,6 +15,14 @@ import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/data/accounts")
@@ -58,11 +53,10 @@ public class AccountsController {
 
 	@PostMapping
 	@Transactional
-	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody String body) {
+	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody final AccountRequestDto request) {
 		try {
-			final JSONObject request = new JSONObject(body);
-			final Action action = Action.fromString(request.optString("action"));
-			final Account account = new Account(request);
+			final Action action = request.action();
+			final Account account = Account.fromDto(request);
 
 			if (Action.INSERT == action) {
 				ConstraintsChecker.checkInsertAccount(account, user, sources, crypto);

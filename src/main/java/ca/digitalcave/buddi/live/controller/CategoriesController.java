@@ -1,44 +1,34 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
-import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-
 import ca.digitalcave.buddi.live.api.converter.CategoriesResponseConverter;
 import ca.digitalcave.buddi.live.api.dto.CategoriesMutationResponseDto;
 import ca.digitalcave.buddi.live.api.dto.CategoriesResponseDto;
 import ca.digitalcave.buddi.live.api.dto.CategoriesResponseDto.CategoryNodeDto;
+import ca.digitalcave.buddi.live.api.dto.request.CategoriesRequestDto;
 import ca.digitalcave.buddi.live.db.Entries;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
 import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
 import ca.digitalcave.buddi.live.db.util.DataUpdater;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
-import ca.digitalcave.buddi.live.model.Category;
-import ca.digitalcave.buddi.live.model.CategoryPeriod;
+import ca.digitalcave.buddi.live.model.*;
 import ca.digitalcave.buddi.live.model.CategoryPeriod.CategoryPeriods;
-import ca.digitalcave.buddi.live.model.Entry;
-import ca.digitalcave.buddi.live.model.Transaction;
-import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.buddi.live.util.FormatUtil;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/data/categories")
@@ -77,11 +67,10 @@ public class CategoriesController {
 
 	@PostMapping
 	@Transactional
-	public CategoriesMutationResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final String body) {
+	public CategoriesMutationResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final CategoriesRequestDto request) {
 		try {
-			final JSONObject request = new JSONObject(body);
-			final Action action = Action.fromString(request.optString("action"));
-			final Category category = new Category(request);
+			final Action action = request.action();
+			final Category category = Category.fromDto(request);
 			CategoryNodeDto data = null;
 
 			if (Action.INSERT == action) {
@@ -114,8 +103,8 @@ public class CategoriesController {
 				}
 			}
 			else if (Action.COPY_FROM_PREVIOUS == action) {
-				final CategoryPeriods period = CategoryPeriods.valueOf(request.getString("type"));
-				final Date currentDate = period.getStartOfBudgetPeriod(FormatUtil.parseDateInternal(request.getString("date")));
+				final CategoryPeriods period = CategoryPeriods.valueOf(request.type());
+				final Date currentDate = period.getStartOfBudgetPeriod(FormatUtil.parseDateInternal(request.date()));
 				final Date previousDate = period.getBudgetPeriodOffset(currentDate, -1);
 
 				final Map<Integer, Entry> previousEntries = entries.selectEntries(user, previousDate);
@@ -144,7 +133,7 @@ public class CategoriesController {
 				}
 			}
 			else if (Action.SET == action) {
-				final Entry entry = new Entry(request);
+				final Entry entry = Entry.fromDto(request);
 				final Entry existingEntry = entries.selectEntry(user, entry);
 
 				if (existingEntry == null) {
@@ -163,11 +152,11 @@ public class CategoriesController {
 				}
 
 				final CategoryPeriod cp = new CategoryPeriod(
-						CategoryPeriods.valueOf(request.getString("periodType")),
-						FormatUtil.parseDateInternal(request.getString("date")),
-						Integer.parseInt(request.optString("offset", "0")));
+						CategoryPeriods.valueOf(request.periodType()),
+						FormatUtil.parseDateInternal(request.date()),
+						Integer.parseInt(request.offset() != null ? request.offset() : "0"));
 
-				final Category c = sources.selectCategory(user, cp, request.getInt("categoryId"));
+				final Category c = sources.selectCategory(user, cp, request.categoryId());
 				final List<Transaction> txns = transactions.selectTransactions(user, c, cp.getCurrentPeriodStartDate(), cp.getCurrentPeriodEndDate());
 				data = categoriesResponseConverter.convertCategoryNode(c, cp, txns, user);
 			}

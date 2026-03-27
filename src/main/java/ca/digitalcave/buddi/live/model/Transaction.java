@@ -1,16 +1,13 @@
 package ca.digitalcave.buddi.live.model;
 
+import ca.digitalcave.buddi.live.api.dto.request.SplitRequestDto;
+import ca.digitalcave.buddi.live.api.dto.request.TransactionRequestDto;
+import ca.digitalcave.buddi.live.util.FormatUtil;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-
-import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import ca.digitalcave.buddi.live.util.FormatUtil;
 
 public class Transaction {
 	private Long id;
@@ -27,39 +24,23 @@ public class Transaction {
 	
 	public Transaction() {
 	}
-	public Transaction(JSONObject json) throws JSONException {
-		this.setId(StringUtils.isNotBlank(json.optString("id", null)) ? Long.parseLong(json.getString("id")) : null);
-		this.setUuid(json.has("uuid") ? json.getString("uuid") : UUID.randomUUID().toString());
-		this.setDescription(json.getString("description"));
-		this.setNumber(json.has("number") ? json.getString("number") : null);
-		this.setDate(json.has("date") ? FormatUtil.parseDateInternal(json.getString("date")) : null);
-		this.setDeleted(json.has("deleted") ? json.getBoolean("deleted") : false);
-		final List<Split> splits = new ArrayList<Split>();
-		for (int i = 0; i < json.getJSONArray("splits").length(); i++){
-			splits.add(new Split(json.getJSONArray("splits").getJSONObject(i)));
-		}
-		this.setSplits(splits);
-	}
-	
-	public JSONObject toJson() throws JSONException {
-		final JSONObject result = new JSONObject();
-		result.put("id", this.getId());
-		result.put("userId", this.getUserId());
-		result.put("uuid", this.getUuid());
-		result.put("description", this.getDescription());
-		result.put("number", this.getNumber());
-		result.put("date", FormatUtil.formatDateInternal((Date) this.getDate()));
-		result.put("deleted", this.isDeleted());
-		JSONArray splits = new JSONArray();
-		if (getSplits() != null){
-			for (Split split : getSplits()) {
-				splits.put(split.toJson());
+
+	public static Transaction fromDto(final TransactionRequestDto dto) {
+		final Transaction transaction = new Transaction();
+		transaction.setId(dto.id());
+		transaction.setUuid(dto.uuid() != null ? dto.uuid() : UUID.randomUUID().toString());
+		transaction.setDescription(dto.description());
+		transaction.setNumber(dto.number());
+		transaction.setDate(dto.date() != null ? FormatUtil.parseDateInternal(dto.date()) : null);
+		transaction.setDeleted(Boolean.TRUE.equals(dto.deleted()));
+		if (dto.splits() != null) {
+			final List<Split> splits = new ArrayList<>();
+			for (final SplitRequestDto splitDto : dto.splits()) {
+				splits.add(Split.fromDto(splitDto));
 			}
+			transaction.setSplits(splits);
 		}
-		result.put("splits", splits);
-		result.put("created", FormatUtil.formatDateTimeInternal((Date) this.getCreated()));
-		result.put("modified", FormatUtil.formatDateTimeInternal((Date) this.getModified()));
-		return result;
+		return transaction;
 	}
 	
 	public Long getId() {
@@ -134,9 +115,6 @@ public class Transaction {
 	
 	@Override
 	public String toString() {
-		try {
-			return toJson().toString();
-		}
-		catch (JSONException e){return "Error converting to JSON";}
+		return String.format("Transaction[id=%s, uuid=%s, description=%s, date=%s]", id, uuid, description, date);
 	}
 }

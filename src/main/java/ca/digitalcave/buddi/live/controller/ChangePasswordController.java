@@ -1,8 +1,15 @@
 package ca.digitalcave.buddi.live.controller;
 
-import javax.crypto.SecretKey;
-
-import org.json.JSONObject;
+import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
+import ca.digitalcave.buddi.live.api.dto.request.ChangePasswordRequestDto;
+import ca.digitalcave.buddi.live.db.Users;
+import ca.digitalcave.buddi.live.db.util.DatabaseException;
+import ca.digitalcave.buddi.live.model.User;
+import ca.digitalcave.buddi.live.util.LocaleUtil;
+import ca.digitalcave.moss.auth.password.PasswordChecker;
+import ca.digitalcave.moss.crypto.Crypto;
+import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import ca.digitalcave.moss.crypto.DefaultHash;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,15 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
-import ca.digitalcave.buddi.live.db.Users;
-import ca.digitalcave.buddi.live.db.util.DatabaseException;
-import ca.digitalcave.buddi.live.model.User;
-import ca.digitalcave.buddi.live.util.LocaleUtil;
-import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.crypto.Crypto.CryptoException;
-import ca.digitalcave.moss.crypto.DefaultHash;
-import ca.digitalcave.moss.auth.password.PasswordChecker;
+import javax.crypto.SecretKey;
 
 @RestController
 @RequestMapping("/data/changepassword")
@@ -38,14 +37,13 @@ public class ChangePasswordController {
 
 	@PostMapping
 	@Transactional
-	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody String body) {
+	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody final ChangePasswordRequestDto request) {
 		try {
-			final JSONObject json = new JSONObject(body);
-			final Action action = Action.fromString(json.optString("action"));
+			final Action action = request.action();
 
 			if (Action.UPDATE == action) {
-				final String currentPassword = json.getString("currentPassword");
-				final String newPassword = json.getString("newPassword");
+				final String currentPassword = request.currentPassword();
+				final String newPassword = request.newPassword();
 
 				if (DefaultHash.verify(new String(user.getSecret()), currentPassword)) {
 					if (passwordChecker.isValid("", newPassword)) {

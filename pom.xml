@@ -118,6 +118,7 @@
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20251224</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- Apache Commons -->

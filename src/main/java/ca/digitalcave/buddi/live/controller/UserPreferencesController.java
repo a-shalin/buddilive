@@ -1,28 +1,10 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.util.Currency;
-import java.util.Locale;
-
-import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-
 import ca.digitalcave.buddi.live.api.converter.UserPreferencesResponseConverter;
 import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
 import ca.digitalcave.buddi.live.api.dto.UserPreferencesResponseDto;
-import ca.digitalcave.buddi.live.db.Entries;
-import ca.digitalcave.buddi.live.db.ScheduledTransactions;
-import ca.digitalcave.buddi.live.db.Sources;
-import ca.digitalcave.buddi.live.db.Transactions;
-import ca.digitalcave.buddi.live.db.Users;
+import ca.digitalcave.buddi.live.api.dto.request.UserPreferencesRequestDto;
+import ca.digitalcave.buddi.live.db.*;
 import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
 import ca.digitalcave.buddi.live.db.util.DataUpdater;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
@@ -35,6 +17,15 @@ import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import ca.digitalcave.moss.crypto.DefaultHash;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Currency;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/data/userpreferences")
@@ -72,16 +63,15 @@ public class UserPreferencesController {
 	@PostMapping
 	@Transactional
 	public SuccessResponseDto post(@AuthenticationPrincipal final User user,
-			@RequestBody final String body,
+			@RequestBody final UserPreferencesRequestDto dto,
 			final HttpServletRequest request,
 			final HttpServletResponse response) {
 		try {
-			final JSONObject json = new JSONObject(body);
-			final Action action = Action.fromString(json.optString("action"));
+			final Action action = dto.action();
 
 			if (Action.UPDATE == action) {
-				if (json.optBoolean("encrypt", false) != user.isEncrypted()) {
-					final String encryptPassword = json.getString("encryptPassword");
+				if (Boolean.TRUE.equals(dto.encrypt()) != user.isEncrypted()) {
+					final String encryptPassword = dto.encryptPassword();
 					if (!DefaultHash.verify(new String(user.getSecret()), encryptPassword)) {
 						throw new ResponseStatusException(HttpStatus.FORBIDDEN, LocaleUtil.getTranslation(user).getString("INCORRECT_PASSWORD"));
 					}
@@ -93,18 +83,18 @@ public class UserPreferencesController {
 						DataUpdater.turnOnEncryption(user, sources, entries, transactions, scheduledTransactions, users, crypto);
 					}
 				}
-				user.setEmail(json.optBoolean("storeEmail", false) ? user.getPlaintextIdentifier() : null);
-				user.setLocale(LocaleUtil.parseLocale(json.optString("locale", "en_US"), Locale.US));
-				user.setCurrency(Currency.getInstance(json.optString("currency", "USD")));
-				user.setOverrideDateFormat(json.optString("dateFormat", null));
-				user.setOverrideCurrencyAfter(json.optBoolean("currencyAfter", user.isCurrencyAfter()) ? "Y" : "N");
-				user.setOverrideDecimalSeparator(json.optString("decimalSeparator", null));
-				user.setOverrideThousandsSeparator(json.optString("thousandSeparator", null));
-				user.setOverrideNegativeFormat(json.optString("negativeFormat", "N"));
-				user.setShowCurrencySymbol(json.optBoolean("showCurrencySymbol", user.isShowCurrencySymbol()));
-				user.setCurrencySpacing(json.optBoolean("currencySpacing", user.useCurrencySpacing()) ? "Y" : "N");
-				user.setTwoFactorRequired(json.optBoolean("useTwoFactor", false));
-				user.setShowDeleted(json.optBoolean("showDeleted", true));
+				user.setEmail(Boolean.TRUE.equals(dto.storeEmail()) ? user.getPlaintextIdentifier() : null);
+				user.setLocale(LocaleUtil.parseLocale(dto.locale() != null ? dto.locale() : "en_US", Locale.US));
+				user.setCurrency(Currency.getInstance(dto.currency() != null ? dto.currency() : "USD"));
+				user.setOverrideDateFormat(dto.dateFormat());
+				user.setOverrideCurrencyAfter(Boolean.TRUE.equals(dto.currencyAfter()) || (dto.currencyAfter() == null && user.isCurrencyAfter()) ? "Y" : "N");
+				user.setOverrideDecimalSeparator(dto.decimalSeparator());
+				user.setOverrideThousandsSeparator(dto.thousandSeparator());
+				user.setOverrideNegativeFormat(dto.negativeFormat() != null ? dto.negativeFormat() : "N");
+				user.setShowCurrencySymbol(Boolean.TRUE.equals(dto.showCurrencySymbol()) || (dto.showCurrencySymbol() == null && user.isShowCurrencySymbol()));
+				user.setCurrencySpacing(Boolean.TRUE.equals(dto.currencySpacing()) || (dto.currencySpacing() == null && user.useCurrencySpacing()) ? "Y" : "N");
+				user.setTwoFactorRequired(Boolean.TRUE.equals(dto.useTwoFactor()));
+				user.setShowDeleted(dto.showDeleted() == null || dto.showDeleted());
 
 				ConstraintsChecker.checkUpdateUserPreferences(user);
 

@@ -1,12 +1,11 @@
 package ca.digitalcave.buddi.live.model;
 
+import ca.digitalcave.buddi.live.api.dto.request.AccountRequestDto;
+import ca.digitalcave.buddi.live.util.FormatUtil;
+
 import java.math.BigDecimal;
 import java.util.Date;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import ca.digitalcave.buddi.live.util.FormatUtil;
+import java.util.UUID;
 
 public class Account extends Source {
 	private String accountType;
@@ -14,26 +13,23 @@ public class Account extends Source {
 	private Date startDate;
 
 	private String balance;
-	
+
 	public Account() {}
-	
-	public Account(JSONObject json) throws JSONException {
-		super(json);
-		this.setAccountType(json.optString("accountType", null));
-		final BigDecimal startBalance = FormatUtil.parseCurrency(json.optString("startBalance", null));
-		if (startBalance != null) this.setStartBalance(startBalance.toPlainString());
-		this.setStartDate(FormatUtil.parseDateInternal(json.optString("startDate", "1900-01-01")));
+
+	public static Account fromDto(final AccountRequestDto dto) {
+		final Account account = new Account();
+		account.setId(dto.id());
+		account.setUuid(dto.uuid() != null ? dto.uuid() : UUID.randomUUID().toString());
+		account.setName(dto.name());
+		account.setDeleted(Boolean.TRUE.equals(dto.deleted()));
+		account.setType(dto.type());
+		account.setAccountType(dto.accountType());
+		final BigDecimal startBalance = FormatUtil.parseCurrency(dto.startBalance());
+		if (startBalance != null) account.setStartBalance(startBalance.toPlainString());
+		account.setStartDate(FormatUtil.parseDateInternal(dto.startDate() != null ? dto.startDate() : "1900-01-01"));
+		return account;
 	}
-	
-//	public JSONObject toJson() throws JSONException {
-//		JSONObject result = super.toJson();
-//		result.put("startBalance", this.getStartBalance().toPlainString());
-//		result.put("balance", this.getBalance().toPlainString());
-//		result.put("startDate", FormatUtil.formatDateTimeInternal((Date) this.getStartDate()));
-//		result.put("accountType", this.getAccountType());
-//		return result;
-//	}
-	
+
 	public String getAccountType() {
 		return accountType;
 	}
