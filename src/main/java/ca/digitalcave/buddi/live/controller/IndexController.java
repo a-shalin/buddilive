@@ -29,6 +29,7 @@ import ca.digitalcave.buddi.live.db.ScheduledTransactions;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
 import ca.digitalcave.buddi.live.db.Users;
+import ca.digitalcave.buddi.live.config.AssetVersionTokenProvider;
 import ca.digitalcave.buddi.live.db.util.DataUpdater;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
 import ca.digitalcave.buddi.live.model.Account;
@@ -42,9 +43,16 @@ import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
 import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
 import ca.digitalcave.moss.auth.i18n.OverridableResourceBundle;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Controller
 public class IndexController {
+
+	private static final String CACHE_CONTROL_HEADER = "Cache-Control";
+	private static final String CACHE_CONTROL_NO_STORE_VALUE = "no-cache, no-store, max-age=0, must-revalidate";
+	private static final String PRAGMA_HEADER = "Pragma";
+	private static final String PRAGMA_NO_CACHE_VALUE = "no-cache";
+	private static final String EXPIRES_HEADER = "Expires";
 
 	@Autowired
 	private Users users;
@@ -71,9 +79,16 @@ public class IndexController {
 	@Qualifier("mailProperties")
 	private Properties mailProperties;
 
+	@Autowired
+	private AssetVersionTokenProvider assetVersionTokenProvider;
+
 	@GetMapping("/index")
 	@Transactional
-	public String index(@AuthenticationPrincipal User user, Model model) {
+	public String index(@AuthenticationPrincipal final User user, final Model model, final HttpServletResponse response) {
+		response.setHeader(CACHE_CONTROL_HEADER, CACHE_CONTROL_NO_STORE_VALUE);
+		response.setHeader(PRAGMA_HEADER, PRAGMA_NO_CACHE_VALUE);
+		response.setDateHeader(EXPIRES_HEADER, 0L);
+
 		try {
 			if (user != null) {
 				final int encryptionVersion = users.selectEncryptionVersion(user);
@@ -108,6 +123,7 @@ public class IndexController {
 		model.addAttribute("translation", LocaleUtil.getTranslation(user != null ? user : new User()));
 		model.addAttribute("buildDate", System.getProperty("BUILD_DATE"));
 		model.addAttribute("version", System.getProperty("VERSION"));
+		model.addAttribute("assetVersionToken", assetVersionTokenProvider.getToken());
 
 		return "index";
 	}

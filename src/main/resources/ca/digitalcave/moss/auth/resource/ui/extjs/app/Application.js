@@ -1,4 +1,9 @@
 let __ac = window.__authConfig || {};
+const assetVersion = window.__assetVersion || "0";
+Ext.manifest = Ext.manifest || {};
+Ext.manifest.loader = Ext.manifest.loader || {};
+Ext.manifest.loader.cache = assetVersion;
+Ext.manifest.loader.cacheParam = "v";
 
 let loaderPaths = {Login: __ac.routerAttachPoint || "authentication"};
 if (__ac.applicationLoaderPaths) {
@@ -8,6 +13,8 @@ if (__ac.applicationLoaderPaths) {
 }
 Ext.Loader.setConfig({
 	enabled: true,
+	disableCaching: false,
+	disableCachingParam: "v",
 	paths: loaderPaths
 });
 

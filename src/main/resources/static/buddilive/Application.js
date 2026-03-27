@@ -1,6 +1,13 @@
+const assetVersion = window.__assetVersion || "0";
+Ext.manifest = Ext.manifest || {};
+Ext.manifest.loader = Ext.manifest.loader || {};
+Ext.manifest.loader.cache = assetVersion;
+Ext.manifest.loader.cacheParam = "v";
+
 Ext.Loader.setConfig({
 	enabled: true,
-	disableCaching: true,
+	disableCaching: false,
+	disableCachingParam: "v",
 	paths: {
 		BuddiLive: "buddilive",
 		Login: "authentication"
