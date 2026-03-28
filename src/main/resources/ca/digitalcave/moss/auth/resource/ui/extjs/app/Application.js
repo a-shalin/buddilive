@@ -13,7 +13,7 @@ if (__ac.applicationLoaderPaths) {
 }
 Ext.Loader.setConfig({
 	enabled: true,
-	disableCaching: false,
+	disableCaching: true,
 	disableCachingParam: "v",
 	paths: loaderPaths
 });

@@ -29,7 +29,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
@@ -492,40 +491,6 @@ public class AuthenticationController {
 		CookieUtil.setEncryptedCookie(request, response, helper, params, true);
 
 		return ResponseEntity.ok(new SuccessResponseDto(true));
-	}
-
-	@GetMapping("/**")
-	public ResponseEntity<byte[]> serveAuthUi(final HttpServletRequest request) {
-		String path = request.getServletPath();
-		if (path.startsWith("/authentication/")) {
-			path = path.substring("/authentication/".length());
-		}
-		else if (path.startsWith("/authentication")) {
-			path = path.substring("/authentication".length());
-		}
-
-		if (path.isEmpty() || path.equals("/")) {
-			path = "app/Application.js";
-		}
-
-		try (InputStream is = getClass().getResourceAsStream("/ca/digitalcave/moss/auth/resource/ui/extjs/" + path)) {
-			if (is == null) {
-				return ResponseEntity.notFound().build();
-			}
-			final byte[] bytes = is.readAllBytes();
-			String contentType = "application/octet-stream";
-			if (path.endsWith(".js")) contentType = "application/javascript";
-			else if (path.endsWith(".css")) contentType = "text/css";
-			else if (path.endsWith(".html")) contentType = "text/html";
-			else if (path.endsWith(".png")) contentType = "image/png";
-			else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) contentType = "image/jpeg";
-			else if (path.endsWith(".gif")) contentType = "image/gif";
-
-			return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType)).body(bytes);
-		}
-		catch (Exception e) {
-			return ResponseEntity.notFound().build();
-		}
 	}
 
 	private CookieAuthenticationToken getToken() {
