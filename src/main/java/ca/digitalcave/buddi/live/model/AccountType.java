@@ -11,19 +11,19 @@ public class AccountType {
 	public List<Account> getAccounts() {
 		return accounts;
 	}
-	public void setAccounts(List<Account> accounts) {
+	public void setAccounts(final List<Account> accounts) {
 		this.accounts = accounts;
 	}
 	public String getType() {
 		return type;
 	}
-	public void setType(String type) {
+	public void setType(final String type) {
 		this.type = type;
 	}
 	public String getAccountType() {
 		return accountType;
 	}
-	public void setAccountType(String accountType) {
+	public void setAccountType(final String accountType) {
 		this.accountType = accountType;
 	}
 	

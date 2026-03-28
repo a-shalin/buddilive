@@ -1,19 +1,18 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
 import ca.digitalcave.buddi.live.api.converter.ReportResponseConverter;
 import ca.digitalcave.buddi.live.api.dto.ReportDataResponseDto;
+import ca.digitalcave.buddi.live.db.Entries;
+import ca.digitalcave.buddi.live.db.Sources;
+import ca.digitalcave.buddi.live.db.Transactions;
+import ca.digitalcave.buddi.live.model.*;
+import ca.digitalcave.buddi.live.model.CategoryPeriod.CategoryPeriods;
+import ca.digitalcave.buddi.live.model.report.Interval;
+import ca.digitalcave.buddi.live.util.CryptoUtil;
+import ca.digitalcave.buddi.live.util.FormatUtil;
+import ca.digitalcave.buddi.live.util.LocaleUtil;
+import ca.digitalcave.moss.common.DateUtil;
+import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,21 +22,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import ca.digitalcave.buddi.live.db.Entries;
-import ca.digitalcave.buddi.live.db.Sources;
-import ca.digitalcave.buddi.live.db.Transactions;
-import ca.digitalcave.buddi.live.model.Account;
-import ca.digitalcave.buddi.live.model.Category;
-import ca.digitalcave.buddi.live.model.CategoryPeriod.CategoryPeriods;
-import ca.digitalcave.buddi.live.model.Split;
-import ca.digitalcave.buddi.live.model.Transaction;
-import ca.digitalcave.buddi.live.model.User;
-import ca.digitalcave.buddi.live.model.report.Interval;
-import ca.digitalcave.buddi.live.util.CryptoUtil;
-import ca.digitalcave.buddi.live.util.FormatUtil;
-import ca.digitalcave.buddi.live.util.LocaleUtil;
-import ca.digitalcave.moss.common.DateUtil;
-import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
 
 @RestController
 @RequestMapping("/data/report")
@@ -55,7 +42,7 @@ public class ReportController {
 	@Autowired
 	private ReportResponseConverter reportResponseConverter;
 
-	private Date[] processInterval(String interval, String startDate, String endDate) {
+	private Date[] processInterval(final String interval, final String startDate, final String endDate) {
 		final Interval i = Interval.valueOf(interval);
 		if (i == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An interval parameter is required.");
 		if (i != Interval.PLUGIN_FILTER_OTHER) {
@@ -70,11 +57,11 @@ public class ReportController {
 	}
 
 	@GetMapping("/pietotalsbycategory")
-	public ReportDataResponseDto pieTotalsByCategory(@AuthenticationPrincipal User user,
-			@RequestParam String interval,
-			@RequestParam String type,
-			@RequestParam(required = false) String startDate,
-			@RequestParam(required = false) String endDate) {
+	public ReportDataResponseDto pieTotalsByCategory(@AuthenticationPrincipal final User user,
+			@RequestParam final String interval,
+			@RequestParam final String type,
+			@RequestParam(required = false) final String startDate,
+			@RequestParam(required = false) final String endDate) {
 		try {
 			if (!"E".equals(type) && !"I".equals(type)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "type parameter (I or E) is required");
 
@@ -102,7 +89,7 @@ public class ReportController {
 			final List<Integer> categories = new ArrayList<>(totalsByCategory.keySet());
 			Collections.sort(categories, new Comparator<Integer>() {
 				@Override
-				public int compare(Integer o1, Integer o2) {
+				public int compare(final Integer o1, final Integer o2) {
 					return -1 * totalsByCategory.get(o1).compareTo(totalsByCategory.get(o2));
 				}
 			});
@@ -126,10 +113,10 @@ public class ReportController {
 	}
 
 	@GetMapping("/incomeandexpensesbycategory")
-	public ReportDataResponseDto incomeAndExpensesByCategory(@AuthenticationPrincipal User user,
-			@RequestParam String interval,
-			@RequestParam(required = false) String startDate,
-			@RequestParam(required = false) String endDate) {
+	public ReportDataResponseDto incomeAndExpensesByCategory(@AuthenticationPrincipal final User user,
+			@RequestParam final String interval,
+			@RequestParam(required = false) final String startDate,
+			@RequestParam(required = false) final String endDate) {
 		try {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final List<Transaction> txns = transactions.selectTransactions(user, dates[0], dates[1]);
@@ -161,10 +148,10 @@ public class ReportController {
 		}
 	}
 
-	private BigDecimal[] calculateIncomeExpenseCategories(List<Map<String, Object>> data, boolean income, User user, List<Category> categories, List<Transaction> txns, Date[] dates) throws CryptoException {
+	private BigDecimal[] calculateIncomeExpenseCategories(final List<Map<String, Object>> data, final boolean income, final User user, final List<Category> categories, final List<Transaction> txns, final Date[] dates) throws CryptoException {
 		Collections.sort(categories, new Comparator<Category>() {
 			@Override
-			public int compare(Category o1, Category o2) {
+			public int compare(final Category o1, final Category o2) {
 				if (o1 == null || o2 == null) return 0;
 				if (o1.isIncome() != o2.isIncome()) return o1.isIncome() ? -1 : 1;
 				try {
@@ -232,7 +219,7 @@ public class ReportController {
 				if (transactionsInCategory != null) {
 					Collections.sort(transactionsInCategory, new Comparator<Transaction>() {
 						@Override
-						public int compare(Transaction o1, Transaction o2) {
+						public int compare(final Transaction o1, final Transaction o2) {
 							if (o1 == null || o2 == null) return 0;
 							return o1.getDate().compareTo(o2.getDate());
 						}
@@ -273,10 +260,10 @@ public class ReportController {
 	}
 
 	@GetMapping("/averageincomeandexpensesbycategory")
-	public ReportDataResponseDto averageIncomeAndExpensesByCategory(@AuthenticationPrincipal User user,
-			@RequestParam String interval,
-			@RequestParam(required = false) String startDate,
-			@RequestParam(required = false) String endDate) {
+	public ReportDataResponseDto averageIncomeAndExpensesByCategory(@AuthenticationPrincipal final User user,
+			@RequestParam final String interval,
+			@RequestParam(required = false) final String startDate,
+			@RequestParam(required = false) final String endDate) {
 		try {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final List<Transaction> txns = transactions.selectTransactions(user, dates[0], dates[1]);
@@ -293,10 +280,10 @@ public class ReportController {
 		}
 	}
 
-	private void calculateAverageCategories(List<Map<String, Object>> data, boolean income, User user, List<Category> categories, List<Transaction> txns, Date[] dates) throws CryptoException {
+	private void calculateAverageCategories(final List<Map<String, Object>> data, final boolean income, final User user, final List<Category> categories, final List<Transaction> txns, final Date[] dates) throws CryptoException {
 		Collections.sort(categories, new Comparator<Category>() {
 			@Override
-			public int compare(Category o1, Category o2) {
+			public int compare(final Category o1, final Category o2) {
 				if (o1 == null || o2 == null) return 0;
 				if (o1.isIncome() != o2.isIncome()) return o1.isIncome() ? -1 : 1;
 				try {
@@ -377,10 +364,10 @@ public class ReportController {
 	}
 
 	@GetMapping("/inflowandoutflowbyaccount")
-	public ReportDataResponseDto inflowAndOutflowByAccount(@AuthenticationPrincipal User user,
-			@RequestParam String interval,
-			@RequestParam(required = false) String startDate,
-			@RequestParam(required = false) String endDate) {
+	public ReportDataResponseDto inflowAndOutflowByAccount(@AuthenticationPrincipal final User user,
+			@RequestParam final String interval,
+			@RequestParam(required = false) final String startDate,
+			@RequestParam(required = false) final String endDate) {
 		try {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final List<Transaction> txns = transactions.selectTransactions(user, dates[0], dates[1]);
@@ -395,10 +382,10 @@ public class ReportController {
 		}
 	}
 
-	private void calculateInflowOutflowByAccount(List<Map<String, Object>> data, User user, List<Account> accounts, List<Transaction> txns) throws CryptoException {
+	private void calculateInflowOutflowByAccount(final List<Map<String, Object>> data, final User user, final List<Account> accounts, final List<Transaction> txns) throws CryptoException {
 		Collections.sort(accounts, new Comparator<Account>() {
 			@Override
-			public int compare(Account o1, Account o2) {
+			public int compare(final Account o1, final Account o2) {
 				if (o1 == null || o2 == null) return 0;
 				if (o1.isDebit() != o2.isDebit()) return o1.isDebit() ? -1 : 1;
 				try {
@@ -475,7 +462,7 @@ public class ReportController {
 				if (transactionsInCategory != null) {
 					Collections.sort(transactionsInCategory, new Comparator<Transaction>() {
 						@Override
-						public int compare(Transaction o1, Transaction o2) {
+						public int compare(final Transaction o1, final Transaction o2) {
 							if (o1 == null || o2 == null) return 0;
 							return o1.getDate().compareTo(o2.getDate());
 						}
@@ -502,10 +489,10 @@ public class ReportController {
 	}
 
 	@GetMapping("/inflowandoutflowbypayee")
-	public ReportDataResponseDto inflowAndOutflowByPayee(@AuthenticationPrincipal User user,
-			@RequestParam String interval,
-			@RequestParam(required = false) String startDate,
-			@RequestParam(required = false) String endDate) {
+	public ReportDataResponseDto inflowAndOutflowByPayee(@AuthenticationPrincipal final User user,
+			@RequestParam final String interval,
+			@RequestParam(required = false) final String startDate,
+			@RequestParam(required = false) final String endDate) {
 		try {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final List<Transaction> txns = transactions.selectTransactions(user, dates[0], dates[1]);
@@ -520,7 +507,7 @@ public class ReportController {
 		}
 	}
 
-	private void calculateInflowOutflowByPayee(List<Map<String, Object>> data, User user, List<Transaction> txns) throws CryptoException {
+	private void calculateInflowOutflowByPayee(final List<Map<String, Object>> data, final User user, final List<Transaction> txns) throws CryptoException {
 		final Map<String, BigDecimal> totalInflowsByPayee = new HashMap<>();
 		final Map<String, BigDecimal> totalOutflowsByPayee = new HashMap<>();
 		final Map<String, List<Transaction>> transactionsByPayee = new HashMap<>();
@@ -568,7 +555,7 @@ public class ReportController {
 				if (transactionsForPayee != null) {
 					Collections.sort(transactionsForPayee, new Comparator<Transaction>() {
 						@Override
-						public int compare(Transaction o1, Transaction o2) {
+						public int compare(final Transaction o1, final Transaction o2) {
 							if (o1 == null || o2 == null) return 0;
 							return o1.getDate().compareTo(o2.getDate());
 						}
@@ -595,11 +582,11 @@ public class ReportController {
 	}
 
 	@GetMapping("/balancesovertime")
-	public ReportDataResponseDto balancesOverTime(@AuthenticationPrincipal User user,
-			@RequestParam String interval,
-			@RequestParam(required = false, defaultValue = "false") boolean netWorthOnly,
-			@RequestParam(required = false) String startDate,
-			@RequestParam(required = false) String endDate) {
+	public ReportDataResponseDto balancesOverTime(@AuthenticationPrincipal final User user,
+			@RequestParam final String interval,
+			@RequestParam(required = false, defaultValue = "false") final boolean netWorthOnly,
+			@RequestParam(required = false) final String startDate,
+			@RequestParam(required = false) final String endDate) {
 		try {
 			final Date[] dates = processInterval(interval, startDate, endDate);
 			final List<Account> accountBalances = sources.selectAccountBalances(user);

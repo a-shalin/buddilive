@@ -49,11 +49,11 @@ public class TransactionsController {
 	private JsonFactory jsonFactory;
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-	public StreamingResponseBody get(@AuthenticationPrincipal User user,
-			@RequestParam int source,
-			@RequestParam int start,
-			@RequestParam int limit,
-			@RequestParam(required = false) String search) {
+	public StreamingResponseBody get(@AuthenticationPrincipal final User user,
+			@RequestParam final int source,
+			@RequestParam final int start,
+			@RequestParam final int limit,
+			@RequestParam(required = false) final String search) {
 		final Source src = sources.selectSource(user, source);
 		final String searchLower = (search != null ? search.toLowerCase(user.getLocale()) : null);
 
@@ -66,7 +66,7 @@ public class TransactionsController {
 				final MutableInt total = new MutableInt(0);
 				final MutableInt count = new MutableInt(0);
 				transactions.selectTransactions(user, src, new ResultHandler<Transaction>() {
-					public void handleResult(ResultContext<? extends Transaction> context) {
+					public void handleResult(final ResultContext<? extends Transaction> context) {
 						final Transaction t = context.getResultObject();
 						try {
 							final String description = CryptoUtil.decryptWrapper(t.getDescription(), user);
@@ -137,7 +137,7 @@ public class TransactionsController {
 
 	@PostMapping
 	@Transactional
-	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody final TransactionRequestDto request) {
+	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final TransactionRequestDto request) {
 		try {
 			final Action action = request.action();
 

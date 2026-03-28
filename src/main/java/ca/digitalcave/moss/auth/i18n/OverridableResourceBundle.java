@@ -1,16 +1,12 @@
 package ca.digitalcave.moss.auth.i18n;
 
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.ResourceBundle;
-import java.util.Set;
+import java.util.*;
 
 public class OverridableResourceBundle extends ResourceBundle {
 	private final ResourceBundle bundle;
 	private final ResourceBundle defaultBundle;
 	
-	public OverridableResourceBundle(ResourceBundle bundle, ResourceBundle defaultBundle) {
+	public OverridableResourceBundle(final ResourceBundle bundle, final ResourceBundle defaultBundle) {
 		this.bundle = bundle;
 		this.defaultBundle = defaultBundle;
 	}
@@ -36,7 +32,7 @@ public class OverridableResourceBundle extends ResourceBundle {
 	}
 
 	@Override
-	protected Object handleGetObject(String key) {
+	protected Object handleGetObject(final String key) {
 		if (bundle != null){
 			if (bundle.containsKey(key)){
 				try {

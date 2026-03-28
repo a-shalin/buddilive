@@ -18,7 +18,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static Date getStartOfDay(Date date){
+	public static Date getStartOfDay(final Date date){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -37,7 +37,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static Date getStartOfWeek(Date date){
+	public static Date getStartOfWeek(final Date date){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -56,7 +56,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static Date getEndOfDay(Date date){
+	public static Date getEndOfDay(final Date date){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -74,7 +74,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static Date getEndOfWeek(Date date){
+	public static Date getEndOfWeek(final Date date){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -94,7 +94,7 @@ public class DateUtil {
 	 * @param offset
 	 * @return
 	 */
-	public static Date addSeconds(Date date, int offset){
+	public static Date addSeconds(final Date date, final int offset){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -111,7 +111,7 @@ public class DateUtil {
 	 * @param offset
 	 * @return
 	 */
-	public static Date addMinutes(Date date, int offset){
+	public static Date addMinutes(final Date date, final int offset){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -128,7 +128,7 @@ public class DateUtil {
 	 * @param offset
 	 * @return
 	 */
-	public static Date addHours(Date date, int offset){
+	public static Date addHours(final Date date, final int offset){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -145,7 +145,7 @@ public class DateUtil {
 	 * @param offset
 	 * @return
 	 */
-	public static Date addDays(Date date, int offset){
+	public static Date addDays(final Date date, final int offset){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -165,7 +165,7 @@ public class DateUtil {
 	 * @param offset
 	 * @return
 	 */
-	public static Date addMonths(Date date, int offset){
+	public static Date addMonths(final Date date, final int offset){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -178,7 +178,7 @@ public class DateUtil {
 		return ((Date) calendar.getTime().clone());
 	}
 	
-	public static Date addQuarters(Date date, int quarterOffset){
+	public static Date addQuarters(final Date date, final int quarterOffset){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -195,7 +195,7 @@ public class DateUtil {
 	 * @param offset
 	 * @return
 	 */
-	public static Date addYears(Date date, int offset){
+	public static Date addYears(final Date date, final int offset){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -212,7 +212,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static Date getStartOfMonth(Date date){
+	public static Date getStartOfMonth(final Date date){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -231,7 +231,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static Date getEndOfMonth(Date date){
+	public static Date getEndOfMonth(final Date date){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -254,7 +254,7 @@ public class DateUtil {
 	 * Set to 0 to return the quarter for the given date object.
 	 * @return
 	 */
-	public static Date getStartOfQuarter(Date date){
+	public static Date getStartOfQuarter(final Date date){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -275,7 +275,7 @@ public class DateUtil {
 	 * @param quarterOffset How many quarters before (negative) / after (positive) to use.
 	 * @return
 	 */
-	public static Date getEndOfQuarter(Date date){
+	public static Date getEndOfQuarter(final Date date){
 		return getEndOfDay(addDays(addQuarters(getStartOfQuarter(date), 1), -1));
 	}
 	
@@ -284,7 +284,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static Date getStartOfYear(Date date){
+	public static Date getStartOfYear(final Date date){
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -304,7 +304,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static Date getEndOfYear(Date date) {
+	public static Date getEndOfYear(final Date date) {
 		if (date == null)
 			return null;
 		Calendar calendar = Calendar.getInstance();
@@ -333,7 +333,7 @@ public class DateUtil {
 	 * @param inclusive
 	 * @return
 	 */
-	public static int getMonthsBetween(Date first, Date last, boolean inclusive) {
+	public static int getMonthsBetween(final Date first, final Date last, final boolean inclusive) {
 		if (first == null || last == null)
 			return 0;
 
@@ -358,10 +358,10 @@ public class DateUtil {
 	 * @param inclusive
 	 * @return
 	 */
-	public static int getDaysBetween(Date first, Date last, boolean inclusive) {
+	public static int getDaysBetween(final Date first, final Date last, final boolean inclusive) {
 		if (first == null || last == null)
 			return 0;
-		
+
 		Calendar cFirst = Calendar.getInstance();
 		Calendar cLast = Calendar.getInstance();
 		
@@ -444,7 +444,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static int getYear(Date date){
+	public static int getYear(final Date date){
 		if (date == null)
 			return 0;
 		Calendar calendar = Calendar.getInstance();
@@ -458,7 +458,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static int getMonth(Date date){
+	public static int getMonth(final Date date){
 		if (date == null)
 			return -1;
 		Calendar calendar = Calendar.getInstance();
@@ -473,7 +473,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static int getDay(Date date){
+	public static int getDay(final Date date){
 		if (date == null)
 			return 0;
 		Calendar calendar = Calendar.getInstance();
@@ -487,7 +487,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static int getHour(Date date){
+	public static int getHour(final Date date){
 		if (date == null)
 			return -1;
 		Calendar calendar = Calendar.getInstance();
@@ -501,7 +501,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static int getMinute(Date date){
+	public static int getMinute(final Date date){
 		if (date == null)
 			return -1;
 		Calendar calendar = Calendar.getInstance();
@@ -515,7 +515,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static int getSecond(Date date){
+	public static int getSecond(final Date date){
 		if (date == null)
 			return -1;
 		Calendar calendar = Calendar.getInstance();
@@ -531,7 +531,7 @@ public class DateUtil {
 	 * @param day
 	 * @return
 	 */
-	public static Date getDate(int year, int month, int day){
+	public static Date getDate(final int year, final int month, final int day){
 		Calendar calendar = Calendar.getInstance();
 		calendar.set(Calendar.YEAR, year);
 		calendar.set(Calendar.MONTH, month);
@@ -546,7 +546,7 @@ public class DateUtil {
 	 * @param month
 	 * @return
 	 */
-	public static Date getDate(int year, int month){
+	public static Date getDate(final int year, final int month){
 		return getStartOfMonth(getDate(year, month, 1));
 	}
 	
@@ -555,7 +555,7 @@ public class DateUtil {
 	 * @param year
 	 * @return
 	 */
-	public static Date getDate(int year){
+	public static Date getDate(final int year){
 		return getStartOfYear(getDate(year, Calendar.JANUARY, 1));
 	}
 	
@@ -566,7 +566,7 @@ public class DateUtil {
 	 * @param d2
 	 * @return
 	 */
-	public static boolean isSameDay(Date d1, Date d2){
+	public static boolean isSameDay(final Date d1, final Date d2){
 		if (d1 == null || d2 == null)
 			return false;
 		//Since the vast majority of dates compared will return false, we have a simple
@@ -586,7 +586,7 @@ public class DateUtil {
 	 * @param d2
 	 * @return
 	 */
-	public static boolean isSameWeek(Date d1, Date d2){
+	public static boolean isSameWeek(final Date d1, final Date d2){
 		return getStartOfWeek(d1).getTime() == getStartOfWeek(d2).getTime();
 	}
 	
@@ -596,7 +596,7 @@ public class DateUtil {
 	 * @param d2
 	 * @return
 	 */
-	public static boolean isSameMonth(Date d1, Date d2){
+	public static boolean isSameMonth(final Date d1, final Date d2){
 		if (d1 == null || d2 == null)
 			return false;
 		if (d1.getTime() < d2.getTime() - 2764800000l 
@@ -616,7 +616,7 @@ public class DateUtil {
 	 * @param d2
 	 * @return
 	 */
-	public static boolean isSameYear(Date d1, Date d2){
+	public static boolean isSameYear(final Date d1, final Date d2){
 		if (d1 == null || d2 == null)
 			return false;
 		if (getYear(d1) != getYear(d2))
@@ -629,7 +629,7 @@ public class DateUtil {
 	 * @param date
 	 * @return
 	 */
-	public static int getDaysInMonth(Date date){
+	public static int getDaysInMonth(final Date date){
 		if (date == null)
 			return -1;
 		Calendar calendar = Calendar.getInstance();

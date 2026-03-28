@@ -40,79 +40,79 @@ public class Split {
 	public Long getId() {
 		return id;
 	}
-	public void setId(Long id) {
+	public void setId(final Long id) {
 		this.id = id;
 	}
 	public Long getTransactionId() {
 		return transactionId;
 	}
-	public void setTransactionId(Long transactionId) {
+	public void setTransactionId(final Long transactionId) {
 		this.transactionId = transactionId;
 	}
 	public int getUserId() {
 		return userId;
 	}
-	public void setUserId(int userId) {
+	public void setUserId(final int userId) {
 		this.userId = userId;
 	}
 	public String getAmount() {
 		return amount;
 	}
-	public void setAmount(String amount) {
+	public void setAmount(final String amount) {
 		this.amount = amount;
 	}
 	public int getFromSource() {
 		return fromSource;
 	}
-	public void setFromSource(int fromSource) {
+	public void setFromSource(final int fromSource) {
 		this.fromSource = fromSource;
 	}
 	public int getToSource() {
 		return toSource;
 	}
-	public void setToSource(int toSource) {
+	public void setToSource(final int toSource) {
 		this.toSource = toSource;
 	}
 	public String getMemo() {
 		return memo;
 	}
-	public void setMemo(String memo) {
+	public void setMemo(final String memo) {
 		this.memo = memo;
 	}
 	public String getFromBalance() {
 		return fromBalance;
 	}
-	public void setFromBalance(String fromBalance) {
+	public void setFromBalance(final String fromBalance) {
 		this.fromBalance = fromBalance;
 	}
 	public String getToBalance() {
 		return toBalance;
 	}
-	public void setToBalance(String toBalance) {
+	public void setToBalance(final String toBalance) {
 		this.toBalance = toBalance;
 	}
 	public String getFromType() {
 		return fromType;
 	}
-	public void setFromType(String fromType) {
+	public void setFromType(final String fromType) {
 		this.fromType = fromType;
 	}
 	public String getToType() {
 		return toType;
 	}
-	public void setToType(String toType) {
+	public void setToType(final String toType) {
 		this.toType = toType;
 	}
 	public Date getCreated() {
 		return created;
 	}
-	public void setCreated(Date created) {
+	public void setCreated(final Date created) {
 		this.created = created;
 	}
 	public Date getModified() {
 		return modified;
 	}
-	public void setModified(Date modified) {
+	public void setModified(final Date modified) {
 		this.modified = modified;
 	}
 	
@@ -145,7 +145,7 @@ public class Split {
 	 * @param source
 	 * @return
 	 */
-	public boolean isDebit(Source source){
+	public boolean isDebit(final Source source){
 		return (this.getFromSource() == source.getId() && "D".equals(source.getType())) 
 				|| (this.getFromSource() == source.getId() && "C".equals(source.getType()));
 	}

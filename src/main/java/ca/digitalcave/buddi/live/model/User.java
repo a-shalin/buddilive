@@ -1,5 +1,11 @@
 package ca.digitalcave.buddi.live.model;
 
+import ca.digitalcave.moss.auth.model.AuthUser;
+import ca.digitalcave.moss.crypto.Crypto;
+import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import org.apache.commons.lang3.StringUtils;
+
+import javax.crypto.SecretKey;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -9,14 +15,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.crypto.SecretKey;
-
-import org.apache.commons.lang3.StringUtils;
-
-import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.crypto.Crypto.CryptoException;
-import ca.digitalcave.moss.auth.model.AuthUser;
 
 public class User extends AuthUser {
 	private static final long serialVersionUID = 1L;
@@ -47,10 +45,10 @@ public class User extends AuthUser {
 	public String getUuid() {
 		return uuid;
 	}
-	public void setUuid(String uuid) {
+	public void setUuid(final String uuid) {
 		this.uuid = uuid;
 	}
-	public void setSecretString(String secret) {
+	public void setSecretString(final String secret) {
 		setSecret(secret == null ? null : secret.toCharArray());
 	}
 	public String getSecretString() {
@@ -59,19 +57,19 @@ public class User extends AuthUser {
 	public String getPlaintextIdentifier() {
 		return plaintextIdentifier;
 	}
-	public void setPlaintextIdentifier(String plaintextIdentifier) {
+	public void setPlaintextIdentifier(final String plaintextIdentifier) {
 		this.plaintextIdentifier = plaintextIdentifier;
 	}
 	public String getPlaintextSecret() {
 		return plaintextSecret;
 	}
-	public void setPlaintextSecret(String plaintextSecret) {
+	public void setPlaintextSecret(final String plaintextSecret) {
 		this.plaintextSecret = plaintextSecret;
 	}
 	public String getEncryptionKey() {
 		return encryptionKey;
 	}
-	public void setEncryptionKey(String encryptionKey) {
+	public void setEncryptionKey(final String encryptionKey) {
 		this.encryptionKey = encryptionKey;
 //		decryptedEncryptionKey = null;
 		decryptedSecretKey = null;
@@ -94,27 +92,27 @@ public class User extends AuthUser {
 	public Date getCreated() {
 		return created;
 	}
-	public void setCreated(Date created) {
+	public void setCreated(final Date created) {
 		this.created = created;
 	}
-	
+
 	public Date getModified() {
 		return modified;
 	}
-	public void setModified(Date modified) {
+	public void setModified(final Date modified) {
 		this.modified = modified;
 	}
 	
 	public boolean isPremium() {
 		return premium;
 	}
-	public void setPremium(boolean premium) {
+	public void setPremium(final boolean premium) {
 		this.premium = premium;
 	}
 	public Locale getLocale() {
 		return locale;
 	}
-	public void setLocale(Locale locale) {
+	public void setLocale(final Locale locale) {
 		this.locale = locale;
 	}
 	public String getExtDateFormat(){
@@ -150,13 +148,13 @@ public class User extends AuthUser {
 	public String getOverrideDateFormat() {
 		return overrideDateFormat;
 	}
-	public void setOverrideDateFormat(String overrideDateFormat) {
+	public void setOverrideDateFormat(final String overrideDateFormat) {
 		this.overrideDateFormat = overrideDateFormat;
 	}
 	public Currency getCurrency() {
 		return currency;
 	}
-	public void setCurrency(Currency currency) {
+	public void setCurrency(final Currency currency) {
 		this.currency = currency;
 	}
 	public String getCurrencySymbol(){
@@ -222,25 +220,25 @@ public class User extends AuthUser {
 	public String getOverrideCurrencyAfter() {
 		return overrideCurrencyAfter;
 	}
-	public void setOverrideCurrencyAfter(String overrideCurrencyAfter) {
+	public void setOverrideCurrencyAfter(final String overrideCurrencyAfter) {
 		this.overrideCurrencyAfter = overrideCurrencyAfter;
 	}
 	public String getOverrideDecimalSeparator() {
 		return overrideDecimalSeparator;
 	}
-	public void setOverrideDecimalSeparator(String overrideDecimalSeparator) {
+	public void setOverrideDecimalSeparator(final String overrideDecimalSeparator) {
 		this.overrideDecimalSeparator = (overrideDecimalSeparator == null || overrideDecimalSeparator.length() == 0) ? null : overrideDecimalSeparator.substring(0, 1);
 	}
 	public String getOverrideThousandsSeparator() {
 		return overrideThousandsSeparator;
 	}
-	public void setOverrideThousandsSeparator(String overrideThousandsSeparator) {
+	public void setOverrideThousandsSeparator(final String overrideThousandsSeparator) {
 		this.overrideThousandsSeparator = (overrideThousandsSeparator == null || overrideThousandsSeparator.length() == 0) ? null : overrideThousandsSeparator.substring(0, 1);
 	}
 	public String getOverrideNegativeFormat() {
 		return overrideNegativeFormat;
 	}
-	public void setOverrideNegativeFormat(String overrideNegativeFormat) {
+	public void setOverrideNegativeFormat(final String overrideNegativeFormat) {
 		this.overrideNegativeFormat = "B".equals(overrideNegativeFormat) ? "B" : "N";
 	}
 	public String getNegativeFormat() {
@@ -249,13 +247,13 @@ public class User extends AuthUser {
 	public boolean isShowCurrencySymbol() {
 		return showCurrencySymbol != null && showCurrencySymbol;
 	}
-	public void setShowCurrencySymbol(Boolean showCurrencySymbol) {
+	public void setShowCurrencySymbol(final Boolean showCurrencySymbol) {
 		this.showCurrencySymbol = showCurrencySymbol;
 	}
 	public String getCurrencySpacing() {
 		return currencySpacing;
 	}
-	public void setCurrencySpacing(String currencySpacing) {
+	public void setCurrencySpacing(final String currencySpacing) {
 		this.currencySpacing = (currencySpacing == null || currencySpacing.length() == 0) ? null : ("Y".equals(currencySpacing) ? "Y" : "N");
 	}
 	public boolean useCurrencySpacing() {
@@ -266,19 +264,19 @@ public class User extends AuthUser {
 	public boolean isShowCleared() {
 		return showCleared;
 	}
-	public void setShowCleared(boolean showCleared) {
+	public void setShowCleared(final boolean showCleared) {
 		this.showCleared = showCleared;
 	}
 	public boolean isShowDeleted() {
 		return showDeleted;
 	}
-	public void setShowDeleted(boolean showDeleted) {
+	public void setShowDeleted(final boolean showDeleted) {
 		this.showDeleted = showDeleted;
 	}
 	public boolean isShowReconciled() {
 		return showReconciled;
 	}
-	public void setShowReconciled(boolean showReconciled) {
+	public void setShowReconciled(final boolean showReconciled) {
 		this.showReconciled = showReconciled;
 	}
 	public String getDecimalSeparator(){

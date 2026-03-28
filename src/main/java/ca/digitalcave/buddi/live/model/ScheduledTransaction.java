@@ -71,103 +71,103 @@ public class ScheduledTransaction {
 	public Long getId() {
 		return id;
 	}
-	public void setId(Long id) {
+	public void setId(final Long id) {
 		this.id = id;
 	}
 	public String getUuid() {
 		return uuid;
 	}
-	public void setUuid(String uuid) {
+	public void setUuid(final String uuid) {
 		this.uuid = uuid;
 	}
 	public int getUserId() {
 		return userId;
 	}
-	public void setUserId(int userId) {
+	public void setUserId(final int userId) {
 		this.userId = userId;
 	}
 	public String getDescription() {
 		return description;
 	}
-	public void setDescription(String description) {
+	public void setDescription(final String description) {
 		this.description = description;
 	}
 	public String getNumber() {
 		return number;
 	}
-	public void setNumber(String number) {
+	public void setNumber(final String number) {
 		this.number = number;
 	}
 	public String getScheduleName() {
 		return scheduleName;
 	}
-	public void setScheduleName(String scheduleName) {
+	public void setScheduleName(final String scheduleName) {
 		this.scheduleName = scheduleName;
 	}
 	public int getScheduleDay() {
 		return scheduleDay;
 	}
-	public void setScheduleDay(int scheduleDay) {
+	public void setScheduleDay(final int scheduleDay) {
 		this.scheduleDay = scheduleDay;
 	}
 	public int getScheduleWeek() {
 		return scheduleWeek;
 	}
-	public void setScheduleWeek(int scheduleWeek) {
+	public void setScheduleWeek(final int scheduleWeek) {
 		this.scheduleWeek = scheduleWeek;
 	}
 	public int getScheduleMonth() {
 		return scheduleMonth;
 	}
-	public void setScheduleMonth(int scheduleMonth) {
+	public void setScheduleMonth(final int scheduleMonth) {
 		this.scheduleMonth = scheduleMonth;
 	}
 	public String getFrequencyType() {
 		return frequencyType;
 	}
-	public void setFrequencyType(String frequencyType) {
+	public void setFrequencyType(final String frequencyType) {
 		this.frequencyType = frequencyType;
 	}
 	public Date getStartDate() {
 		return startDate;
 	}
-	public void setStartDate(Date startDate) {
+	public void setStartDate(final Date startDate) {
 		this.startDate = startDate;
 	}
 	public Date getEndDate() {
 		return endDate;
 	}
-	public void setEndDate(Date endDate) {
+	public void setEndDate(final Date endDate) {
 		this.endDate = endDate;
 	}
 	public Date getLastCreatedDate() {
 		return lastCreatedDate;
 	}
-	public void setLastCreatedDate(Date lastCreatedDate) {
+	public void setLastCreatedDate(final Date lastCreatedDate) {
 		this.lastCreatedDate = lastCreatedDate;
 	}
 	public String getMessage() {
 		return message;
 	}
-	public void setMessage(String message) {
+	public void setMessage(final String message) {
 		this.message = message;
 	}
 	public Date getCreated() {
 		return created;
 	}
-	public void setCreated(Date created) {
+	public void setCreated(final Date created) {
 		this.created = created;
 	}
 	public Date getModified() {
 		return modified;
 	}
-	public void setModified(Date modified) {
+	public void setModified(final Date modified) {
 		this.modified = modified;
 	}
 	public List<Split> getSplits() {
 		return splits;
 	}
-	public void setSplits(List<Split> splits) {
+	public void setSplits(final List<Split> splits) {
 		this.splits = splits;
 	}
 }

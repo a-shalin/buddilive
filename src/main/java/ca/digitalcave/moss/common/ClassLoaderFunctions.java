@@ -3,8 +3,8 @@
  */
 package ca.digitalcave.moss.common;
 
-import java.awt.Image;
-import java.awt.Toolkit;
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,8 +18,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.swing.ImageIcon;
 
 /**
  * Utility to load resources and objects from a jar file.  Basically a 
@@ -40,7 +38,7 @@ public class ClassLoaderFunctions extends URLClassLoader {
 	 * @return The newly created object
 	 * @throws JarLoaderException
 	 */
-	public static Object getObject(File jarFile, String className) throws JarLoaderException {
+	public static Object getObject(final File jarFile, final String className) throws JarLoaderException {
 		try {
 			String jarFileURL = "jar:file:" + jarFile.getAbsolutePath() + "!/";
 //			Log.debug("Attempting to load from " + jarFileURL);
@@ -60,7 +58,7 @@ public class ClassLoaderFunctions extends URLClassLoader {
 	 * @param jarFile Jarfile to browse
 	 * @return
 	 */
-	public static Collection<JarEntry> getAllClasses(File jarFile, String rootClass){
+	public static Collection<JarEntry> getAllClasses(final File jarFile, final String rootClass){
 		Collection<JarEntry> jarEntries = new LinkedList<JarEntry>();
 
 		try{
@@ -89,7 +87,7 @@ public class ClassLoaderFunctions extends URLClassLoader {
 	 * @param resource
 	 * @return
 	 */
-	public static InputStream getResourceAsStreamFromJar(File jarFile, String resource) {
+	public static InputStream getResourceAsStreamFromJar(final File jarFile, final String resource) {
 		try{
 			String jarFileURL = "jar:file:" + jarFile.getAbsolutePath() + "!/";
 //			Log.info("Attempting to load " + resource + " from " + jarFileURL);
@@ -108,7 +106,7 @@ public class ClassLoaderFunctions extends URLClassLoader {
 	 * @param resource
 	 * @return
 	 */
-	public static InputStream getResourceAsStreamFromClasspath(String resource) {
+	public static InputStream getResourceAsStreamFromClasspath(final String resource) {
 		return new Object().getClass().getResourceAsStream(resource);
 	}
 
@@ -120,7 +118,7 @@ public class ClassLoaderFunctions extends URLClassLoader {
 	 * @param resource
 	 * @return
 	 */
-	public static URL getResourceAsUrl(String resource){
+	public static URL getResourceAsUrl(final String resource){
 		if (resource != null){
 			ClassLoader cl = Thread.currentThread().getContextClassLoader();
 			if (cl == null) {
@@ -142,7 +140,7 @@ public class ClassLoaderFunctions extends URLClassLoader {
 	 * @return
 	 * @throws JarLoaderException
 	 */
-	private Object getObject(String className) throws JarLoaderException {
+	private Object getObject(final String className) throws JarLoaderException {
 		try{
 			Logger.getLogger(this.getClass().getName()).finest("Trying to load object from class " + className);
 			Class<?> c = this.loadClass(className);
@@ -169,7 +167,7 @@ public class ClassLoaderFunctions extends URLClassLoader {
 		return null;
 	}
 
-	public static Class<?> getClass(File jarFile, String className) throws JarLoaderException {
+	public static Class<?> getClass(final File jarFile, final String className) throws JarLoaderException {
 		try {
 			String jarFileURL = "jar:file:" + jarFile.getAbsolutePath() + "!/";
 			Logger.getLogger(ClassLoaderFunctions.class.getName()).finest("Attempting to load from " + jarFileURL);
@@ -194,7 +192,7 @@ public class ClassLoaderFunctions extends URLClassLoader {
 	 * @param name The relative path and name of the file.  Don't include the leading slash.
 	 * @return An ImageIcon with the given icon, if available, or an empty one otherwise.
 	 */
-	public static Image getImageFromClasspath(String name){
+	public static Image getImageFromClasspath(final String name){
 		ImageIcon icon;
 
 		ClassLoader cl = Thread.currentThread().getContextClassLoader();
@@ -224,7 +222,7 @@ public class ClassLoaderFunctions extends URLClassLoader {
 		return icon.getImage();
 	}
 
-	private ClassLoaderFunctions(URL url){
+	private ClassLoaderFunctions(final URL url){
 		super(new URL[] { url });
 	}
 
@@ -236,15 +234,15 @@ public class ClassLoaderFunctions extends URLClassLoader {
 	public static class JarLoaderException extends Exception {
 		public static final long serialVersionUID = 0;
 
-		public JarLoaderException(Exception e){
+		public JarLoaderException(final Exception e){
 			super(e);
 		}
 
-		public JarLoaderException(String s){
+		public JarLoaderException(final String s){
 			super(s);
 		}
 
-		public JarLoaderException(Error e){
+		public JarLoaderException(final Error e){
 			super(e);
 		}
 	}

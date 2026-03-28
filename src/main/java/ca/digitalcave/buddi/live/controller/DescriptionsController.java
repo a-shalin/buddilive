@@ -1,11 +1,13 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
+import ca.digitalcave.buddi.live.db.Transactions;
+import ca.digitalcave.buddi.live.model.Split;
+import ca.digitalcave.buddi.live.model.Transaction;
+import ca.digitalcave.buddi.live.model.User;
+import ca.digitalcave.buddi.live.util.CryptoUtil;
+import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,15 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-
-import ca.digitalcave.buddi.live.db.Transactions;
-import ca.digitalcave.buddi.live.model.Split;
-import ca.digitalcave.buddi.live.model.Transaction;
-import ca.digitalcave.buddi.live.model.User;
-import ca.digitalcave.buddi.live.util.CryptoUtil;
-import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 @RestController
 @RequestMapping("/data/transactions/descriptions")
@@ -37,7 +35,7 @@ public class DescriptionsController {
 	private JsonFactory jsonFactory;
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-	public StreamingResponseBody get(@AuthenticationPrincipal User user) {
+	public StreamingResponseBody get(@AuthenticationPrincipal final User user) {
 		try {
 			final Map<String, Transaction> transactionsByDescription = new TreeMap<>();
 			final List<Transaction> txns = transactions.selectDescriptions(user);

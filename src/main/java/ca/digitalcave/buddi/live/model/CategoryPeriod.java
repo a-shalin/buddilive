@@ -1,16 +1,16 @@
 package ca.digitalcave.buddi.live.model;
 
+import ca.digitalcave.moss.common.DateUtil;
+
 import java.util.Calendar;
 import java.util.Date;
-
-import ca.digitalcave.moss.common.DateUtil;
 
 public class CategoryPeriod {
 
 	private final CategoryPeriods categoryPeriods;
 	private final Date date;
 	
-	public CategoryPeriod(CategoryPeriods categoryPeriods, Date date, int offset) {
+	public CategoryPeriod(final CategoryPeriods categoryPeriods, final Date date, final int offset) {
 		this.categoryPeriods = categoryPeriods;
 		this.date = categoryPeriods.getBudgetPeriodOffset(date == null ? new Date() : date, offset);
 	}
@@ -45,7 +45,7 @@ public class CategoryPeriod {
 		SEMI_YEAR,
 		YEAR;
 		
-		public Date getStartOfBudgetPeriod(Date date) {
+		public Date getStartOfBudgetPeriod(final Date date) {
 			switch(this){
 			case WEEK:
 				return DateUtil.getStartOfWeek(date);
@@ -74,7 +74,7 @@ public class CategoryPeriod {
 			}
 		}
 		
-		public Date getEndOfBudgetPeriod(Date date) {
+		public Date getEndOfBudgetPeriod(final Date date) {
 			switch(this){
 			case WEEK:
 				return DateUtil.getEndOfWeek(date);
@@ -104,7 +104,7 @@ public class CategoryPeriod {
 			}
 		}
 		
-		public Date getBudgetPeriodOffset(Date date, int offset) {
+		public Date getBudgetPeriodOffset(final Date date, final int offset) {
 			switch(this){
 			case WEEK:
 				return getStartOfBudgetPeriod(DateUtil.addDays(DateUtil.getStartOfWeek(date), 7 * offset));
@@ -139,7 +139,7 @@ public class CategoryPeriod {
 			}
 		}
 		
-		public long getDaysInPeriod(Date date) {
+		public long getDaysInPeriod(final Date date) {
 			switch(this){
 			case WEEK:
 				return 7;

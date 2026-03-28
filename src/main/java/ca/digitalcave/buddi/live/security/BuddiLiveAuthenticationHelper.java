@@ -5,15 +5,15 @@ import ca.digitalcave.buddi.live.db.Users;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
+import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
+import ca.digitalcave.moss.auth.model.AuthUser;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
+import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.Algorithm;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import ca.digitalcave.moss.crypto.DefaultHash;
 import ca.digitalcave.moss.crypto.Hash;
-import ca.digitalcave.moss.auth.model.AuthUser;
-import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
-import ca.digitalcave.moss.auth.service.AuthenticationHelper;
-import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import jakarta.mail.internet.AddressException;
@@ -29,14 +29,7 @@ import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.io.Writer;
 import java.security.Key;
-import java.util.ResourceBundle;
-import java.util.Currency;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,8 +39,8 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	private final SqlSessionFactory sqlSessionFactory;
 	private final Properties mailProperties;
 
-	public BuddiLiveAuthenticationHelper(SqlSessionFactory sqlSessionFactory,
-										 Properties mailProperties,
+	public BuddiLiveAuthenticationHelper(final SqlSessionFactory sqlSessionFactory,
+										 final Properties mailProperties,
 										 @org.springframework.beans.factory.annotation.Value("${buddi.directRegistration:false}") final boolean directRegistration) {
 		super(new AuthenticationConfiguration());
 		this.sqlSessionFactory = sqlSessionFactory;
@@ -74,7 +67,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 		getConfig().extraRegisterStep1Fields = new ExtraFieldsDirective() {
 			@Override
-			public void writeFields(Writer out, ResourceBundle translation) {
+			public void writeFields(final Writer out, final ResourceBundle translation) {
 				try {
 					final JsonGenerator g = new JsonFactory().createGenerator(out);
 					g.writeStartObject();
@@ -118,7 +111,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		};
 		getConfig().extraRegisterStep2Fields = new ExtraFieldsDirective() {
 			@Override
-			public void writeFields(Writer out, ResourceBundle translation) {
+			public void writeFields(final Writer out, final ResourceBundle translation) {
 				try {
 					final JsonGenerator g = new JsonFactory().createGenerator(out);
 					g.writeStartObject();
@@ -134,7 +127,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		};
 		getConfig().extraforgotPasswordStep1PanelFields = new ExtraFieldsDirective() {
 			@Override
-			public void writeFields(Writer out, ResourceBundle translation) {
+			public void writeFields(final Writer out, final ResourceBundle translation) {
 				try {
 					final JsonGenerator g = new JsonFactory().createGenerator(out);
 					g.writeStartObject();
@@ -150,7 +143,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		};
 		getConfig().extraforgotPasswordStep2PanelFields = new ExtraFieldsDirective() {
 			@Override
-			public void writeFields(Writer out, ResourceBundle translation) {
+			public void writeFields(final Writer out, final ResourceBundle translation) {
 				try {
 					final JsonGenerator g = new JsonFactory().createGenerator(out);
 					g.writeStartObject();
@@ -169,7 +162,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	//******************* Authentication / User Section *******************//
 
 	@Override
-	public AuthUser authenticate(String applicationName, String identifier, String secret) {
+	public AuthUser authenticate(final String applicationName, final String identifier, final String secret) {
 		if (identifier == null) {
 			return null;
 		}
@@ -223,7 +216,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	public AuthUser selectUser(String username) {
+	public AuthUser selectUser(final String username) {
 		final SqlSession sql = sqlSessionFactory.openSession();
 		try {
 			User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
@@ -236,11 +229,11 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	public List<AuthUser> selectUsers(String email) {
+	public List<AuthUser> selectUsers(final String email) {
 		throw new RuntimeException("Forgot Username not implemented");
 	}
 
-	public boolean insertTotpSecret(String username, String totpSharedSecret) {
+	public boolean insertTotpSecret(final String username, final String totpSharedSecret) {
 		final SqlSession sql = sqlSessionFactory.openSession();
 		try {
 			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
@@ -262,7 +255,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	public void insertTotpBackupCodes(String username) {
+	public void insertTotpBackupCodes(final String username) {
 		final SqlSession sql = sqlSessionFactory.openSession();
 		try {
 			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
@@ -285,7 +278,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	public void updateTotpBackupCodeMarkUsed(String username, String backupCode) {
+	public void updateTotpBackupCodeMarkUsed(final String username, final String backupCode) {
 		final SqlSession sql = sqlSessionFactory.openSession();
 		try {
 			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
@@ -305,7 +298,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	public void disableTotp(String username) {
+	public void disableTotp(final String username) {
 		final SqlSession sql = sqlSessionFactory.openSession();
 		try {
 			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
@@ -329,7 +322,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	public String updateActivationKey(String username, String activationKey) throws Exception {
+	public String updateActivationKey(final String username, final String activationKey) throws Exception {
 		final SqlSession sqlSession = sqlSessionFactory.openSession();
 		try {
 			final String hashedIdentifier = getHashedUsername(username);
@@ -356,7 +349,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	public boolean updatePasswordByActivationKey(String activationKey, String hashedPassword) {
+	public boolean updatePasswordByActivationKey(final String activationKey, final String hashedPassword) {
 		final SqlSession sqlSession = sqlSessionFactory.openSession();
 		try {
 			final User user = sqlSession.getMapper(Users.class).selectUserByActivationKey(activationKey);
@@ -382,7 +375,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	public void insertUser(String email, String activationKey, Map<String, String> formParams) throws Exception {
+	public void insertUser(final String email, final String activationKey, final Map<String, String> formParams) throws Exception {
 		final SqlSession sqlSession = sqlSessionFactory.openSession();
 		try {
 			if (!"on".equals(formParams.getOrDefault("agree", "off"))) {
@@ -422,12 +415,12 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	public boolean updatePassword(String username, String hashedPassword) {
+	public boolean updatePassword(final String username, final String hashedPassword) {
 		return false;
 	}
 
 	@Override
-	public void sendEmail(String toEmail, String subject, String body) {
+	public void sendEmail(final String toEmail, final String subject, final String body) {
 		final String fromEmail = mailProperties.getProperty("mail.smtp.from");
 
 		try {
@@ -451,7 +444,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		}
 	}
 
-	private HtmlEmail createEmail(String from, String replyTo, String to) throws EmailException, AddressException {
+	private HtmlEmail createEmail(final String from, final String replyTo, final String to) throws EmailException, AddressException {
 		final HtmlEmail htmlEmail = new HtmlEmail();
 		if (StringUtils.isBlank(mailProperties.getProperty("mail.smtp.host"))) {
 			throw new EmailException("Parameter mail.smtp.host cannot be blank.");
@@ -497,7 +490,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		return htmlEmail;
 	}
 
-	private void cleanupUsers(SqlSession sqlSession, User user) throws DatabaseException {
+	private void cleanupUsers(final SqlSession sqlSession, final User user) throws DatabaseException {
 		if (user == null) {
 			sqlSession.getMapper(Users.class).deleteActivationKey();
 		}
@@ -547,7 +540,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		return new DefaultHash().setAlgorithm("SHA-512").setIterations(20000).setSaltLength(96);
 	}
 
-	private String getHashedUsername(String username) {
+	private String getHashedUsername(final String username) {
 		return new DefaultHash().setSaltLength(0).setIterations(1).generate(username);
 	}
 }

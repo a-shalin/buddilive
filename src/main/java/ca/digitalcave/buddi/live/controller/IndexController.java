@@ -1,14 +1,23 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.io.StringWriter;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.ResourceBundle;
-
+import ca.digitalcave.buddi.live.config.AssetVersionTokenProvider;
+import ca.digitalcave.buddi.live.db.*;
+import ca.digitalcave.buddi.live.db.util.DataUpdater;
+import ca.digitalcave.buddi.live.db.util.DatabaseException;
+import ca.digitalcave.buddi.live.model.Account;
+import ca.digitalcave.buddi.live.model.User;
+import ca.digitalcave.buddi.live.security.CookieAuthenticationToken;
+import ca.digitalcave.buddi.live.security.CookieUtil;
+import ca.digitalcave.buddi.live.util.LocaleUtil;
+import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
+import ca.digitalcave.moss.auth.i18n.OverridableResourceBundle;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
+import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
+import ca.digitalcave.moss.crypto.Crypto;
+import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -21,29 +30,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-
-import ca.digitalcave.buddi.live.db.Entries;
-import ca.digitalcave.buddi.live.db.ScheduledTransactions;
-import ca.digitalcave.buddi.live.db.Sources;
-import ca.digitalcave.buddi.live.db.Transactions;
-import ca.digitalcave.buddi.live.db.Users;
-import ca.digitalcave.buddi.live.config.AssetVersionTokenProvider;
-import ca.digitalcave.buddi.live.db.util.DataUpdater;
-import ca.digitalcave.buddi.live.db.util.DatabaseException;
-import ca.digitalcave.buddi.live.model.Account;
-import ca.digitalcave.buddi.live.model.User;
-import ca.digitalcave.buddi.live.security.CookieAuthenticationToken;
-import ca.digitalcave.buddi.live.security.CookieUtil;
-import ca.digitalcave.buddi.live.util.LocaleUtil;
-import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.crypto.Crypto.CryptoException;
-import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
-import ca.digitalcave.moss.auth.service.AuthenticationHelper;
-import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
-import ca.digitalcave.moss.auth.i18n.OverridableResourceBundle;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.StringWriter;
+import java.util.*;
 
 @Controller
 public class IndexController {
@@ -136,7 +124,7 @@ public class IndexController {
 		return new HashMap<>();
 	}
 
-	private String serializeTranslationsJson(ResourceBundle bundle) {
+	private String serializeTranslationsJson(final ResourceBundle bundle) {
 		try {
 			final StringWriter sw = new StringWriter();
 			final JsonGenerator g = new JsonFactory().createGenerator(sw);
@@ -155,7 +143,7 @@ public class IndexController {
 		}
 	}
 
-	private String serializeUserConfigJson(User user, Map<String, String> cookieParams) {
+	private String serializeUserConfigJson(final User user, final Map<String, String> cookieParams) {
 		try {
 			final StringWriter sw = new StringWriter();
 			final JsonGenerator g = new JsonFactory().createGenerator(sw);
@@ -265,7 +253,7 @@ public class IndexController {
 		}
 	}
 
-	private void writeExtraFields(JsonGenerator g, String fieldName, ExtraFieldsDirective directive, ResourceBundle i18n) throws Exception {
+	private void writeExtraFields(final JsonGenerator g, final String fieldName, final ExtraFieldsDirective directive, final ResourceBundle i18n) throws Exception {
 		if (directive == null) return;
 		final StringWriter fieldWriter = new StringWriter();
 		directive.writeFields(fieldWriter, i18n);
@@ -277,7 +265,7 @@ public class IndexController {
 		g.writeRawValue("[" + fieldsJson + "]");
 	}
 
-	private String getNextStep(Map<String, String> params, Authentication auth) {
+	private String getNextStep(final Map<String, String> params, final Authentication auth) {
 		final User user = (auth != null && auth.getPrincipal() instanceof User) ? (User) auth.getPrincipal() : null;
 
 		if (params != null

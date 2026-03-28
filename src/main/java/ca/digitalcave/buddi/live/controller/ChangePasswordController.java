@@ -37,7 +37,7 @@ public class ChangePasswordController {
 
 	@PostMapping
 	@Transactional
-	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody final ChangePasswordRequestDto request) {
+	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final ChangePasswordRequestDto request) {
 		try {
 			final Action action = request.action();
 

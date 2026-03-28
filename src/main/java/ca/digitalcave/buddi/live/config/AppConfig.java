@@ -1,16 +1,14 @@
 package ca.digitalcave.buddi.live.config;
 
-import java.util.Properties;
-
+import ca.digitalcave.moss.auth.password.PasswordChecker;
+import ca.digitalcave.moss.crypto.Crypto;
+import ca.digitalcave.moss.crypto.Crypto.Algorithm;
+import com.fasterxml.jackson.core.JsonFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.fasterxml.jackson.core.JsonFactory;
-
-import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.crypto.Crypto.Algorithm;
-import ca.digitalcave.moss.auth.password.PasswordChecker;
+import java.util.Properties;
 
 @Configuration
 public class AppConfig {
@@ -32,13 +30,13 @@ public class AppConfig {
 
 	@Bean
 	public Properties mailProperties(
-			@Value("${buddi.mail.smtp.from:}") String from,
-			@Value("${buddi.mail.smtp.host:}") String host,
-			@Value("${buddi.mail.smtp.port:25}") String port,
-			@Value("${buddi.mail.smtp.auth:false}") String auth,
-			@Value("${buddi.mail.smtp.username:}") String username,
-			@Value("${buddi.mail.smtp.password:}") String password,
-			@Value("${buddi.mail.smtp.starttls.enable:false}") String starttls) {
+			@Value("${buddi.mail.smtp.from:}") final String from,
+			@Value("${buddi.mail.smtp.host:}") final String host,
+			@Value("${buddi.mail.smtp.port:25}") final String port,
+			@Value("${buddi.mail.smtp.auth:false}") final String auth,
+			@Value("${buddi.mail.smtp.username:}") final String username,
+			@Value("${buddi.mail.smtp.password:}") final String password,
+			@Value("${buddi.mail.smtp.starttls.enable:false}") final String starttls) {
 		final Properties props = new Properties();
 		props.setProperty("mail.smtp.from", from);
 		props.setProperty("mail.smtp.host", host);

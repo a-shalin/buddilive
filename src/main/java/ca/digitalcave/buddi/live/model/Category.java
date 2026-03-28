@@ -38,19 +38,19 @@ public class Category extends Source {
 	public String getPeriodType() {
 		return periodType;
 	}
-	public void setPeriodType(String periodType) {
+	public void setPeriodType(final String periodType) {
 		this.periodType = periodType;
 	}
 	public Integer getParent() {
 		return parent;
 	}
-	public void setParent(Integer parent) {
+	public void setParent(final Integer parent) {
 		this.parent = parent;
 	}
 	public List<Category> getChildren() {
 		return children;
 	}
-	public void setChildren(List<Category> children) {
+	public void setChildren(final List<Category> children) {
 		this.children = children;
 	}
 	
@@ -60,7 +60,7 @@ public class Category extends Source {
 	 * @param categories
 	 * @return
 	 */
-	public static List<Category> getHierarchy(List<Category> categories){
+	public static List<Category> getHierarchy(final List<Category> categories){
 		final Map<Integer, Category> categoryMap = new HashMap<Integer, Category>();
 		final List<Category> result = new ArrayList<Category>();
 		final List<Category> remaining = new ArrayList<Category>();
@@ -92,11 +92,11 @@ public class Category extends Source {
 	 * @param endDate
 	 * @return
 	 */
-	public BigDecimal getAmount(User user, Entries entriesMapper, Date startDate, Date endDate) throws CryptoException {
+	public BigDecimal getAmount(final User user, final Entries entriesMapper, final Date startDate, final Date endDate) throws CryptoException {
 		return getAmountRecursive(user, entriesMapper, startDate, endDate, null);
 	}
 
-	private BigDecimal getAmountRecursive(User user, Entries entriesMapper, Date startDate, Date endDate, Map<Date, Entry> entries) throws CryptoException {
+	private BigDecimal getAmountRecursive(final User user, final Entries entriesMapper, final Date startDate, final Date endDate, Map<Date, Entry> entries) throws CryptoException {
 		final CategoryPeriods categoryPeriod = CategoryPeriods.valueOf(getPeriodType());
 		if (entries == null) entries = entriesMapper.selectEntries(user, getId());
 		
@@ -138,13 +138,13 @@ public class Category extends Source {
 	public Entry getCurrentEntry() {
 		return currentEntry;
 	}
-	public void setCurrentEntry(Entry currentEntry) {
+	public void setCurrentEntry(final Entry currentEntry) {
 		this.currentEntry = currentEntry;
 	}
 	public Entry getPreviousEntry() {
 		return previousEntry;
 	}
-	public void setPreviousEntry(Entry previousEntry) {
+	public void setPreviousEntry(final Entry previousEntry) {
 		this.previousEntry = previousEntry;
 	}
 }

@@ -1,22 +1,16 @@
 package ca.digitalcave.moss.auth.password;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import ca.digitalcave.moss.crypto.DefaultHash;
+import org.solinger.cracklib.CrackLib;
+import org.solinger.cracklib.Packer;
+
+import java.io.*;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
-import org.solinger.cracklib.CrackLib;
-import org.solinger.cracklib.Packer;
-
-import ca.digitalcave.moss.crypto.DefaultHash;
 
 public class PasswordChecker {
 	private String patternsPath;
@@ -32,10 +26,10 @@ public class PasswordChecker {
 	private int minimumVariance = 5;
 	private int minimumClasses = 2;
 
-	public boolean test(String identifier, String password) {
+	public boolean test(final String identifier, final String password) {
 		return isValid(identifier, password);
 	}
-	public boolean isValid(String identifier, String password) {
+	public boolean isValid(final String identifier, final String password) {
 		return testLength(password) 
 				&& testStrength(password) 
 				&& testVariance(password) 
@@ -57,7 +51,7 @@ public class PasswordChecker {
 	 * <li>@param password</li>
 	 * @return
 	 */
-	public int getStrengthScore(String password) {
+	public int getStrengthScore(final String password) {
 		float factor = 0;
 
 		if (hasLower(password)) factor += 2.6f;
@@ -70,7 +64,7 @@ public class PasswordChecker {
 		return (int) (Math.pow(password.length(), 3) * factor / 100f);
 	}
 
-	public String getStrenthString(String password) {
+	public String getStrenthString(final String password) {
 		int strength = getStrengthScore(password);
 		if (strength >= 80) return "Excellent";
 		if (strength >= 60) return "Strong";
@@ -79,36 +73,36 @@ public class PasswordChecker {
 		return "Very Poor";
 	}
 
-	public boolean hasLower(String password) {
+	public boolean hasLower(final String password) {
 		return password.matches(".*[a-z].*"); 
 	}
-	public boolean hasUpper(String password) {
+	public boolean hasUpper(final String password) {
 		return password.matches(".*[A-Z].*");
 	}
-	public boolean hasNumber(String password) {
+	public boolean hasNumber(final String password) {
 		return password.matches(".*[0-9].*");
 	}
-	public boolean hasSpace(String password) {
+	public boolean hasSpace(final String password) {
 		return password.matches(".*[ ].*");
 	}
-	public boolean hasNumberSymbol(String password) {
+	public boolean hasNumberSymbol(final String password) {
 		return password.matches(".*[!@#$%^&*()].*");
 	}
-	public boolean hasOther(String password) {
+	public boolean hasOther(final String password) {
 		return password.matches("/.*[^ a-zA-Z0-9!@#$%^&*()].*/");
 	}
-	public boolean hasSymbol(String password) {
+	public boolean hasSymbol(final String password) {
 		return hasNumberSymbol(password) || hasOther(password);
 	}
 
-	public boolean testMulticlass(String password) {
+	public boolean testMulticlass(final String password) {
 		return minimumClasses == 0 || !isNotMulticlass(password) ? true : false;
 	}
-	public boolean isNotMulticlass(String password) {
+	public boolean isNotMulticlass(final String password) {
 		return getClasses(password) < minimumClasses;
 	}
 
-	public int getClasses(String password) {
+	public int getClasses(final String password) {
 		int classes = 0;
 		if (hasLower(password)) classes++;
 		if (hasUpper(password)) classes++;
@@ -119,24 +113,24 @@ public class PasswordChecker {
 		return classes; 
 	}
 
-	public boolean testStrength(String password) {
+	public boolean testStrength(final String password) {
 		return minimumStrength == 0 || !isWeak(password) ? true : false;
 	}
-	public boolean isWeak(String password) {
+	public boolean isWeak(final String password) {
 		return getStrengthScore(password) < getMinimumStrength();
 	}
 
-	public boolean testLength(String password) {
+	public boolean testLength(final String password) {
 		return minimumLength == 0 || !isShort(password) ? true : false;
 	}
-	public boolean isShort(String password) {
+	public boolean isShort(final String password) {
 		return password.length() < getMinimumLength();
 	}
 
-	public boolean testVariance(String password) {
+	public boolean testVariance(final String password) {
 		return minimumVariance == 0 || !isUnvaried(password) ? true : false;
 	}
-	public boolean isUnvaried(String password) {
+	public boolean isUnvaried(final String password) {
 		if (password == null || password.length() == 0) return true;
 		String chars = new String(password.substring(0,1));
 
@@ -148,10 +142,10 @@ public class PasswordChecker {
 		return chars.length() < minimumVariance;
 	}
 
-	public boolean testDictionary(String password) {
+	public boolean testDictionary(final String password) {
 		return !dictionaryEnforced || !isInDictionary(password) ? true : false;
 	}
-	public synchronized boolean isInDictionary(String password) {
+	public synchronized boolean isInDictionary(final String password) {
 		if (packer == null) {
 			try {
 				initDictionary();
@@ -172,7 +166,7 @@ public class PasswordChecker {
 	/**
 	 * This method should be implemented in a subclass if history checking is required. 
 	 */
-	protected boolean verifyHash(String hash, String password) {
+	protected boolean verifyHash(final String hash, final String password) {
 		try {
 			return DefaultHash.verify(hash, password);
 		}
@@ -184,21 +178,21 @@ public class PasswordChecker {
 	/**
 	 * This method should be implemented in a subclass if history checking is required. 
 	 */
-	protected List<String> getHistory(String identifier) {
+	protected List<String> getHistory(final String identifier) {
 		return Collections.emptyList();
 	}
 
-	public boolean testHistory(String identifier, String password) {
+	public boolean testHistory(final String identifier, final String password) {
 		return !historyEnforced || !isInHistory(identifier, password) ? true : false; 
 	}
-	public boolean isInHistory(String identifier, String password) {
+	public boolean isInHistory(final String identifier, final String password) {
 		for(String hash : getHistory(identifier)){
 			if (verifyHash(hash, password)) return true;
 		}
 		return false;
 	}
 
-	public boolean testPatterns(String password) {
+	public boolean testPatterns(final String password) {
 		if (patterns == null) {
 			try {
 				initPatterns();
@@ -210,7 +204,7 @@ public class PasswordChecker {
 			
 		return !patternsEnforced || !isRestricted(password) ? true : false;
 	}
-	public boolean isRestricted(String password) {
+	public boolean isRestricted(final String password) {
 		for (Pattern pattern : getRestrictedPatterns()) {
 			if (pattern.matcher(password).find()) {
 				return true;
@@ -219,21 +213,21 @@ public class PasswordChecker {
 		return false;
 	}
 
-	public boolean testCustom(String identifier, String password) {
+	public boolean testCustom(final String identifier, final String password) {
 		return !customEnforced || !isCustom(identifier, password) ? true : false;
 	}
 
 	/**
 	 * This method should be implemented in a subclass if other custom checks are required. 
 	 */
-	public boolean isCustom(String identifier, String password) {
+	public boolean isCustom(final String identifier, final String password) {
 		return false;
 	}
 
 	public List<Pattern> getRestrictedPatterns() {
 		return patterns;
 	}
-	public PasswordChecker setRestrictedPatterns(List<Pattern> patterns) {
+	public PasswordChecker setRestrictedPatterns(final List<Pattern> patterns) {
 		this.patterns = patterns;
 		return this;
 	}
@@ -241,7 +235,7 @@ public class PasswordChecker {
 	public int getMinimumLength() {
 		return minimumLength;
 	}
-	public PasswordChecker setMinimumLength(int minimumLength) {
+	public PasswordChecker setMinimumLength(final int minimumLength) {
 		this.minimumLength = minimumLength;
 		return this;
 	}
@@ -249,7 +243,7 @@ public class PasswordChecker {
 	public int getMinimumStrength() {
 		return minimumStrength;
 	}
-	public PasswordChecker setMinimumStrength(int minimumStrength) {
+	public PasswordChecker setMinimumStrength(final int minimumStrength) {
 		this.minimumStrength = minimumStrength;
 		return this;
 	}
@@ -257,7 +251,7 @@ public class PasswordChecker {
 	public int getMinimumVariance() {
 		return minimumVariance;
 	}
-	public PasswordChecker setMinimumVariance(int minimumVariance) {
+	public PasswordChecker setMinimumVariance(final int minimumVariance) {
 		this.minimumVariance = minimumVariance;
 		return this;
 	}
@@ -265,7 +259,7 @@ public class PasswordChecker {
 	public int getMinimumClasses() {
 		return minimumClasses;
 	}
-	public PasswordChecker setMinimumClasses(int minimumClasses) {
+	public PasswordChecker setMinimumClasses(final int minimumClasses) {
 		this.minimumClasses = minimumClasses;
 		return this;
 	}
@@ -286,7 +280,7 @@ public class PasswordChecker {
 	public boolean isDictionaryEnforced() {
 		return dictionaryEnforced;
 	}
-	public PasswordChecker setDictionaryEnforced(boolean dictionaryEnforced) {
+	public PasswordChecker setDictionaryEnforced(final boolean dictionaryEnforced) {
 		this.dictionaryEnforced = dictionaryEnforced;
 		return this;
 	}
@@ -294,7 +288,7 @@ public class PasswordChecker {
 	public boolean isHistoryEnforced() {
 		return historyEnforced;
 	}
-	public PasswordChecker setHistoryEnforced(boolean historyEnforced) {
+	public PasswordChecker setHistoryEnforced(final boolean historyEnforced) {
 		this.historyEnforced = historyEnforced;
 		return this;
 	}
@@ -302,7 +296,7 @@ public class PasswordChecker {
 	public boolean isPatternsEnforced() {
 		return patternsEnforced;
 	}
-	public PasswordChecker setPatternsEnforced(boolean patternsEnforced) {
+	public PasswordChecker setPatternsEnforced(final boolean patternsEnforced) {
 		this.patternsEnforced = patternsEnforced;
 		return this;
 	}
@@ -310,12 +304,12 @@ public class PasswordChecker {
 	public boolean isCustomEnforced() {
 		return customEnforced;
 	}
-	public PasswordChecker setCustomEnforced(boolean customEnforced) {
+	public PasswordChecker setCustomEnforced(final boolean customEnforced) {
 		this.customEnforced = customEnforced;
 		return this;
 	}
 	
-	public PasswordChecker setDictionaryPath(String dictionaryPath) {
+	public PasswordChecker setDictionaryPath(final String dictionaryPath) {
 		this.dictionaryPath = dictionaryPath;
 		try {
 			initDictionary();
@@ -328,7 +322,7 @@ public class PasswordChecker {
 		return dictionaryPath;
 	}
 	
-	public PasswordChecker setPatternsPath(String patternsPath) {
+	public PasswordChecker setPatternsPath(final String patternsPath) {
 		this.patternsPath = patternsPath;
 		try {
 			initPatterns();
@@ -348,10 +342,10 @@ public class PasswordChecker {
 	protected void initDefaultDictionary() throws IOException {
 		initDictionary(new InputStreamReader(PasswordChecker.class.getResourceAsStream("words.txt")));
 	}
-	protected void initDictionary(String path) throws IOException {
+	protected void initDictionary(final String path) throws IOException {
 		initDictionary(new FileReader(path));
 	}
-	protected synchronized void initDictionary(Reader reader) throws IOException {
+	protected synchronized void initDictionary(final Reader reader) throws IOException {
 		if (this.packer != null) {
 			this.packer.close();
 			this.packer = null;
@@ -383,10 +377,10 @@ public class PasswordChecker {
 	protected void initDefaultPatterns() {
 		this.patterns = new LinkedList<Pattern>();
 	}
-	protected void initPatterns(String path) throws IOException {
+	protected void initPatterns(final String path) throws IOException {
 		initPatterns(new FileReader(path));
 	}
-	protected synchronized void initPatterns(Reader reader) throws IOException {
+	protected synchronized void initPatterns(final Reader reader) throws IOException {
 		if (this.patterns != null) {
 			this.patterns.clear();
 		}

@@ -1,5 +1,8 @@
 package ca.digitalcave.buddi.live.config;
 
+import ca.digitalcave.buddi.live.security.CookieAuthenticationFilter;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,21 +10,17 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import ca.digitalcave.buddi.live.security.CookieAuthenticationFilter;
-import ca.digitalcave.moss.auth.service.AuthenticationHelper;
-import jakarta.servlet.DispatcherType;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
 	@Bean
-	public CookieAuthenticationFilter cookieAuthenticationFilter(AuthenticationHelper authenticationHelper) {
+	public CookieAuthenticationFilter cookieAuthenticationFilter(final AuthenticationHelper authenticationHelper) {
 		return new CookieAuthenticationFilter(authenticationHelper);
 	}
 
 	@Bean
-	public SecurityFilterChain filterChain(HttpSecurity http, CookieAuthenticationFilter cookieAuthFilter) throws Exception {
+	public SecurityFilterChain filterChain(final HttpSecurity http, final CookieAuthenticationFilter cookieAuthFilter) throws Exception {
 		http
 			.csrf(csrf -> csrf.disable())
 			.addFilterBefore(cookieAuthFilter, UsernamePasswordAuthenticationFilter.class)

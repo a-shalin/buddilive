@@ -1,26 +1,25 @@
 package ca.digitalcave.moss.auth.service;
 
+import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
+import ca.digitalcave.moss.auth.model.AuthUser;
+import ca.digitalcave.moss.auth.password.PasswordChecker;
+import ca.digitalcave.moss.crypto.Crypto;
+import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import ca.digitalcave.moss.crypto.DefaultHash;
+import ca.digitalcave.moss.crypto.Hash;
+
+import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.crypto.SecretKey;
-
-import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.crypto.Crypto.CryptoException;
-import ca.digitalcave.moss.crypto.DefaultHash;
-import ca.digitalcave.moss.crypto.Hash;
-import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
-import ca.digitalcave.moss.auth.model.AuthUser;
-import ca.digitalcave.moss.auth.password.PasswordChecker;
-
 public abstract class AuthenticationHelper {
 
 	private final AuthenticationConfiguration config;
 
-	public AuthenticationHelper(AuthenticationConfiguration config) {
+	public AuthenticationHelper(final AuthenticationConfiguration config) {
 		this.config = config;
 	}
 
@@ -42,7 +41,7 @@ public abstract class AuthenticationHelper {
 
 	public abstract void updateTotpBackupCodeMarkUsed(String username, String backupCode);
 
-	public boolean insertTotpSecret(String username, String totpSharedSecret) {
+	public boolean insertTotpSecret(final String username, final String totpSharedSecret) {
 		throw new RuntimeException("Not implemented");
 	}
 
@@ -106,7 +105,7 @@ public abstract class AuthenticationHelper {
 		return Crypto.encodeSecretKey(getCrypto().generateSecretKey());
 	}
 
-	public void updateKey(String encodedKey) {
+	public void updateKey(final String encodedKey) {
 		;
 	}
 

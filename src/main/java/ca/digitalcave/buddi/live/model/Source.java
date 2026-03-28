@@ -17,49 +17,49 @@ public class Source {
 	public Integer getId() {
 		return id;
 	}
-	public void setId(Integer id) {
+	public void setId(final Integer id) {
 		this.id = id;
 	}
 	public int getUserId() {
 		return userId;
 	}
-	public void setUserId(int userId) {
+	public void setUserId(final int userId) {
 		this.userId = userId;
 	}
 	public String getUuid() {
 		return uuid;
 	}
-	public void setUuid(String uuid) {
+	public void setUuid(final String uuid) {
 		this.uuid = uuid;
 	}
 	public String getName() {
 		return name;
 	}
-	public void setName(String name) {
+	public void setName(final String name) {
 		this.name = name;
 	}
 	public boolean isDeleted() {
 		return deleted;
 	}
-	public void setDeleted(boolean deleted) {
+	public void setDeleted(final boolean deleted) {
 		this.deleted = deleted;
 	}
 	public Date getCreated() {
 		return created;
 	}
-	public void setCreated(Date created) {
+	public void setCreated(final Date created) {
 		this.created = created;
 	}
 	public Date getModified() {
 		return modified;
 	}
-	public void setModified(Date modified) {
+	public void setModified(final Date modified) {
 		this.modified = modified;
 	}
 	public String getType() {
 		return type;
 	}
-	public void setType(String type) {
+	public void setType(final String type) {
 		this.type = type;
 	}
 	

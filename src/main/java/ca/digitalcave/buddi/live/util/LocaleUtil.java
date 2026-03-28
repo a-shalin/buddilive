@@ -1,12 +1,11 @@
 package ca.digitalcave.buddi.live.util;
 
-import java.util.Locale;
-import java.util.ResourceBundle;
-
+import ca.digitalcave.buddi.live.model.User;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import ca.digitalcave.buddi.live.model.User;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 public class LocaleUtil {
 
@@ -14,21 +13,21 @@ public class LocaleUtil {
 		return ResourceBundle.getBundle("i18n");
 	}
 
-	public static ResourceBundle getTranslation(User user) {
+	public static ResourceBundle getTranslation(final User user) {
 		if (user != null && user.getLocale() != null) {
 			return ResourceBundle.getBundle("i18n", user.getLocale());
 		}
 		return ResourceBundle.getBundle("i18n");
 	}
 
-	public static ResourceBundle getTranslation(Locale locale) {
+	public static ResourceBundle getTranslation(final Locale locale) {
 		if (locale != null) {
 			return ResourceBundle.getBundle("i18n", locale);
 		}
 		return ResourceBundle.getBundle("i18n");
 	}
 
-	public static Locale parseLocale(String rawLocale, Locale defaultLocale) {
+	public static Locale parseLocale(final String rawLocale, final Locale defaultLocale) {
 		if (StringUtils.isBlank(rawLocale)) return defaultLocale;
 
 		try {

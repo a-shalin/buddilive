@@ -33,19 +33,19 @@ public class Account extends Source {
 	public String getAccountType() {
 		return accountType;
 	}
-	public void setAccountType(String accountType) {
+	public void setAccountType(final String accountType) {
 		this.accountType = accountType;
 	}
 	public String getStartBalance() {
 		return startBalance;
 	}
-	public void setStartBalance(String startBalance) {
+	public void setStartBalance(final String startBalance) {
 		this.startBalance = startBalance;
 	}
 	public Date getStartDate() {
 		return startDate;
 	}
-	public void setStartDate(Date startDate) {
+	public void setStartDate(final Date startDate) {
 		this.startDate = startDate;
 	}
 	
@@ -55,7 +55,7 @@ public class Account extends Source {
 	public String getBalance() {
 		return balance;
 	}
-	public void setBalance(String balance) {
+	public void setBalance(final String balance) {
 		this.balance = balance;
 	}
 }

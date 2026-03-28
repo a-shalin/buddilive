@@ -1,30 +1,22 @@
 package ca.digitalcave.buddi.live.db.util;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang3.StringUtils;
-
 import ca.digitalcave.buddi.live.db.Entries;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Users;
-import ca.digitalcave.buddi.live.model.Account;
-import ca.digitalcave.buddi.live.model.Category;
-import ca.digitalcave.buddi.live.model.Entry;
-import ca.digitalcave.buddi.live.model.ScheduledTransaction;
-import ca.digitalcave.buddi.live.model.Source;
-import ca.digitalcave.buddi.live.model.Split;
-import ca.digitalcave.buddi.live.model.Transaction;
-import ca.digitalcave.buddi.live.model.User;
+import ca.digitalcave.buddi.live.model.*;
 import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.moss.crypto.Base64;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import org.apache.commons.lang3.StringUtils;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 public class ConstraintsChecker {
 
-	public static void checkInsertCategory(Category category, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkInsertCategory(final Category category, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (category.getParent() != null) {
 			final Source parent = sources.selectSource(user, category.getParent());
 			if (parent.isAccount()) {
@@ -48,12 +40,12 @@ public class ConstraintsChecker {
 		}
 	}
 
-	public static void checkUpdateCategory(Category category, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkUpdateCategory(final Category category, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (category.getId() == null) throw new DatabaseException("The id must be set to perform an update");
 		checkInsertCategory(category, user, sources, crypto);
 	}
 
-	public static void checkInsertAccount(Account account, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkInsertAccount(final Account account, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (account.isAccount()) {
 			final List<Account> accounts = sources.selectAccounts(user, account.getAccountType());
 			for (Account a : accounts) {
@@ -77,12 +69,12 @@ public class ConstraintsChecker {
 		}
 	}
 
-	public static void checkUpdateAccount(Account account, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkUpdateAccount(final Account account, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (account.getId() == null) throw new DatabaseException("The id must be set to perform an update");
 		checkInsertAccount(account, user, sources, crypto);
 	}
 
-	public static void checkInsertSplit(Split split, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkInsertSplit(final Split split, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		final Source fromSource = sources.selectSource(user, split.getFromSource());
 		final Source toSource = sources.selectSource(user, split.getToSource());
 		if (!fromSource.isAccount() && !toSource.isAccount()) throw new DatabaseException("From and To cannot both be categories");
@@ -104,12 +96,12 @@ public class ConstraintsChecker {
 		if (CryptoUtil.decryptWrapperBigDecimal(split.getAmount(), user, true).compareTo(BigDecimal.ZERO) == 0) throw new DatabaseException("Splits cannot have amounts equal to zero.");
 	}
 
-	public static void checkUpdateSplit(Split split, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkUpdateSplit(final Split split, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (split.getId() == null) throw new DatabaseException("The id must be set to perform an update");
 		checkInsertSplit(split, user, sources, crypto);
 	}
 
-	public static void checkInsertTransaction(Transaction transaction, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkInsertTransaction(final Transaction transaction, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (transaction.getSplits() == null || transaction.getSplits().size() == 0) throw new DatabaseException("A transaction must contain at least one split.");
 		if (transaction.getDate() == null) throw new DatabaseException("The transaction date must be set");
 		for (Split split : transaction.getSplits()) {
@@ -124,12 +116,12 @@ public class ConstraintsChecker {
 		}
 	}
 
-	public static void checkUpdateTransaction(Transaction transaction, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkUpdateTransaction(final Transaction transaction, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (transaction.getId() == null) throw new DatabaseException("The id must be set to perform an update");
 		checkInsertTransaction(transaction, user, sources, crypto);
 	}
 
-	public static void checkInsertScheduledTransaction(ScheduledTransaction scheduledTransaction, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkInsertScheduledTransaction(final ScheduledTransaction scheduledTransaction, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (scheduledTransaction.getSplits() == null || scheduledTransaction.getSplits().size() == 0) throw new DatabaseException("A transaction must contain at least one split.");
 		for (Split split : scheduledTransaction.getSplits()) {
 			if (CryptoUtil.decryptWrapperBigDecimal(split.getAmount(), user, true).compareTo(BigDecimal.ZERO) == 0) throw new DatabaseException("Splits cannot have amounts equal to zero.");
@@ -164,12 +156,12 @@ public class ConstraintsChecker {
 		}
 	}
 
-	public static void checkUpdateScheduledTransaction(ScheduledTransaction scheduledTransaction, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkUpdateScheduledTransaction(final ScheduledTransaction scheduledTransaction, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (scheduledTransaction.getId() == null) throw new DatabaseException("The id must be set to perform an update");
 		checkInsertScheduledTransaction(scheduledTransaction, user, sources, crypto);
 	}
 
-	public static void checkInsertEntry(Entry entry, User user, Sources sources, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkInsertEntry(final Entry entry, final User user, final Sources sources, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (entry.getAmount() == null) entry.setAmount(BigDecimal.ZERO.toPlainString());
 		if (entry.getCategoryId() == 0) throw new DatabaseException("The category id must be set");
 		if (entry.getDate() == null) throw new DatabaseException("The date must be set");
@@ -181,21 +173,21 @@ public class ConstraintsChecker {
 		}
 	}
 
-	public static void checkUpdateEntry(Entry entry, User user, Sources sources, Entries entries, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void checkUpdateEntry(final Entry entry, final User user, final Sources sources, final Entries entries, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (entries.selectEntry(user, entry) == null) throw new DatabaseException("Could not find an entry to update");
 		checkInsertEntry(entry, user, sources, crypto);
 	}
 
-	public static void checkInsertUser(User user, Users users) throws DatabaseException {
+	public static void checkInsertUser(final User user, final Users users) throws DatabaseException {
 		if (users.selectUser(user.getIdentifier()) != null) throw new DatabaseException("The user name already exists");
 	}
 
-	public static void checkUpdateUserPreferences(User user) throws DatabaseException {
+	public static void checkUpdateUserPreferences(final User user) throws DatabaseException {
 		if (!user.isPremium()) user.setShowCleared(false);
 		if (!user.isPremium()) user.setShowReconciled(false);
 	}
 
-	private static boolean isEncryptedValue(String value) {
+	private static boolean isEncryptedValue(final String value) {
 		if (StringUtils.isBlank(value)) return false;
 		final String[] split = value.split(":");
 		if (split.length != 3 && split.length != 4 && split.length != 5) {

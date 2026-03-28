@@ -53,10 +53,10 @@ public class AccountsController {
 
 	@PostMapping
 	@Transactional
-	public SuccessResponseDto post(@AuthenticationPrincipal User user, @RequestBody final AccountRequestDto request) {
+	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final AccountRequestDto accountRequestDto) {
 		try {
-			final Action action = request.action();
-			final Account account = Account.fromDto(request);
+			final Action action = accountRequestDto.action();
+			final Account account = Account.fromDto(accountRequestDto);
 
 			if (Action.INSERT == action) {
 				ConstraintsChecker.checkInsertAccount(account, user, sources, crypto);

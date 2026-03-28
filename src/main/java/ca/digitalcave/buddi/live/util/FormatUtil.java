@@ -1,33 +1,29 @@
 package ca.digitalcave.buddi.live.util;
 
-import java.math.BigDecimal;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.text.NumberFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-
 import ca.digitalcave.buddi.live.model.Source;
 import ca.digitalcave.buddi.live.model.Split;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+
+import java.math.BigDecimal;
+import java.text.*;
+import java.util.Date;
+import java.util.Locale;
 
 public class FormatUtil {
 	public static String HTML_RED = "#dd2222";
 	public static String HTML_DISABLED_RED = "#886666";
 	public static String HTML_GRAY = "#bbbbbb";
 	
-	public static String formatDateTimeInternal(Date date){
+	public static String formatDateTimeInternal(final Date date){
 		if (date == null) return null;
 		return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(date);
 	}
-	public static String formatDateInternal(Date date){
+	public static String formatDateInternal(final Date date){
 		if (date == null) return null;
 		return new SimpleDateFormat("yyyy-MM-dd").format(date);
 	}
-	public static Date parseDateTimeInternal(String date){
+	public static Date parseDateTimeInternal(final String date){
 		if (date == null) return null;
 		try {
 			return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(date);
@@ -36,7 +32,7 @@ public class FormatUtil {
 			return null;
 		}
 	}
-	public static Date parseDateInternal(String date){
+	public static Date parseDateInternal(final String date){
 		if (date == null) return null;
 		try {
 			return new SimpleDateFormat("yyyy-MM-dd").parse(date);
@@ -46,17 +42,17 @@ public class FormatUtil {
 		}
 	}
 	
-	public static String formatDate(Date date, User user){
+	public static String formatDate(final Date date, final User user){
 		if (date == null) return null;
 		return new SimpleDateFormat(user.getDateFormat()).format(date);
 	}
 
-	public static BigDecimal parseCurrency(String value){
+	public static BigDecimal parseCurrency(final String value){
 		if (value == null || value.length() == 0) return null;
 		return new BigDecimal(value);
 	}
 	
-	public static String formatCurrency(BigDecimal value, User user){
+	public static String formatCurrency(final BigDecimal value, final User user){
 		if (value == null) return null;
 
 		final BigDecimal absoluteValue = value.abs();
@@ -91,7 +87,7 @@ public class FormatUtil {
 		return result;
 	}
 	
-	public static String formatCurrency(BigDecimal value, User user, Source source){
+	public static String formatCurrency(final BigDecimal value, final User user, final Source source){
 		if ("C".equals(source.getType()) || "E".equals(source.getType())){
 			return formatCurrency(value == null ? null : value.negate(), user);
 		}
@@ -109,7 +105,7 @@ public class FormatUtil {
 		return "font-weight: bold;";
 	}
 	
-	public static boolean isRed(Source selected, User user, Split split) throws CryptoException {
+	public static boolean isRed(final Source selected, final User user, final Split split) throws CryptoException {
 		boolean toSelected = split.getToSource() == selected.getId();
 		boolean positive = CryptoUtil.decryptWrapperBigDecimal(split.getAmount(), user, true).compareTo(BigDecimal.ZERO) >= 0;
 		if ((!toSelected && positive) || (toSelected && !positive)){
@@ -120,7 +116,7 @@ public class FormatUtil {
 		}
 	}
 	
-	public static boolean isRed(Source s, BigDecimal value){
+	public static boolean isRed(final Source s, final BigDecimal value){
 		if (s == null){
 			return false;
 		}
@@ -137,7 +133,7 @@ public class FormatUtil {
 			throw new RuntimeException("Unknown source type '" + s.getType() + "'");
 		}
 	}
-	public static boolean isRed(BigDecimal value){
+	public static boolean isRed(final BigDecimal value){
 		if (value == null || value.compareTo(BigDecimal.ZERO) >= 0)
 			return false;
 		return true;

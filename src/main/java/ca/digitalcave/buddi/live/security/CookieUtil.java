@@ -1,5 +1,12 @@
 package ca.digitalcave.buddi.live.security;
 
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
+import ca.digitalcave.moss.crypto.Crypto;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
+
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -7,14 +14,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.apache.commons.lang3.StringUtils;
-
-import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.auth.service.AuthenticationHelper;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 public class CookieUtil {
 
@@ -44,7 +43,7 @@ public class CookieUtil {
 	public static final String FIELD_TWO_FACTOR_REQUIRED = "twoFactorRequired";
 	public static final String FIELD_TWO_FACTOR_SETUP = "twoFactorSetup";
 
-	public static Map<String, String> decryptCookie(AuthenticationHelper helper, String encrypted) {
+	public static Map<String, String> decryptCookie(final AuthenticationHelper helper, final String encrypted) {
 		try {
 			final String decrypted = Crypto.decrypt(helper.getKey(), encrypted);
 			return parseQueryString(decrypted);
@@ -55,7 +54,7 @@ public class CookieUtil {
 		}
 	}
 
-	public static String encryptCookie(AuthenticationHelper helper, Map<String, String> params) {
+	public static String encryptCookie(final AuthenticationHelper helper, final Map<String, String> params) {
 		try {
 			return helper.getCrypto().encrypt(helper.getKey(), toQueryString(params));
 		}
@@ -65,7 +64,7 @@ public class CookieUtil {
 		}
 	}
 
-	public static void setCookie(AuthenticationHelper helper, HttpServletResponse response, String value, int maxAge) {
+	public static void setCookie(final AuthenticationHelper helper, final HttpServletResponse response, final String value, final int maxAge) {
 		final Cookie cookie = new Cookie(helper.getCookieName(), value);
 		cookie.setHttpOnly(true);
 		cookie.setSecure(helper.isUseSecureCookies());
@@ -74,11 +73,11 @@ public class CookieUtil {
 		response.addCookie(cookie);
 	}
 
-	public static void deleteCookie(AuthenticationHelper helper, HttpServletResponse response) {
+	public static void deleteCookie(final AuthenticationHelper helper, final HttpServletResponse response) {
 		setCookie(helper, response, "", 0);
 	}
 
-	public static String findCookieValue(HttpServletRequest request, String cookieName) {
+	public static String findCookieValue(final HttpServletRequest request, final String cookieName) {
 		if (request.getCookies() == null) return null;
 		for (Cookie cookie : request.getCookies()) {
 			if (cookieName.equals(cookie.getName())) {
@@ -88,7 +87,7 @@ public class CookieUtil {
 		return null;
 	}
 
-	public static String getClientAddress(HttpServletRequest request) {
+	public static String getClientAddress(final HttpServletRequest request) {
 		final String forwarded = request.getHeader("x-forwarded-for");
 		if (forwarded != null) {
 			return forwarded;
@@ -96,23 +95,23 @@ public class CookieUtil {
 		return request.getRemoteAddr();
 	}
 
-	public static long getCookieTimeoutMillis(boolean remember) {
+	public static long getCookieTimeoutMillis(final boolean remember) {
 		return remember ? COOKIE_EXPIRY_REMEMBER_MILLIS : COOKIE_EXPIRY_DEFAULT_MILLIS;
 	}
 
-	public static boolean isPasswordExpired(Map<String, String> params) {
+	public static boolean isPasswordExpired(final Map<String, String> params) {
 		return params != null && Boolean.parseBoolean(params.getOrDefault(FIELD_PASSWORD_EXPIRED, "false"));
 	}
 
-	public static boolean isTwoFactorRequired(Map<String, String> params) {
+	public static boolean isTwoFactorRequired(final Map<String, String> params) {
 		return params != null && Boolean.parseBoolean(params.getOrDefault(FIELD_TWO_FACTOR_REQUIRED, "false"));
 	}
 
-	public static boolean isTwoFactorSetup(Map<String, String> params) {
+	public static boolean isTwoFactorSetup(final Map<String, String> params) {
 		return params != null && Boolean.parseBoolean(params.getOrDefault(FIELD_TWO_FACTOR_SETUP, "false"));
 	}
 
-	public static boolean isTwoFactorValidated(Map<String, String> params) {
+	public static boolean isTwoFactorValidated(final Map<String, String> params) {
 		if (params == null) return false;
 		final boolean validated = Boolean.parseBoolean(params.getOrDefault(FIELD_TWO_FACTOR_VALIDATED, "false"));
 		final String authenticator = getAuthenticator(params);
@@ -120,8 +119,8 @@ public class CookieUtil {
 		return validated && authenticator != null && authenticator.equals(validatedIdentifier);
 	}
 
-	public static void setTwoFactorInvalid(HttpServletRequest request, HttpServletResponse response,
-										   AuthenticationHelper helper) {
+	public static void setTwoFactorInvalid(final HttpServletRequest request, final HttpServletResponse response,
+										   final AuthenticationHelper helper) {
 		final String cookieValue = findCookieValue(request, helper.getCookieName());
 		if (cookieValue == null || cookieValue.isEmpty()) return;
 		final Map<String, String> params = decryptCookie(helper, cookieValue);
@@ -131,39 +130,39 @@ public class CookieUtil {
 		setEncryptedCookie(request, response, helper, params, true);
 	}
 
-	public static boolean isImpersonating(Map<String, String> params) {
+	public static boolean isImpersonating(final Map<String, String> params) {
 		if (params == null) return false;
 		final String authenticator = params.get(FIELD_AUTHENTICATOR);
 		return authenticator != null && !authenticator.trim().isEmpty();
 	}
 
-	public static String getAuthenticator(Map<String, String> params) {
+	public static String getAuthenticator(final Map<String, String> params) {
 		if (params == null) return null;
 		final String authenticator = params.get(FIELD_AUTHENTICATOR);
 		if (authenticator != null) return authenticator;
 		return params.get(FIELD_IDENTIFIER);
 	}
 
-	public static boolean isPrimaryAuthenticationValid(Map<String, String> params) {
+	public static boolean isPrimaryAuthenticationValid(final Map<String, String> params) {
 		if (params == null) return false;
 		final String identifier = params.get(FIELD_IDENTIFIER);
 		if (StringUtils.isBlank(identifier)) return false;
 		return !Boolean.parseBoolean(params.getOrDefault(FIELD_PASSWORD_EXPIRED, "false"));
 	}
 
-	public static boolean isSecondaryAuthenticationValid(Map<String, String> params) {
+	public static boolean isSecondaryAuthenticationValid(final Map<String, String> params) {
 		if (params == null) return false;
 		if (isTwoFactorValidated(params)) return true;
 		if (isTwoFactorRequired(params)) return false;
 		return true;
 	}
 
-	public static boolean isAuthenticationValid(Map<String, String> params) {
+	public static boolean isAuthenticationValid(final Map<String, String> params) {
 		return isPrimaryAuthenticationValid(params) && isSecondaryAuthenticationValid(params);
 	}
 
-	public static void setEncryptedCookie(HttpServletRequest request, HttpServletResponse response,
-										  AuthenticationHelper helper, Map<String, String> params, boolean ipLock) {
+	public static void setEncryptedCookie(final HttpServletRequest request, final HttpServletResponse response,
+										  final AuthenticationHelper helper, final Map<String, String> params, final boolean ipLock) {
 		long expiryTimeMillis;
 		final boolean remember = Boolean.parseBoolean(params.getOrDefault(FIELD_REMEMBER, "false"));
 		final boolean disableIpLock = Boolean.parseBoolean(params.getOrDefault(FIELD_DISABLE_IP_LOCK, "false"));
@@ -213,7 +212,7 @@ public class CookieUtil {
 		}
 	}
 
-	private static Map<String, String> parseQueryString(String queryString) {
+	private static Map<String, String> parseQueryString(final String queryString) {
 		final Map<String, String> result = new LinkedHashMap<>();
 		if (queryString == null || queryString.isEmpty()) return result;
 		for (String pair : queryString.split("&")) {
@@ -230,7 +229,7 @@ public class CookieUtil {
 		return result;
 	}
 
-	private static String toQueryString(Map<String, String> params) {
+	private static String toQueryString(final Map<String, String> params) {
 		final StringBuilder sb = new StringBuilder();
 		for (Map.Entry<String, String> entry : params.entrySet()) {
 			if (sb.length() > 0) sb.append('&');

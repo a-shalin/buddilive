@@ -1,39 +1,14 @@
 package ca.digitalcave.buddi.live.controller;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import ca.digitalcave.buddi.live.security.CookieAuthenticationToken;
+import ca.digitalcave.buddi.live.security.CookieUtil;
+import ca.digitalcave.moss.auth.model.AuthUser;
+import ca.digitalcave.moss.auth.password.PasswordChecker;
+import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
-
-import ca.digitalcave.buddi.live.security.CookieAuthenticationToken;
-import ca.digitalcave.buddi.live.security.CookieUtil;
-import ca.digitalcave.moss.auth.model.AuthUser;
-import ca.digitalcave.moss.auth.service.AuthenticationHelper;
-import ca.digitalcave.moss.auth.password.PasswordChecker;
 import dev.samstevens.totp.code.CodeVerifier;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
 import dev.samstevens.totp.code.DefaultCodeVerifier;
@@ -41,6 +16,20 @@ import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/authentication")
@@ -48,12 +37,12 @@ public class AuthenticationController {
 
 	private final AuthenticationHelper helper;
 
-	public AuthenticationController(AuthenticationHelper helper) {
+	public AuthenticationController(final AuthenticationHelper helper) {
 		this.helper = helper;
 	}
 
 	@PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> login(HttpServletRequest request, HttpServletResponse response) {
+	public ResponseEntity<String> login(final HttpServletRequest request, final HttpServletResponse response) {
 		final String identifier = request.getParameter(CookieUtil.FIELD_IDENTIFIER);
 		final String secret = request.getParameter(CookieUtil.FIELD_PASSWORD);
 
@@ -98,7 +87,7 @@ public class AuthenticationController {
 	}
 
 	@GetMapping("/logout")
-	public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+	public ResponseEntity<Void> logout(final HttpServletRequest request, final HttpServletResponse response) {
 		CookieUtil.deleteCookie(helper, response);
 		SecurityContextHolder.clearContext();
 		return ResponseEntity.status(HttpStatus.FOUND)
@@ -107,7 +96,7 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> register(HttpServletRequest request) {
+	public ResponseEntity<String> register(final HttpServletRequest request) {
 		final String email = request.getParameter(CookieUtil.FIELD_EMAIL);
 		if (StringUtils.isBlank(email)) {
 			return ResponseEntity.badRequest().body("{\"success\": false}");
@@ -149,12 +138,12 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/activate", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> activate(HttpServletRequest request) {
+	public ResponseEntity<String> activate(final HttpServletRequest request) {
 		return resetPassword(request);
 	}
 
 	@PostMapping(value = "/resetPassword", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> resetPassword(HttpServletRequest request) {
+	public ResponseEntity<String> resetPassword(final HttpServletRequest request) {
 		final String activationKey = request.getParameter(CookieUtil.FIELD_ACTIVATION_KEY);
 		final String password = request.getParameter(CookieUtil.FIELD_PASSWORD);
 
@@ -176,7 +165,7 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/forgotPassword", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> forgotPassword(HttpServletRequest request) {
+	public ResponseEntity<String> forgotPassword(final HttpServletRequest request) {
 		try { Thread.sleep((long) (Math.random() * 1000)); } catch (Throwable e) {}
 
 		final String identifier = request.getParameter(CookieUtil.FIELD_IDENTIFIER);
@@ -198,7 +187,7 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/forgotUsername", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> forgotUsername(HttpServletRequest request) {
+	public ResponseEntity<String> forgotUsername(final HttpServletRequest request) {
 		final String email = request.getParameter(CookieUtil.FIELD_EMAIL);
 		if (StringUtils.isNotBlank(email)) {
 			try {
@@ -206,7 +195,7 @@ public class AuthenticationController {
 				if (users != null && !users.isEmpty()) {
 					final StringBuilder sb = new StringBuilder();
 					for (AuthUser user : users) {
-						if (sb.length() > 0) sb.append(", ");
+						if (!sb.isEmpty()) sb.append(", ");
 						sb.append(user.getIdentifier());
 					}
 					helper.sendEmail(email, "Forgot Username", "Your username(s): " + sb);
@@ -221,7 +210,7 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/checkPassword", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> checkPassword(HttpServletRequest request) {
+	public ResponseEntity<String> checkPassword(final HttpServletRequest request) {
 		final String identifier = request.getParameter(CookieUtil.FIELD_IDENTIFIER);
 		final String password = request.getParameter("secret");
 
@@ -266,7 +255,7 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/passwordExpired", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> passwordExpired(HttpServletRequest request) {
+	public ResponseEntity<String> passwordExpired(final HttpServletRequest request) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
@@ -292,7 +281,7 @@ public class AuthenticationController {
 	}
 
 	@GetMapping(value = "/totpSetup", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> totpSetupGet(HttpServletRequest request, HttpServletResponse response) {
+	public ResponseEntity<String> totpSetupGet(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
@@ -324,7 +313,7 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/totpSetup", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> totpSetupPost(HttpServletRequest request, HttpServletResponse response) {
+	public ResponseEntity<String> totpSetupPost(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
@@ -360,7 +349,7 @@ public class AuthenticationController {
 	}
 
 	@DeleteMapping(value = "/totpSetup", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> totpSetupDelete(HttpServletRequest request, HttpServletResponse response) {
+	public ResponseEntity<String> totpSetupDelete(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
@@ -378,7 +367,7 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/totpToken", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> totpToken(HttpServletRequest request, HttpServletResponse response) {
+	public ResponseEntity<String> totpToken(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
@@ -458,7 +447,7 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/impersonate", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> impersonatePost(HttpServletRequest request, HttpServletResponse response) {
+	public ResponseEntity<String> impersonatePost(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
@@ -484,7 +473,7 @@ public class AuthenticationController {
 	}
 
 	@DeleteMapping(value = "/impersonate", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> impersonateDelete(HttpServletRequest request, HttpServletResponse response) {
+	public ResponseEntity<String> impersonateDelete(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
@@ -505,7 +494,7 @@ public class AuthenticationController {
 	}
 
 	@GetMapping("/**")
-	public ResponseEntity<byte[]> serveAuthUi(HttpServletRequest request) {
+	public ResponseEntity<byte[]> serveAuthUi(final HttpServletRequest request) {
 		String path = request.getServletPath();
 		if (path.startsWith("/authentication/")) {
 			path = path.substring("/authentication/".length());
@@ -546,7 +535,7 @@ public class AuthenticationController {
 		return null;
 	}
 
-	private String getNextStep(Map<String, String> params, AuthUser user) {
+	private String getNextStep(final Map<String, String> params, final AuthUser user) {
 		if (params != null
 				&& StringUtils.isNotBlank(params.get(CookieUtil.FIELD_IDENTIFIER))
 				&& CookieUtil.isSecondaryAuthenticationValid(params)

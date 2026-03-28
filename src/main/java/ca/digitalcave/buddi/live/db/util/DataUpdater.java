@@ -1,40 +1,22 @@
 package ca.digitalcave.buddi.live.db.util;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.crypto.SecretKey;
-
-import org.apache.commons.lang3.StringUtils;
-
-import ca.digitalcave.buddi.live.db.Entries;
-import ca.digitalcave.buddi.live.db.ScheduledTransactions;
-import ca.digitalcave.buddi.live.db.Sources;
-import ca.digitalcave.buddi.live.db.Transactions;
-import ca.digitalcave.buddi.live.db.Users;
-import ca.digitalcave.buddi.live.model.Account;
-import ca.digitalcave.buddi.live.model.Category;
-import ca.digitalcave.buddi.live.model.Entry;
-import ca.digitalcave.buddi.live.model.ScheduledTransaction;
+import ca.digitalcave.buddi.live.db.*;
+import ca.digitalcave.buddi.live.model.*;
 import ca.digitalcave.buddi.live.model.ScheduledTransaction.ScheduleFrequency;
-import ca.digitalcave.buddi.live.model.Split;
-import ca.digitalcave.buddi.live.model.Transaction;
-import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.buddi.live.util.FormatUtil;
 import ca.digitalcave.moss.common.DateUtil;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import org.apache.commons.lang3.StringUtils;
+
+import javax.crypto.SecretKey;
+import java.math.BigDecimal;
+import java.util.*;
 
 public class DataUpdater {
 
-	public static void updateBalances(User user, Sources sources, Transactions transactions, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void updateBalances(final User user, final Sources sources, final Transactions transactions, final Crypto crypto) throws DatabaseException, CryptoException {
 		//Look through all splits in all accounts.  Start with the earliest split in each account.  If we find a
 		// split which does not have the correct balance, we update it; if the balance is already good, leave it alone.
 		final List<Split> splits = transactions.selectSplits(user);
@@ -92,8 +74,8 @@ public class DataUpdater {
 		}
 	}
 
-	public static String updateScheduledTransactions(User user, Sources sources, Transactions transactionsMapper,
-			ScheduledTransactions scheduledTransactionsMapper, Crypto crypto, Date userDate) throws CryptoException, DatabaseException {
+	public static String updateScheduledTransactions(final User user, final Sources sources, final Transactions transactionsMapper,
+			final ScheduledTransactions scheduledTransactionsMapper, final Crypto crypto, final Date userDate) throws CryptoException, DatabaseException {
 		final Date today = DateUtil.getEndOfDay(userDate);
 
 		boolean thereWasAnUpate = false;
@@ -246,9 +228,9 @@ public class DataUpdater {
 		return (thereWasAnUpate ? messages : null);
 	}
 
-	public static void turnOnEncryption(User user, Sources sources, Entries entries,
-			Transactions transactionsMapper, ScheduledTransactions scheduledTransactionsMapper,
-			Users users, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void turnOnEncryption(final User user, final Sources sources, final Entries entries,
+			final Transactions transactionsMapper, final ScheduledTransactions scheduledTransactionsMapper,
+			final Users users, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (user.isEncrypted()) throw new DatabaseException("This account is already encrypted");
 
 		final String password = user.getPlaintextSecret();
@@ -299,9 +281,9 @@ public class DataUpdater {
 		}
 	}
 
-	public static void turnOffEncryption(User user, Sources sources, Entries entries,
-			Transactions transactionsMapper, ScheduledTransactions scheduledTransactionsMapper,
-			Users users, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void turnOffEncryption(final User user, final Sources sources, final Entries entries,
+			final Transactions transactionsMapper, final ScheduledTransactions scheduledTransactionsMapper,
+			final Users users, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (!user.isEncrypted()) throw new DatabaseException("This account is not encrypted");
 
 		final SecretKey key = user.getDecryptedSecretKey();
@@ -352,9 +334,9 @@ public class DataUpdater {
 		}
 	}
 
-	public static void upgradeEncryptionFrom1(User user, Sources sources, Entries entries,
-			Transactions transactionsMapper, ScheduledTransactions scheduledTransactionsMapper,
-			Users users, Crypto crypto) throws DatabaseException, CryptoException {
+	public static void upgradeEncryptionFrom1(final User user, final Sources sources, final Entries entries,
+			final Transactions transactionsMapper, final ScheduledTransactions scheduledTransactionsMapper,
+			final Users users, final Crypto crypto) throws DatabaseException, CryptoException {
 		if (!user.isEncrypted()) {
 			users.updateUserEncryptionVersion(user, 2);
 			return;

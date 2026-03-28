@@ -1,18 +1,5 @@
 package ca.digitalcave.buddi.live.security;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.WeakHashMap;
-import java.util.concurrent.Semaphore;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.filter.OncePerRequestFilter;
-
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.moss.auth.model.AuthUser;
 import ca.digitalcave.moss.auth.service.AuthenticationHelper;
@@ -20,6 +7,16 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
+import java.util.concurrent.Semaphore;
 
 public class CookieAuthenticationFilter extends OncePerRequestFilter {
 
@@ -29,13 +26,13 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
 	private final AuthenticationHelper authenticationHelper;
 	private final int delay;
 
-	public CookieAuthenticationFilter(AuthenticationHelper authenticationHelper) {
+	public CookieAuthenticationFilter(final AuthenticationHelper authenticationHelper) {
 		this.authenticationHelper = authenticationHelper;
 		this.delay = 1500;
 	}
 
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+	protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain)
 			throws ServletException, IOException {
 
 		final String cookieValue = CookieUtil.findCookieValue(request, authenticationHelper.getCookieName());

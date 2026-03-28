@@ -46,7 +46,7 @@ public class Transaction {
 	public Long getId() {
 		return id;
 	}
-	public void setId(Long id) {
+	public void setId(final Long id) {
 		this.id = id;
 	}
 	public String getUuid() {
@@ -55,61 +55,61 @@ public class Transaction {
 		}
 		return uuid;
 	}
-	public void setUuid(String uuid) {
+	public void setUuid(final String uuid) {
 		this.uuid = uuid;
 	}
 	public int getUserId() {
 		return userId;
 	}
-	public void setUserId(int userId) {
+	public void setUserId(final int userId) {
 		this.userId = userId;
 	}
 	public String getDescription() {
 		return description;
 	}
-	public void setDescription(String description) {
+	public void setDescription(final String description) {
 		this.description = description;
 	}
 	public Date getDate() {
 		return date;
 	}
-	public void setDate(Date date) {
+	public void setDate(final Date date) {
 		this.date = date;
 	}
 	public String getNumber() {
 		return number;
 	}
-	public void setNumber(String number) {
+	public void setNumber(final String number) {
 		this.number = number;
 	}
 	public boolean isDeleted() {
 		return deleted;
 	}
-	public void setDeleted(boolean deleted) {
+	public void setDeleted(final boolean deleted) {
 		this.deleted = deleted;
 	}
 	public Long getScheduledTransactionId() {
 		return scheduledTransactionId;
 	}
-	public void setScheduledTransactionId(Long scheduledTransactionId) {
+	public void setScheduledTransactionId(final Long scheduledTransactionId) {
 		this.scheduledTransactionId = scheduledTransactionId;
 	}
 	public List<Split> getSplits() {
 		return splits;
 	}
-	public void setSplits(List<Split> splits) {
+	public void setSplits(final List<Split> splits) {
 		this.splits = splits;
 	}
 	public Date getCreated() {
 		return created;
 	}
-	public void setCreated(Date created) {
+	public void setCreated(final Date created) {
 		this.created = created;
 	}
 	public Date getModified() {
 		return modified;
 	}
-	public void setModified(Date modified) {
+	public void setModified(final Date modified) {
 		this.modified = modified;
 	}
 	

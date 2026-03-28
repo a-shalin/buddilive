@@ -66,7 +66,7 @@ public class DataManagementController {
 	private DataBackupResponseConverter dataBackupResponseConverter;
 
 	@GetMapping("/data/backup")
-	public ResponseEntity<DataBackupResponseDto> backup(@AuthenticationPrincipal User user) {
+	public ResponseEntity<DataBackupResponseDto> backup(@AuthenticationPrincipal final User user) {
 		try {
 			final List<Account> accounts = sources.selectAccounts(user);
 			final List<Category> categories = Category.getHierarchy(sources.selectCategories(user));
@@ -86,11 +86,11 @@ public class DataManagementController {
 	}
 
 	@GetMapping("/data/export")
-	public ResponseEntity<StreamingResponseBody> export(@AuthenticationPrincipal User user,
-			@RequestParam String interval,
-			@RequestParam String type,
-			@RequestParam(required = false) String startDate,
-			@RequestParam(required = false) String endDate) {
+	public ResponseEntity<StreamingResponseBody> export(@AuthenticationPrincipal final User user,
+			@RequestParam final String interval,
+			@RequestParam final String type,
+			@RequestParam(required = false) final String startDate,
+			@RequestParam(required = false) final String endDate) {
 		if (!user.isPremium()) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
 		}
@@ -149,9 +149,9 @@ public class DataManagementController {
 
 	@PostMapping("/data/restore")
 	@Transactional
-	public SuccessResponseDto restore(@AuthenticationPrincipal User user,
-			@RequestParam("file") MultipartFile file,
-			@RequestParam(value = "deleteData", defaultValue = "false") boolean deleteData) {
+	public SuccessResponseDto restore(@AuthenticationPrincipal final User user,
+			@RequestParam("file") final MultipartFile file,
+			@RequestParam(value = "deleteData", defaultValue = "false") final boolean deleteData) {
 		try {
 			if (deleteData) {
 				sources.deleteAllSources(user);
@@ -185,7 +185,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreAccounts(List<RestoreAccountDto> accounts, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+	private void restoreAccounts(final List<RestoreAccountDto> accounts, final User user, final Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
 		if (accounts != null) {
 			for (final RestoreAccountDto a : accounts) {
 				final Account existing = sources.selectAccount(user, a.uuid());
@@ -211,7 +211,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreCategories(List<RestoreCategoryDto> categories, User user, Map<String, Integer> sourceIDsByUUID, String parentUuid) throws DatabaseException, CryptoException {
+	private void restoreCategories(final List<RestoreCategoryDto> categories, final User user, final Map<String, Integer> sourceIDsByUUID, final String parentUuid) throws DatabaseException, CryptoException {
 		if (categories != null) {
 			for (final RestoreCategoryDto c : categories) {
 				final Category existing = sources.selectCategory(user, c.uuid());
@@ -241,7 +241,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreEntries(List<RestoreEntryDto> entryList, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+	private void restoreEntries(final List<RestoreEntryDto> entryList, final User user, final Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
 		if (entryList != null) {
 			for (final RestoreEntryDto e : entryList) {
 				final Entry entry = new Entry();
@@ -267,7 +267,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreTransactions(List<RestoreTransactionDto> txnList, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+	private void restoreTransactions(final List<RestoreTransactionDto> txnList, final User user, final Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
 		if (txnList != null) {
 			for (final RestoreTransactionDto t : txnList) {
 				if (Boolean.TRUE.equals(t.deleted())) continue;
@@ -316,7 +316,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreScheduledTransactions(List<RestoreScheduledTransactionDto> txnList, User user, Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+	private void restoreScheduledTransactions(final List<RestoreScheduledTransactionDto> txnList, final User user, final Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
 		if (txnList != null) {
 			for (final RestoreScheduledTransactionDto t : txnList) {
 				if (scheduledTransactions.selectScheduledTransactionCount(user, t.uuid()) == 0) {

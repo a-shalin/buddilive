@@ -27,43 +27,43 @@ public class Entry {
 	public Long getId() {
 		return id;
 	}
-	public void setId(Long id) {
+	public void setId(final Long id) {
 		this.id = id;
 	}
 	public int getCategoryId() {
 		return categoryId;
 	}
-	public void setCategoryId(int categoryId) {
+	public void setCategoryId(final int categoryId) {
 		this.categoryId = categoryId;
 	}
 	public String getAmount() {
 		return amount;
 	}
-	public void setAmount(String amount) {
+	public void setAmount(final String amount) {
 		this.amount = amount;
 	}
 	public Date getDate() {
 		return date;
 	}
-	public void setDate(Date date) {
+	public void setDate(final Date date) {
 		this.date = date;
 	}
 	public Date getCreated() {
 		return created;
 	}
-	public void setCreated(Date created) {
+	public void setCreated(final Date created) {
 		this.created = created;
 	}
 	public Date getModified() {
 		return modified;
 	}
-	public void setModified(Date modified) {
+	public void setModified(final Date modified) {
 		this.modified = modified;
 	}
 	public CategoryPeriod getPeriod() {
 		return period;
 	}
-	public void setPeriod(CategoryPeriod period) {
+	public void setPeriod(final CategoryPeriod period) {
 		this.period = period;
 	}
 	
