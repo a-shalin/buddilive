@@ -1,31 +1,26 @@
 package ca.digitalcave.buddi.live.controller;
 
 import ca.digitalcave.buddi.live.config.AssetVersionTokenProvider;
-import ca.digitalcave.buddi.live.db.*;
-import ca.digitalcave.buddi.live.db.util.DataUpdater;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
-import ca.digitalcave.buddi.live.model.Account;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.security.CookieAuthenticationToken;
 import ca.digitalcave.buddi.live.security.CookieUtil;
+import ca.digitalcave.buddi.live.service.IndexTransactionalService;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
 import ca.digitalcave.moss.auth.i18n.OverridableResourceBundle;
 import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
-import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.server.ResponseStatusException;
@@ -43,35 +38,15 @@ public class IndexController {
 	private static final String EXPIRES_HEADER = "Expires";
 
 	@Autowired
-	private Users users;
-
-	@Autowired
-	private Sources sources;
-
-	@Autowired
-	private Transactions transactions;
-
-	@Autowired
-	private Entries entries;
-
-	@Autowired
-	private ScheduledTransactions scheduledTransactions;
-
-	@Autowired
-	private Crypto crypto;
+	private IndexTransactionalService indexTransactionalService;
 
 	@Autowired
 	private AuthenticationHelper authenticationHelper;
 
 	@Autowired
-	@Qualifier("mailProperties")
-	private Properties mailProperties;
-
-	@Autowired
 	private AssetVersionTokenProvider assetVersionTokenProvider;
 
 	@GetMapping("/index")
-	@Transactional
 	public String index(@AuthenticationPrincipal final User user, final Model model, final HttpServletResponse response) {
 		response.setHeader(CACHE_CONTROL_HEADER, CACHE_CONTROL_NO_STORE_VALUE);
 		response.setHeader(PRAGMA_HEADER, PRAGMA_NO_CACHE_VALUE);
@@ -79,15 +54,7 @@ public class IndexController {
 
 		try {
 			if (user != null) {
-				final int encryptionVersion = users.selectEncryptionVersion(user);
-				if (encryptionVersion == 1) {
-					DataUpdater.upgradeEncryptionFrom1(user, sources, entries, transactions, scheduledTransactions, users, crypto);
-				}
-
-				final List<Account> accounts = sources.selectAccounts(user);
-				if (accounts.isEmpty()) model.addAttribute("newUser", "true");
-
-				users.updateUserLoginTime(user);
+				if (indexTransactionalService.processAuthenticatedUser(user)) model.addAttribute("newUser", "true");
 			}
 		}
 		catch (CryptoException | DatabaseException e) {
