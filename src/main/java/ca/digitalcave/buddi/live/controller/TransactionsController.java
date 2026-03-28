@@ -2,10 +2,9 @@ package ca.digitalcave.buddi.live.controller;
 
 import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
 import ca.digitalcave.buddi.live.api.dto.request.TransactionRequestDto;
+import ca.digitalcave.buddi.live.service.TransactionsTransactionalService;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
-import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
-import ca.digitalcave.buddi.live.db.util.DataUpdater;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
 import ca.digitalcave.buddi.live.model.Source;
 import ca.digitalcave.buddi.live.model.Split;
@@ -14,7 +13,6 @@ import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.buddi.live.util.FormatUtil;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
-import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -25,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -43,7 +40,7 @@ public class TransactionsController {
 	private Transactions transactions;
 
 	@Autowired
-	private Crypto crypto;
+	private TransactionsTransactionalService transactionsTransactionalService;
 
 	@Autowired
 	private JsonFactory jsonFactory;
@@ -132,51 +129,15 @@ public class TransactionsController {
 	}
 
 	@PostMapping
-	@Transactional
 	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final TransactionRequestDto request) {
 		try {
 			final Action action = request.action();
-
-			if (Action.INSERT == action) {
-				final Transaction transaction = Transaction.fromDto(request);
-				ConstraintsChecker.checkInsertTransaction(transaction, user, sources, crypto);
-
-				int count = transactions.insertTransaction(user, transaction);
-				if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-
-				for (Split split : transaction.getSplits()) {
-					split.setTransactionId(transaction.getId());
-					count = transactions.insertSplit(user, split);
-					if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-				}
-			}
-			else if (Action.UPDATE == action) {
-				final Transaction transaction = Transaction.fromDto(request);
-				ConstraintsChecker.checkUpdateTransaction(transaction, user, sources, crypto);
-
-				int count = transactions.updateTransaction(user, transaction);
-				if (count != 1) throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
-
-				count = transactions.deleteSplits(user, transaction);
-				if (count == 0) throw new DatabaseException("Failed to delete splits; expected 1 or more rows, returned 0");
-
-				for (Split split : transaction.getSplits()) {
-					split.setTransactionId(transaction.getId());
-					count = transactions.insertSplit(user, split);
-					if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-				}
-			}
-			else if (Action.DELETE == action) {
-				final Transaction transaction = new Transaction();
-				transaction.setId(request.id());
-				int count = transactions.deleteTransaction(user, transaction);
-				if (count != 1) throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
-			}
-			else {
+			if (action != Action.INSERT && action != Action.UPDATE && action != Action.DELETE) {
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
 
-			DataUpdater.updateBalances(user, sources, transactions, crypto);
+			final Transaction transaction = (action == Action.INSERT || action == Action.UPDATE) ? Transaction.fromDto(request) : null;
+			transactionsTransactionalService.applyAction(user, action, transaction, request.id());
 
 			return new SuccessResponseDto(true);
 		}

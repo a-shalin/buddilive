@@ -5,24 +5,18 @@ import ca.digitalcave.buddi.live.api.dto.ScheduledTransactionsExecuteResponseDto
 import ca.digitalcave.buddi.live.api.dto.ScheduledTransactionsResponseDto;
 import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
 import ca.digitalcave.buddi.live.api.dto.request.ScheduledTransactionRequestDto;
+import ca.digitalcave.buddi.live.service.ScheduledTransactionsTransactionalService;
 import ca.digitalcave.buddi.live.db.ScheduledTransactions;
-import ca.digitalcave.buddi.live.db.Sources;
-import ca.digitalcave.buddi.live.db.Transactions;
-import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
-import ca.digitalcave.buddi.live.db.util.DataUpdater;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
 import ca.digitalcave.buddi.live.model.ScheduledTransaction;
-import ca.digitalcave.buddi.live.model.Split;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.util.FormatUtil;
 import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.common.DateUtil;
-import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -34,16 +28,10 @@ import java.util.List;
 public class ScheduledTransactionsController {
 
 	@Autowired
-	private Sources sources;
-
-	@Autowired
-	private Transactions transactions;
-
-	@Autowired
 	private ScheduledTransactions scheduledTransactions;
 
 	@Autowired
-	private Crypto crypto;
+	private ScheduledTransactionsTransactionalService scheduledTransactionsTransactionalService;
 
 	@Autowired
 	private ScheduledTransactionsResponseConverter scheduledTransactionsResponseConverter;
@@ -60,62 +48,15 @@ public class ScheduledTransactionsController {
 	}
 
 	@PostMapping
-	@Transactional
 	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final ScheduledTransactionRequestDto request) {
 		try {
 			final Action action = request.action();
-
-			if (Action.INSERT == action) {
-				final ScheduledTransaction scheduledTransaction = ScheduledTransaction.fromDto(request);
-				ConstraintsChecker.checkInsertScheduledTransaction(scheduledTransaction, user, sources, crypto);
-
-				int count = scheduledTransactions.insertScheduledTransaction(user, scheduledTransaction);
-				if (count != 1) {
-					throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-				}
-
-				for (final Split split : scheduledTransaction.getSplits()) {
-					split.setTransactionId(scheduledTransaction.getId());
-					count = scheduledTransactions.insertScheduledSplit(user, split);
-					if (count != 1) {
-						throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-					}
-				}
-			}
-			else if (Action.UPDATE == action) {
-				final ScheduledTransaction scheduledTransaction = ScheduledTransaction.fromDto(request);
-				ConstraintsChecker.checkUpdateScheduledTransaction(scheduledTransaction, user, sources, crypto);
-
-				int count = scheduledTransactions.updateScheduledTransaction(user, scheduledTransaction);
-				if (count != 1) {
-					throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
-				}
-
-				count = scheduledTransactions.deleteScheduledSplits(user, scheduledTransaction);
-				if (count == 0) {
-					throw new DatabaseException(String.format("Delete scheduled splits failed; expected 1 or more rows, returned %s", count));
-				}
-				for (final Split split : scheduledTransaction.getSplits()) {
-					split.setTransactionId(scheduledTransaction.getId());
-					count = scheduledTransactions.insertScheduledSplit(user, split);
-					if (count != 1) {
-						throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-					}
-				}
-			}
-			else if (Action.DELETE == action) {
-				final ScheduledTransaction scheduledTransaction = new ScheduledTransaction();
-				scheduledTransaction.setId(request.id());
-				final int count = scheduledTransactions.deleteScheduledTransaction(user, scheduledTransaction);
-				if (count != 1) {
-					throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
-				}
-			}
-			else {
+			if (action != Action.INSERT && action != Action.UPDATE && action != Action.DELETE) {
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
 
-			DataUpdater.updateBalances(user, sources, transactions, crypto);
+			final ScheduledTransaction scheduledTransaction = (action == Action.INSERT || action == Action.UPDATE) ? ScheduledTransaction.fromDto(request) : null;
+			scheduledTransactionsTransactionalService.applyAction(user, action, scheduledTransaction, request.id());
 			return new SuccessResponseDto(true);
 		}
 		catch (final DatabaseException e) {
@@ -127,7 +68,6 @@ public class ScheduledTransactionsController {
 	}
 
 	@PostMapping("/execute")
-	@Transactional
 	public ScheduledTransactionsExecuteResponseDto execute(@AuthenticationPrincipal final User user, @RequestBody final String body) {
 		try {
 			Date userDate = null;
@@ -141,7 +81,7 @@ public class ScheduledTransactionsController {
 				userDate = new Date();
 			}
 
-			final String messages = DataUpdater.updateScheduledTransactions(user, sources, transactions, scheduledTransactions, crypto, userDate);
+			final String messages = scheduledTransactionsTransactionalService.execute(user, userDate);
 			return scheduledTransactionsResponseConverter.convertExecute(messages);
 		}
 		catch (final CryptoException e) {
