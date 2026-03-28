@@ -14,6 +14,7 @@ import okhttp3.CookieJar;
 import okhttp3.FormBody;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -286,6 +287,18 @@ public class TestHelper {
 		assertThat(result.getBoolean("success")).isTrue();
 	}
 
+	public JSONObject getBackupJson(OkHttpClient client) throws IOException {
+		Request request = new Request.Builder()
+			.url(baseUrl + "/data/backup")
+			.get()
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(200);
+			return new JSONObject(response.body().string());
+		}
+	}
+
 	public byte[] getBackup(OkHttpClient client) throws IOException {
 		Request request = new Request.Builder()
 			.url(baseUrl + "/data/backup")
@@ -295,6 +308,38 @@ public class TestHelper {
 		try (Response response = client.newCall(request).execute()) {
 			assertThat(response.code()).isEqualTo(200);
 			return response.body().bytes();
+		}
+	}
+
+	public void setBudgetEntry(OkHttpClient client, int categoryId, String amount, String date, String periodType) throws IOException {
+		JSONObject json = new JSONObject();
+		json.put("action", "set");
+		json.put("categoryId", categoryId);
+		json.put("amount", amount);
+		json.put("date", date);
+		json.put("periodType", periodType);
+		json.put("offset", 0);
+
+		String responseBody = postJson(client, "/data/categories", json);
+		JSONObject result = new JSONObject(responseBody);
+		assertThat(result.getBoolean("success")).isTrue();
+	}
+
+	public void restore(OkHttpClient client, JSONObject data, boolean deleteData) throws IOException {
+		RequestBody file = RequestBody.create(data.toString(), MediaType.get("application/json"));
+		RequestBody multipart = new MultipartBody.Builder()
+			.setType(MultipartBody.FORM)
+			.addFormDataPart("file", "restore.json", file)
+			.build();
+		Request request = new Request.Builder()
+			.url(baseUrl + "/data/restore?deleteData=" + deleteData)
+			.post(multipart)
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).as("Restore should succeed").isEqualTo(200);
+			JSONObject result = new JSONObject(response.body().string());
+			assertThat(result.getBoolean("success")).isTrue();
 		}
 	}
 

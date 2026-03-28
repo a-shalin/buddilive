@@ -39,12 +39,59 @@ public class DataManagementIT extends BaseIT {
 
 	@Test
 	@Order(1)
-	void testBackup() throws Exception {
-		helper.createAccount(client, "Backup Test Account", "D", "Chequing", "100.00");
+	void testBackupRestoreRoundTrip() throws Exception {
+		final int chequingId = helper.createAccount(client, "Chequing Account", "D", "Chequing", "500.00");
+		final int savingsId = helper.createAccount(client, "Savings Account", "D", "Savings", "1000.00");
+		final int visaId = helper.createAccount(client, "Visa", "C", "CreditCard", "0.00");
+		final int groceriesId = helper.createCategory(client, "Groceries", "E", "MONTH");
+		final int salaryId = helper.createCategory(client, "Salary", "I", "MONTH");
 
-		byte[] backup = helper.getBackup(client);
-		assertThat(backup).isNotNull();
-		assertThat(backup.length).isGreaterThan(0);
+		helper.setBudgetEntry(client, groceriesId, "400.00", "2024-01-01", "MONTH");
+		helper.setBudgetEntry(client, salaryId, "3000.00", "2024-01-01", "MONTH");
+
+		helper.createTransaction(client, "Weekly groceries", "2024-01-15", chequingId, groceriesId, "85.50");
+		helper.createTransaction(client, "Visa payment", "2024-01-20", chequingId, visaId, "200.00");
+		helper.createTransaction(client, "Transfer to savings", "2024-01-25", chequingId, savingsId, "300.00");
+
+		helper.createScheduledTransaction(client, "Monthly salary", "Salary deposit",
+				"MONTH_DATE", 1, "2024-01-01", salaryId, chequingId, "3000.00");
+
+		final JSONObject backupBefore = helper.getBackupJson(client);
+		assertThat(backupBefore.getJSONArray("accounts").length()).isEqualTo(3);
+		assertThat(backupBefore.getJSONArray("categories").length()).isGreaterThanOrEqualTo(2);
+		assertThat(backupBefore.getJSONArray("transactions").length()).isEqualTo(3);
+		assertThat(backupBefore.getJSONArray("scheduledTransactions").length()).isEqualTo(1);
+		assertThat(backupBefore.getJSONArray("entries").length()).isEqualTo(2);
+
+		helper.restore(client, new JSONObject(), true);
+
+		final JSONObject backupEmpty = helper.getBackupJson(client);
+		assertThat(backupEmpty.getJSONArray("accounts")).isEmpty();
+		assertThat(backupEmpty.getJSONArray("categories")).isEmpty();
+		assertThat(backupEmpty.getJSONArray("transactions")).isEmpty();
+		assertThat(backupEmpty.getJSONArray("scheduledTransactions")).isEmpty();
+
+		helper.restore(client, backupBefore, true);
+
+		final JSONObject backupAfter = helper.getBackupJson(client);
+		assertThat(backupAfter.getJSONArray("accounts").length())
+			.isEqualTo(backupBefore.getJSONArray("accounts").length());
+		assertThat(backupAfter.getJSONArray("categories").length())
+			.isEqualTo(backupBefore.getJSONArray("categories").length());
+		assertThat(backupAfter.getJSONArray("transactions").length())
+			.isEqualTo(backupBefore.getJSONArray("transactions").length());
+		assertThat(backupAfter.getJSONArray("scheduledTransactions").length())
+			.isEqualTo(backupBefore.getJSONArray("scheduledTransactions").length());
+		assertThat(backupAfter.getJSONArray("entries").length())
+			.isEqualTo(backupBefore.getJSONArray("entries").length());
+
+		assertAccountsMatch(backupBefore.getJSONArray("accounts"), backupAfter.getJSONArray("accounts"));
+		assertCategoriesMatch(backupBefore.getJSONArray("categories"), backupAfter.getJSONArray("categories"));
+		assertTransactionsMatch(backupBefore.getJSONArray("transactions"), backupAfter.getJSONArray("transactions"));
+		assertScheduledTransactionsMatch(
+			backupBefore.getJSONArray("scheduledTransactions"),
+			backupAfter.getJSONArray("scheduledTransactions"));
+		assertEntriesMatch(backupBefore.getJSONArray("entries"), backupAfter.getJSONArray("entries"));
 	}
 
 	@Test
@@ -178,5 +225,103 @@ public class DataManagementIT extends BaseIT {
 			}
 		}
 		return -1;
+	}
+
+	private static JSONObject findByUuid(JSONArray array, String uuid) {
+		for (int i = 0; i < array.length(); i++) {
+			final JSONObject obj = array.getJSONObject(i);
+			if (uuid.equals(obj.optString("uuid"))) {
+				return obj;
+			}
+		}
+		return null;
+	}
+
+	private static void assertAccountsMatch(JSONArray expected, JSONArray actual) {
+		for (int i = 0; i < expected.length(); i++) {
+			final JSONObject exp = expected.getJSONObject(i);
+			final JSONObject act = findByUuid(actual, exp.getString("uuid"));
+			assertThat(act).as("Account uuid=%s should exist after restore", exp.getString("uuid")).isNotNull();
+			assertThat(act.getString("name")).isEqualTo(exp.getString("name"));
+			assertThat(act.getString("type")).isEqualTo(exp.getString("type"));
+			assertThat(act.getString("accountType")).isEqualTo(exp.getString("accountType"));
+			assertThat(act.getString("startBalance")).isEqualTo(exp.getString("startBalance"));
+			assertThat(act.getString("startDate")).isEqualTo(exp.getString("startDate"));
+		}
+	}
+
+	private static void assertCategoriesMatch(JSONArray expected, JSONArray actual) {
+		for (int i = 0; i < expected.length(); i++) {
+			final JSONObject exp = expected.getJSONObject(i);
+			final JSONObject act = findByUuid(actual, exp.getString("uuid"));
+			assertThat(act).as("Category uuid=%s should exist after restore", exp.getString("uuid")).isNotNull();
+			assertThat(act.getString("name")).isEqualTo(exp.getString("name"));
+			assertThat(act.getString("type")).isEqualTo(exp.getString("type"));
+			assertThat(act.getString("periodType")).isEqualTo(exp.getString("periodType"));
+		}
+	}
+
+	private static void assertTransactionsMatch(JSONArray expected, JSONArray actual) {
+		for (int i = 0; i < expected.length(); i++) {
+			final JSONObject exp = expected.getJSONObject(i);
+			final JSONObject act = findByUuid(actual, exp.getString("uuid"));
+			assertThat(act).as("Transaction uuid=%s should exist after restore", exp.getString("uuid")).isNotNull();
+			assertThat(act.getString("description")).isEqualTo(exp.getString("description"));
+			assertThat(act.getString("date")).isEqualTo(exp.getString("date"));
+
+			final JSONArray expSplits = exp.getJSONArray("splits");
+			final JSONArray actSplits = act.getJSONArray("splits");
+			assertThat(actSplits.length()).isEqualTo(expSplits.length());
+			for (int j = 0; j < expSplits.length(); j++) {
+				assertThat(actSplits.getJSONObject(j).getString("amount"))
+					.isEqualTo(expSplits.getJSONObject(j).getString("amount"));
+				assertThat(actSplits.getJSONObject(j).getString("from"))
+					.isEqualTo(expSplits.getJSONObject(j).getString("from"));
+				assertThat(actSplits.getJSONObject(j).getString("to"))
+					.isEqualTo(expSplits.getJSONObject(j).getString("to"));
+			}
+		}
+	}
+
+	private static void assertScheduledTransactionsMatch(JSONArray expected, JSONArray actual) {
+		for (int i = 0; i < expected.length(); i++) {
+			final JSONObject exp = expected.getJSONObject(i);
+			final JSONObject act = findByUuid(actual, exp.getString("uuid"));
+			assertThat(act).as("Scheduled transaction uuid=%s should exist after restore", exp.getString("uuid")).isNotNull();
+			assertThat(act.getString("scheduleName")).isEqualTo(exp.getString("scheduleName"));
+			assertThat(act.getString("description")).isEqualTo(exp.getString("description"));
+			assertThat(act.getString("frequencyType")).isEqualTo(exp.getString("frequencyType"));
+			assertThat(act.getInt("scheduleDay")).isEqualTo(exp.getInt("scheduleDay"));
+			assertThat(act.getString("startDate")).isEqualTo(exp.getString("startDate"));
+
+			final JSONArray expSplits = exp.getJSONArray("splits");
+			final JSONArray actSplits = act.getJSONArray("splits");
+			assertThat(actSplits.length()).isEqualTo(expSplits.length());
+			for (int j = 0; j < expSplits.length(); j++) {
+				assertThat(actSplits.getJSONObject(j).getString("amount"))
+					.isEqualTo(expSplits.getJSONObject(j).getString("amount"));
+			}
+		}
+	}
+
+	private static void assertEntriesMatch(JSONArray expected, JSONArray actual) {
+		for (int i = 0; i < expected.length(); i++) {
+			final JSONObject exp = expected.getJSONObject(i);
+			boolean found = false;
+			for (int j = 0; j < actual.length(); j++) {
+				final JSONObject act = actual.getJSONObject(j);
+				if (exp.getString("category").equals(act.getString("category"))
+						&& exp.getString("date").equals(act.getString("date"))) {
+					assertThat(act.getString("amount"))
+						.as("Entry amount for category=%s date=%s", exp.getString("category"), exp.getString("date"))
+						.isEqualTo(exp.getString("amount"));
+					found = true;
+					break;
+				}
+			}
+			assertThat(found)
+				.as("Entry for category=%s date=%s should exist after restore", exp.getString("category"), exp.getString("date"))
+				.isTrue();
+		}
 	}
 }
