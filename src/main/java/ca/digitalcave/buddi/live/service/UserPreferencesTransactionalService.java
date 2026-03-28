@@ -1,7 +1,6 @@
 package ca.digitalcave.buddi.live.service;
 
 import ca.digitalcave.buddi.live.api.dto.request.UserPreferencesRequestDto;
-import ca.digitalcave.buddi.live.controller.Action;
 import ca.digitalcave.buddi.live.db.Entries;
 import ca.digitalcave.buddi.live.db.ScheduledTransactions;
 import ca.digitalcave.buddi.live.db.Sources;
@@ -45,56 +44,53 @@ public class UserPreferencesTransactionalService {
 	}
 
 	@Transactional
-	public boolean applyAction(final User user, final UserPreferencesRequestDto dto, final boolean toggleEncryption) throws CryptoException {
-		final Action action = dto.action();
-		if (Action.UPDATE == action) {
-			if (toggleEncryption) {
-				if (user.isEncrypted()) {
-					DataUpdater.turnOffEncryption(user, sources, entries, transactions, scheduledTransactions, users, crypto);
-				}
-				else {
-					DataUpdater.turnOnEncryption(user, sources, entries, transactions, scheduledTransactions, users, crypto);
-				}
+	public boolean updatePreferences(final User user, final UserPreferencesRequestDto dto, final boolean toggleEncryption) throws CryptoException {
+		if (toggleEncryption) {
+			if (user.isEncrypted()) {
+				DataUpdater.turnOffEncryption(user, sources, entries, transactions, scheduledTransactions, users, crypto);
 			}
-			user.setEmail(Boolean.TRUE.equals(dto.storeEmail()) ? user.getPlaintextIdentifier() : null);
-			user.setLocale(LocaleUtil.parseLocale(dto.locale() != null ? dto.locale() : "en_US", Locale.US));
-			user.setCurrency(Currency.getInstance(dto.currency() != null ? dto.currency() : "USD"));
-			user.setOverrideDateFormat(dto.dateFormat());
-			user.setOverrideCurrencyAfter(Boolean.TRUE.equals(dto.currencyAfter()) || (dto.currencyAfter() == null && user.isCurrencyAfter()) ? "Y" : "N");
-			user.setOverrideDecimalSeparator(dto.decimalSeparator());
-			user.setOverrideThousandsSeparator(dto.thousandSeparator());
-			user.setOverrideNegativeFormat(dto.negativeFormat() != null ? dto.negativeFormat() : "N");
-			user.setShowCurrencySymbol(Boolean.TRUE.equals(dto.showCurrencySymbol()) || (dto.showCurrencySymbol() == null && user.isShowCurrencySymbol()));
-			user.setCurrencySpacing(Boolean.TRUE.equals(dto.currencySpacing()) || (dto.currencySpacing() == null && user.useCurrencySpacing()) ? "Y" : "N");
-			user.setTwoFactorRequired(Boolean.TRUE.equals(dto.useTwoFactor()));
-			user.setShowDeleted(dto.showDeleted() == null || dto.showDeleted());
-
-			ConstraintsChecker.checkUpdateUserPreferences(user);
-
-			final int count = users.updateUser(user);
-			if (count != 1) {
-				throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
+			else {
+				DataUpdater.turnOnEncryption(user, sources, entries, transactions, scheduledTransactions, users, crypto);
 			}
-
-			if (!user.isTwoFactorRequired()) {
-				users.updateUserTotpSecret(user, null);
-			}
-
-			DataUpdater.updateBalances(user, sources, transactions, crypto);
-			return !user.isTwoFactorRequired();
 		}
-		else if (Action.INVALIDATE_TOTP_BACKUPS == action) {
-			users.deleteUnusedBackupCodes(user);
-			return false;
-		}
-		else if (Action.DELETE == action) {
-			transactions.deleteAllTransactions(user);
-			scheduledTransactions.deleteAllScheduledTransactions(user);
-			sources.deleteAllSources(user);
-			users.deleteUser(user);
-			return false;
+		user.setEmail(Boolean.TRUE.equals(dto.storeEmail()) ? user.getPlaintextIdentifier() : null);
+		user.setLocale(LocaleUtil.parseLocale(dto.locale() != null ? dto.locale() : "en_US", Locale.US));
+		user.setCurrency(Currency.getInstance(dto.currency() != null ? dto.currency() : "USD"));
+		user.setOverrideDateFormat(dto.dateFormat());
+		user.setOverrideCurrencyAfter(Boolean.TRUE.equals(dto.currencyAfter()) || (dto.currencyAfter() == null && user.isCurrencyAfter()) ? "Y" : "N");
+		user.setOverrideDecimalSeparator(dto.decimalSeparator());
+		user.setOverrideThousandsSeparator(dto.thousandSeparator());
+		user.setOverrideNegativeFormat(dto.negativeFormat() != null ? dto.negativeFormat() : "N");
+		user.setShowCurrencySymbol(Boolean.TRUE.equals(dto.showCurrencySymbol()) || (dto.showCurrencySymbol() == null && user.isShowCurrencySymbol()));
+		user.setCurrencySpacing(Boolean.TRUE.equals(dto.currencySpacing()) || (dto.currencySpacing() == null && user.useCurrencySpacing()) ? "Y" : "N");
+		user.setTwoFactorRequired(Boolean.TRUE.equals(dto.useTwoFactor()));
+		user.setShowDeleted(dto.showDeleted() == null || dto.showDeleted());
+
+		ConstraintsChecker.checkUpdateUserPreferences(user);
+
+		final int count = users.updateUser(user);
+		if (count != 1) {
+			throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
 		}
 
-		throw new DatabaseException("Unsupported action");
+		if (!user.isTwoFactorRequired()) {
+			users.updateUserTotpSecret(user, null);
+		}
+
+		DataUpdater.updateBalances(user, sources, transactions, crypto);
+		return !user.isTwoFactorRequired();
+	}
+
+	@Transactional
+	public void invalidateTotpBackups(final User user) {
+		users.deleteUnusedBackupCodes(user);
+	}
+
+	@Transactional
+	public void deleteUserData(final User user) {
+		transactions.deleteAllTransactions(user);
+		scheduledTransactions.deleteAllScheduledTransactions(user);
+		sources.deleteAllSources(user);
+		users.deleteUser(user);
 	}
 }

@@ -58,19 +58,29 @@ public class CategoriesController {
 	public CategoriesMutationResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final CategoriesRequestDto request) {
 		try {
 			final Action action = request.action();
-			if (action != Action.INSERT
-					&& action != Action.DELETE
-					&& action != Action.UNDELETE
-					&& action != Action.UPDATE
-					&& action != Action.COPY_FROM_PREVIOUS
-					&& action != Action.SET) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
-			}
-
 			CategoryNodeDto data = null;
 
-			categoriesTransactionalService.applyAction(user, request);
-			if (Action.SET == action) {
+			if (Action.INSERT == action) {
+				categoriesTransactionalService.insertCategory(user, Category.fromDto(request));
+			}
+			else if (Action.DELETE == action) {
+				categoriesTransactionalService.deleteCategory(user, Category.fromDto(request));
+			}
+			else if (Action.UNDELETE == action) {
+				categoriesTransactionalService.undeleteCategory(user, Category.fromDto(request));
+			}
+			else if (Action.UPDATE == action) {
+				categoriesTransactionalService.updateCategory(user, Category.fromDto(request));
+			}
+			else if (Action.COPY_FROM_PREVIOUS == action) {
+				categoriesTransactionalService.copyFromPrevious(
+						user,
+						CategoryPeriods.valueOf(request.type()),
+						FormatUtil.parseDateInternal(request.date()));
+			}
+			else if (Action.SET == action) {
+				categoriesTransactionalService.setEntry(user, Entry.fromDto(request));
+
 				final CategoryPeriod cp = new CategoryPeriod(
 						CategoryPeriods.valueOf(request.periodType()),
 						FormatUtil.parseDateInternal(request.date()),
@@ -80,6 +90,10 @@ public class CategoriesController {
 				final List<Transaction> txns = transactions.selectTransactions(user, c, cp.getCurrentPeriodStartDate(), cp.getCurrentPeriodEndDate());
 				data = categoriesResponseConverter.convertCategoryNode(c, cp, txns, user);
 			}
+			else {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
+			}
+
 			return new CategoriesMutationResponseDto(true, data);
 		}
 		catch (final DatabaseException e) {

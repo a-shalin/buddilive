@@ -55,16 +55,19 @@ public class UserPreferencesController {
 					}
 				}
 
-				final boolean invalidateTwoFactorCookie = userPreferencesTransactionalService.applyAction(user, dto, toggleEncryption);
+				final boolean invalidateTwoFactorCookie = userPreferencesTransactionalService.updatePreferences(user, dto, toggleEncryption);
 				if (invalidateTwoFactorCookie) {
 					CookieUtil.setTwoFactorInvalid(request, response, authenticationHelper);
 				}
 			}
-			else if (Action.INVALIDATE_TOTP_BACKUPS != action && Action.DELETE != action) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
+			else if (Action.INVALIDATE_TOTP_BACKUPS == action) {
+				userPreferencesTransactionalService.invalidateTotpBackups(user);
+			}
+			else if (Action.DELETE == action) {
+				userPreferencesTransactionalService.deleteUserData(user);
 			}
 			else {
-				userPreferencesTransactionalService.applyAction(user, dto, false);
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
 
 			return new SuccessResponseDto(true);

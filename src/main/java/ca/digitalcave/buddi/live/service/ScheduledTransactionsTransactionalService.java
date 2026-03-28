@@ -1,6 +1,5 @@
 package ca.digitalcave.buddi.live.service;
 
-import ca.digitalcave.buddi.live.controller.Action;
 import ca.digitalcave.buddi.live.db.ScheduledTransactions;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
@@ -36,56 +35,55 @@ public class ScheduledTransactionsTransactionalService {
 	}
 
 	@Transactional
-	public void applyAction(final User user,
-			final Action action,
-			final ScheduledTransaction scheduledTransaction,
-			final Long scheduledTransactionId) throws CryptoException {
-		if (Action.INSERT == action) {
-			ConstraintsChecker.checkInsertScheduledTransaction(scheduledTransaction, user, sources, crypto);
+	public void insertScheduledTransaction(final User user, final ScheduledTransaction scheduledTransaction) throws CryptoException {
+		ConstraintsChecker.checkInsertScheduledTransaction(scheduledTransaction, user, sources, crypto);
 
-			int count = scheduledTransactions.insertScheduledTransaction(user, scheduledTransaction);
+		int count = scheduledTransactions.insertScheduledTransaction(user, scheduledTransaction);
+		if (count != 1) {
+			throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
+		}
+
+		for (final Split split : scheduledTransaction.getSplits()) {
+			split.setTransactionId(scheduledTransaction.getId());
+			count = scheduledTransactions.insertScheduledSplit(user, split);
 			if (count != 1) {
 				throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
 			}
-
-			for (final Split split : scheduledTransaction.getSplits()) {
-				split.setTransactionId(scheduledTransaction.getId());
-				count = scheduledTransactions.insertScheduledSplit(user, split);
-				if (count != 1) {
-					throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-				}
-			}
 		}
-		else if (Action.UPDATE == action) {
-			ConstraintsChecker.checkUpdateScheduledTransaction(scheduledTransaction, user, sources, crypto);
+		DataUpdater.updateBalances(user, sources, transactions, crypto);
+	}
 
-			int count = scheduledTransactions.updateScheduledTransaction(user, scheduledTransaction);
+	@Transactional
+	public void updateScheduledTransaction(final User user, final ScheduledTransaction scheduledTransaction) throws CryptoException {
+		ConstraintsChecker.checkUpdateScheduledTransaction(scheduledTransaction, user, sources, crypto);
+
+		int count = scheduledTransactions.updateScheduledTransaction(user, scheduledTransaction);
+		if (count != 1) {
+			throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
+		}
+
+		count = scheduledTransactions.deleteScheduledSplits(user, scheduledTransaction);
+		if (count == 0) {
+			throw new DatabaseException(String.format("Delete scheduled splits failed; expected 1 or more rows, returned %s", count));
+		}
+		for (final Split split : scheduledTransaction.getSplits()) {
+			split.setTransactionId(scheduledTransaction.getId());
+			count = scheduledTransactions.insertScheduledSplit(user, split);
 			if (count != 1) {
-				throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
+				throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
 			}
+		}
 
-			count = scheduledTransactions.deleteScheduledSplits(user, scheduledTransaction);
-			if (count == 0) {
-				throw new DatabaseException(String.format("Delete scheduled splits failed; expected 1 or more rows, returned %s", count));
-			}
-			for (final Split split : scheduledTransaction.getSplits()) {
-				split.setTransactionId(scheduledTransaction.getId());
-				count = scheduledTransactions.insertScheduledSplit(user, split);
-				if (count != 1) {
-					throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-				}
-			}
-		}
-		else if (Action.DELETE == action) {
-			final ScheduledTransaction deleteScheduledTransaction = new ScheduledTransaction();
-			deleteScheduledTransaction.setId(scheduledTransactionId);
-			final int count = scheduledTransactions.deleteScheduledTransaction(user, deleteScheduledTransaction);
-			if (count != 1) {
-				throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
-			}
-		}
-		else {
-			throw new DatabaseException("Unsupported action");
+		DataUpdater.updateBalances(user, sources, transactions, crypto);
+	}
+
+	@Transactional
+	public void deleteScheduledTransaction(final User user, final Long scheduledTransactionId) throws CryptoException {
+		final ScheduledTransaction deleteScheduledTransaction = new ScheduledTransaction();
+		deleteScheduledTransaction.setId(scheduledTransactionId);
+		final int count = scheduledTransactions.deleteScheduledTransaction(user, deleteScheduledTransaction);
+		if (count != 1) {
+			throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
 		}
 
 		DataUpdater.updateBalances(user, sources, transactions, crypto);

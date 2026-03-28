@@ -50,11 +50,21 @@ public class AccountsController {
 			final Action action = accountRequestDto.action();
 			final Account account = Account.fromDto(accountRequestDto);
 
-			if (action != Action.INSERT && action != Action.DELETE && action != Action.UNDELETE && action != Action.UPDATE) {
+			if (action == Action.INSERT) {
+				accountsTransactionalService.insertAccount(user, account);
+			}
+			else if (action == Action.DELETE) {
+				accountsTransactionalService.deleteAccount(user, account);
+			}
+			else if (action == Action.UNDELETE) {
+				accountsTransactionalService.undeleteAccount(user, account);
+			}
+			else if (action == Action.UPDATE) {
+				accountsTransactionalService.updateAccount(user, account);
+			}
+			else {
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
-
-			accountsTransactionalService.applyAction(user, action, account);
 
 			return new SuccessResponseDto(true);
 		}

@@ -1,6 +1,5 @@
 package ca.digitalcave.buddi.live.service;
 
-import ca.digitalcave.buddi.live.controller.Action;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
 import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
@@ -27,32 +26,41 @@ public class AccountsTransactionalService {
 	}
 
 	@Transactional
-	public void applyAction(final User user, final Action action, final Account account) throws CryptoException {
-		if (Action.INSERT == action) {
-			ConstraintsChecker.checkInsertAccount(account, user, sources, crypto);
-			final int count = sources.insertAccount(user, account);
-			if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-		}
-		else if (Action.DELETE == action || Action.UNDELETE == action) {
-			if (sources.selectSourceAssociatedCount(user, account) == 0) {
-				final int count = sources.deleteSource(user, account);
-				if (count != 1) throw new DatabaseException(String.format("Delete failed; expected 1 row, returned %s", count));
-			}
-			else {
-				account.setDeleted(Action.DELETE == action);
-				final int count = sources.updateSourceDeleted(user, account);
-				if (count != 1) throw new DatabaseException(String.format("Delete / undelete failed; expected 1 row, returned %s", count));
-			}
-		}
-		else if (Action.UPDATE == action) {
-			ConstraintsChecker.checkUpdateAccount(account, user, sources, crypto);
-			final int count = sources.updateAccount(user, account);
-			if (count != 1) throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
+	public void insertAccount(final User user, final Account account) throws CryptoException {
+		ConstraintsChecker.checkInsertAccount(account, user, sources, crypto);
+		final int count = sources.insertAccount(user, account);
+		if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
+		DataUpdater.updateBalances(user, sources, transactions, crypto);
+	}
+
+	@Transactional
+	public void deleteAccount(final User user, final Account account) throws CryptoException {
+		deleteOrUndeleteAccount(user, account, true);
+	}
+
+	@Transactional
+	public void undeleteAccount(final User user, final Account account) throws CryptoException {
+		deleteOrUndeleteAccount(user, account, false);
+	}
+
+	@Transactional
+	public void updateAccount(final User user, final Account account) throws CryptoException {
+		ConstraintsChecker.checkUpdateAccount(account, user, sources, crypto);
+		final int count = sources.updateAccount(user, account);
+		if (count != 1) throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
+		DataUpdater.updateBalances(user, sources, transactions, crypto);
+	}
+
+	private void deleteOrUndeleteAccount(final User user, final Account account, final boolean deleted) throws CryptoException {
+		if (sources.selectSourceAssociatedCount(user, account) == 0) {
+			final int count = sources.deleteSource(user, account);
+			if (count != 1) throw new DatabaseException(String.format("Delete failed; expected 1 row, returned %s", count));
 		}
 		else {
-			throw new DatabaseException("Unsupported action");
+			account.setDeleted(deleted);
+			final int count = sources.updateSourceDeleted(user, account);
+			if (count != 1) throw new DatabaseException(String.format("Delete / undelete failed; expected 1 row, returned %s", count));
 		}
-
 		DataUpdater.updateBalances(user, sources, transactions, crypto);
 	}
 }
