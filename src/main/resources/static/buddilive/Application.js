@@ -6,7 +6,7 @@ Ext.manifest.loader.cacheParam = "v";
 
 Ext.Loader.setConfig({
 	enabled: true,
-	disableCaching: false,
+	disableCaching: true,
 	disableCachingParam: "v",
 	paths: {
 		BuddiLive: "buddilive",

@@ -241,6 +241,53 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 	}
 
 	@Test
+	void testExtLoaderAddsVersionQueryParamForDynamicComponentScripts() throws Exception {
+		final String email = "txn-loader-cache@example.com";
+		helper.registerUser(email, PASSWORD, "en_US", "USD");
+		browserLogin(email, PASSWORD);
+
+		executeJs(
+			"if (window.performance && window.performance.clearResourceTimings) { window.performance.clearResourceTimings(); }" +
+			"window.__loaderProbeDone = false;" +
+			"window.__loaderProbeUrl = null;" +
+			"window.__loaderProbeError = null;" +
+			"window.__loaderProbeClassName = 'BuddiLive.view.preferences.Restore';" +
+			"window.__loaderProbeClassCreatedBefore = Ext.ClassManager.isCreated(window.__loaderProbeClassName);" +
+			"Ext.require(window.__loaderProbeClassName, function() {" +
+			"  try {" +
+			"    var entries = window.performance && window.performance.getEntriesByType ? window.performance.getEntriesByType('resource') : [];" +
+			"    for (var i = entries.length - 1; i >= 0; i--) {" +
+			"      var name = entries[i].name || '';" +
+			"      if (name.indexOf('/buddilive/view/preferences/Restore.js') !== -1) { window.__loaderProbeUrl = name; break; }" +
+			"    }" +
+			"  } catch (e) { window.__loaderProbeError = String(e); }" +
+			"  window.__loaderProbeDone = true;" +
+			"});");
+
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs("return window.__loaderProbeDone === true;");
+			}
+			catch (Exception e) {
+				return false;
+			}
+		});
+
+		final String probeError = (String) executeJs("return window.__loaderProbeError;");
+		final String probeUrl = (String) executeJs("return window.__loaderProbeUrl;");
+		final Boolean probeClassCreatedBefore = (Boolean) executeJs("return window.__loaderProbeClassCreatedBefore;");
+		final String versionParam = (String) executeJs(
+			"try { return new URL(window.__loaderProbeUrl).searchParams.get('v'); } catch (e) { return null; }");
+		final String assetVersion = (String) executeJs("return String(window.__assetVersion || '');");
+
+		assertThat(probeError).isNull();
+		assertThat(probeClassCreatedBefore).isFalse();
+		assertThat(probeUrl).isNotBlank();
+		assertThat(versionParam).isEqualTo(assetVersion);
+		assertThat(versionParam).isNotBlank();
+	}
+
+	@Test
 	void testEditBudgetAmountWithCustomSeparators() throws Exception {
 		helper.registerUser(EMAIL_BUDGET_FORMAT, PASSWORD, "en_US", "USD");
 		OkHttpClient apiClient = helper.login(EMAIL_BUDGET_FORMAT, PASSWORD);
