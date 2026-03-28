@@ -352,16 +352,12 @@ public class PasswordChecker {
 		}
 		
 		final File file = new File(System.getProperty("java.io.tmpdir"), "words");
-		final Packer p = new Packer(file.getAbsolutePath(),"rw");
-		try {
-			final BufferedReader br = new BufferedReader(reader);
+		try (Packer p = new Packer(file.getAbsolutePath(), "rw");
+			 BufferedReader br = new BufferedReader(reader)) {
 			String s = null;
 			while ((s = br.readLine()) != null) {
 				p.put(s);
 			}
-		} finally {
-			reader.close();
-			p.close();
 		}
 		
 		this.packer = new Packer(file.getAbsolutePath(), "r");
@@ -386,8 +382,7 @@ public class PasswordChecker {
 		}
 		this.patterns = new LinkedList<Pattern>();
 		
-		try {
-			final BufferedReader br = new BufferedReader(reader);
+		try (BufferedReader br = new BufferedReader(reader)) {
 			String s = null;
 			while ((s = br.readLine()) != null) {
 				try {
@@ -396,8 +391,6 @@ public class PasswordChecker {
 					Logger.getLogger(PasswordChecker.class.getName()).log(Level.WARNING, "Ignoring bad pattern: " + s);
 				}
 			}
-		} finally {
-			reader.close();
 		}
 	}
 }

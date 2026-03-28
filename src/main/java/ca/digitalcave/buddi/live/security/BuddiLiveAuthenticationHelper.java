@@ -193,16 +193,14 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 		if (authenticated) {
 			if (legacy) {
-				final SqlSession sql2 = sqlSessionFactory.openSession();
-				try {
-					sql2.getMapper(Users.class).updateUserSecret(user, getHash().generate(secret));
-					sql2.commit();
-				}
-				catch (Exception e) {
-					sql2.rollback(true);
-				}
-				finally {
-					sql2.close();
+				try (SqlSession sql2 = sqlSessionFactory.openSession()) {
+					try {
+						sql2.getMapper(Users.class).updateUserSecret(user, getHash().generate(secret));
+						sql2.commit();
+					}
+					catch (Exception e) {
+						sql2.rollback(true);
+					}
 				}
 			}
 
@@ -217,14 +215,10 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 	@Override
 	public AuthUser selectUser(final String username) {
-		final SqlSession sql = sqlSessionFactory.openSession();
-		try {
+		try (SqlSession sql = sqlSessionFactory.openSession()) {
 			User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
 			sql.commit(true);
 			return user;
-		}
-		finally {
-			sql.close();
 		}
 	}
 
@@ -234,8 +228,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	public boolean insertTotpSecret(final String username, final String totpSharedSecret) {
-		final SqlSession sql = sqlSessionFactory.openSession();
-		try {
+		try (SqlSession sql = sqlSessionFactory.openSession()) {
 			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
 			if (user != null) {
 				sql.getMapper(Users.class).deleteUnusedBackupCodes(user);
@@ -249,15 +242,11 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			sql.rollback(true);
 			return false;
 		}
-		finally {
-			sql.close();
-		}
 	}
 
 	@Override
 	public void insertTotpBackupCodes(final String username) {
-		final SqlSession sql = sqlSessionFactory.openSession();
-		try {
+		try (SqlSession sql = sqlSessionFactory.openSession()) {
 			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
 			if (user != null) {
 				sql.getMapper(Users.class).deleteUnusedBackupCodes(user);
@@ -272,15 +261,11 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 			sql.rollback(true);
 		}
-		finally {
-			sql.close();
-		}
 	}
 
 	@Override
 	public void updateTotpBackupCodeMarkUsed(final String username, final String backupCode) {
-		final SqlSession sql = sqlSessionFactory.openSession();
-		try {
+		try (SqlSession sql = sqlSessionFactory.openSession()) {
 			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
 			if (user != null) {
 				int count = sql.getMapper(Users.class).updateUserTotpBackupCodeUsed(user, backupCode);
@@ -292,15 +277,11 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 			sql.rollback(true);
 		}
-		finally {
-			sql.close();
-		}
 	}
 
 	@Override
 	public void disableTotp(final String username) {
-		final SqlSession sql = sqlSessionFactory.openSession();
-		try {
+		try (SqlSession sql = sqlSessionFactory.openSession()) {
 			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
 			if (user != null && StringUtils.isBlank(user.getTwoFactorSecret())) {
 				user.setTwoFactorRequired(false);
@@ -316,15 +297,11 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 			sql.rollback(true);
 		}
-		finally {
-			sql.close();
-		}
 	}
 
 	@Override
 	public String updateActivationKey(final String username, final String activationKey) throws Exception {
-		final SqlSession sqlSession = sqlSessionFactory.openSession();
-		try {
+		try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
 			final String hashedIdentifier = getHashedUsername(username);
 			final User user = sqlSession.getMapper(Users.class).selectUser(hashedIdentifier);
 			if (user == null) throw new DatabaseException("Could not find user with hashed identifier" + hashedIdentifier);
@@ -342,16 +319,12 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		catch (DatabaseException e) {
 			Logger.getLogger(this.getClass().getName()).log(Level.INFO, e.getMessage());
 		}
-		finally {
-			sqlSession.close();
-		}
 		return null;
 	}
 
 	@Override
 	public boolean updatePasswordByActivationKey(final String activationKey, final String hashedPassword) {
-		final SqlSession sqlSession = sqlSessionFactory.openSession();
-		try {
+		try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
 			final User user = sqlSession.getMapper(Users.class).selectUserByActivationKey(activationKey);
 			if (user == null) {
 				throw new DatabaseException("Activation key is not valid");
@@ -369,15 +342,11 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		catch (DatabaseException e) {
 			throw new RuntimeException(e);
 		}
-		finally {
-			sqlSession.close();
-		}
 	}
 
 	@Override
 	public void insertUser(final String email, final String activationKey, final Map<String, String> formParams) throws Exception {
-		final SqlSession sqlSession = sqlSessionFactory.openSession();
-		try {
+		try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
 			if (!"on".equals(formParams.getOrDefault("agree", "off"))) {
 				throw new IllegalArgumentException(LocaleUtil.getTranslation().getString("CREATE_USER_AGREEMENT_REQUIRED"));
 			}
@@ -408,9 +377,6 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			if (insertActivationCount != 1) throw new DatabaseException(String.format("Activation key insert failed; expected 1 row, returned %s", insertActivationCount));
 
 			sqlSession.commit();
-		}
-		finally {
-			sqlSession.close();
 		}
 	}
 
@@ -502,8 +468,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 	@Override
 	public Key getKey() {
-		final SqlSession sql = sqlSessionFactory.openSession();
-		try {
+		try (SqlSession sql = sqlSessionFactory.openSession()) {
 			SecretKey key;
 			try {
 				String keyEncoded = sql.getMapper(BuddiSystem.class).selectCookieEncryptionKey();
@@ -522,16 +487,10 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 				sql.getMapper(BuddiSystem.class).updateCookieEncryptionKey(keyEncoded);
 				sql.commit();
 			}
-			finally {
-				sql.close();
-			}
 			return key;
 		}
 		catch (CryptoException e) {
 			throw new RuntimeException(e);
-		}
-		finally {
-			sql.close();
 		}
 	}
 

@@ -111,8 +111,7 @@ public class DataManagementController {
 		}
 
 		final StreamingResponseBody body = outputStream -> {
-			final CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(outputStream), CSVFormat.EXCEL);
-			try {
+			try (CSVPrinter csvPrinter = new CSVPrinter(new OutputStreamWriter(outputStream), CSVFormat.EXCEL)) {
 				csvPrinter.printRecord(new Object[]{"Date", "Description", "Number", "Amount", "From", "To", "Memo"});
 				final List<Transaction> txns = transactions.selectTransactions(user, dates[0], dates[1]);
 				for (Transaction transaction : txns) {
@@ -134,9 +133,6 @@ public class DataManagementController {
 			}
 			catch (CryptoException e) {
 				logger.log(Level.WARNING, "Error during CSV export", e);
-			}
-			finally {
-				csvPrinter.close();
 			}
 		};
 

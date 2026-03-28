@@ -127,9 +127,7 @@ public abstract class CryptoFactory {
 		if (!isSaveDate())
 			return null;
 
-		InputStream is = new BufferedInputStream(inputStream);
-
-		try {
+		try (InputStream is = new BufferedInputStream(inputStream)) {
 			//Read in the first bytes of the file, and verify file type
 			if (!isHeaderCorrect(is))
 				throw new IncorrectDocumentFormatException("File header did not match designated file header.");
@@ -138,8 +136,6 @@ public abstract class CryptoFactory {
 			// in this method, but we need to read past it to get the salt, etc.
 			byte[] b = new byte[8];
 			is.read(b);
-
-			is.close();
 
 			return new Date(byteToLong(b));
 		}
@@ -325,13 +321,10 @@ public abstract class CryptoFactory {
 	 */
 	public byte[] getEncryptedBytes(final byte[] plaintext, final char[] password) throws CipherException {
 		
-		try {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-			OutputStream os =  getEncryptedStream(baos, password);
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			 OutputStream os = getEncryptedStream(baos, password)) {
 			os.write(plaintext);
 			os.flush();
-			os.close();
 
 			return baos.toByteArray();
 		}
@@ -350,11 +343,9 @@ public abstract class CryptoFactory {
 	 * @throws IncorrectDocumentFormatException
 	 */
 	public byte[] getDecryptedBytes(byte[] ciphertext, char[] password) throws CipherException, IncorrectPasswordException, IncorrectDocumentFormatException {		
-		InputStream is = new ByteArrayInputStream(ciphertext);
-		
-		try {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			BufferedInputStream bis = new BufferedInputStream(is);
+		try (InputStream is = new ByteArrayInputStream(ciphertext);
+			 ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			 BufferedInputStream bis = new BufferedInputStream(is)) {
 
 			byte[] data = new byte[1024];
 			int bytesRead;
@@ -363,7 +354,6 @@ public abstract class CryptoFactory {
 			}
 
 			baos.flush();
-			baos.close();
 			
 			return baos.toByteArray();
 		}

@@ -127,15 +127,15 @@ public class IndexController {
 	private String serializeTranslationsJson(final ResourceBundle bundle) {
 		try {
 			final StringWriter sw = new StringWriter();
-			final JsonGenerator g = new JsonFactory().createGenerator(sw);
-			g.writeStartObject();
-			final Enumeration<String> keys = bundle.getKeys();
-			while (keys.hasMoreElements()) {
-				final String key = keys.nextElement();
-				g.writeStringField(key, bundle.getString(key));
+			try (JsonGenerator g = new JsonFactory().createGenerator(sw)) {
+				g.writeStartObject();
+				final Enumeration<String> keys = bundle.getKeys();
+				while (keys.hasMoreElements()) {
+					final String key = keys.nextElement();
+					g.writeStringField(key, bundle.getString(key));
+				}
+				g.writeEndObject();
 			}
-			g.writeEndObject();
-			g.close();
 			return sw.toString();
 		}
 		catch (Exception e) {
@@ -146,21 +146,21 @@ public class IndexController {
 	private String serializeUserConfigJson(final User user, final Map<String, String> cookieParams) {
 		try {
 			final StringWriter sw = new StringWriter();
-			final JsonGenerator g = new JsonFactory().createGenerator(sw);
-			final boolean remember = Boolean.parseBoolean(cookieParams.getOrDefault(CookieUtil.FIELD_REMEMBER, "false"));
-			final long sessionTimeoutMillis = CookieUtil.getCookieTimeoutMillis(remember);
-			g.writeStartObject();
-			g.writeStringField("extDateFormat", user.getExtDateFormat());
-			g.writeBooleanField("premium", true);
-			g.writeBooleanField("encrypted", user.isEncrypted());
-			g.writeStringField("decimalSeparator", user.getDecimalSeparator());
-			g.writeStringField("thousandSeparator", user.getThousandSeparator());
-			g.writeStringField("currencySymbol", user.getCurrencySymbol());
-			g.writeStringField("plaintextIdentifier", user.getPlaintextIdentifier());
-			g.writeNumberField("sessionTimeoutMillis", sessionTimeoutMillis);
-			g.writeNumberField("sessionRefreshWindowMillis", CookieUtil.COOKIE_REFRESH_WINDOW_MILLIS);
-			g.writeEndObject();
-			g.close();
+			try (JsonGenerator g = new JsonFactory().createGenerator(sw)) {
+				final boolean remember = Boolean.parseBoolean(cookieParams.getOrDefault(CookieUtil.FIELD_REMEMBER, "false"));
+				final long sessionTimeoutMillis = CookieUtil.getCookieTimeoutMillis(remember);
+				g.writeStartObject();
+				g.writeStringField("extDateFormat", user.getExtDateFormat());
+				g.writeBooleanField("premium", true);
+				g.writeBooleanField("encrypted", user.isEncrypted());
+				g.writeStringField("decimalSeparator", user.getDecimalSeparator());
+				g.writeStringField("thousandSeparator", user.getThousandSeparator());
+				g.writeStringField("currencySymbol", user.getCurrencySymbol());
+				g.writeStringField("plaintextIdentifier", user.getPlaintextIdentifier());
+				g.writeNumberField("sessionTimeoutMillis", sessionTimeoutMillis);
+				g.writeNumberField("sessionRefreshWindowMillis", CookieUtil.COOKIE_REFRESH_WINDOW_MILLIS);
+				g.writeEndObject();
+			}
 			return sw.toString();
 		}
 		catch (Exception e) {
@@ -175,77 +175,77 @@ public class IndexController {
 			final Map<String, String> cookieParams = getCookieParams();
 
 			final StringWriter sw = new StringWriter();
-			final JsonGenerator g = new JsonFactory().createGenerator(sw);
-			g.writeStartObject();
+			try (JsonGenerator g = new JsonFactory().createGenerator(sw)) {
+				g.writeStartObject();
 
-			g.writeBooleanField("showLogin", config.showLogin);
-			g.writeBooleanField("showRegister", config.showRegister);
-			g.writeBooleanField("showForgotPassword", config.showForgotPassword);
-			g.writeBooleanField("showForgotUsername", config.showForgotUsername);
-			g.writeBooleanField("showCookieWarning", config.showCookieWarning);
-			g.writeBooleanField("showRemember", config.showRemember);
-			g.writeBooleanField("showDisableIpLock", config.showDisableIpLock);
-			g.writeBooleanField("directRegistration", config.directRegistration);
+				g.writeBooleanField("showLogin", config.showLogin);
+				g.writeBooleanField("showRegister", config.showRegister);
+				g.writeBooleanField("showForgotPassword", config.showForgotPassword);
+				g.writeBooleanField("showForgotUsername", config.showForgotUsername);
+				g.writeBooleanField("showCookieWarning", config.showCookieWarning);
+				g.writeBooleanField("showRemember", config.showRemember);
+				g.writeBooleanField("showDisableIpLock", config.showDisableIpLock);
+				g.writeBooleanField("directRegistration", config.directRegistration);
 
-			g.writeStringField("routerAttachPoint", "authentication");
+				g.writeStringField("routerAttachPoint", "authentication");
 
-			final String nextStep = getNextStep(cookieParams, auth);
-			g.writeStringField("activeItem", nextStep != null ? nextStep : "authenticate");
+				final String nextStep = getNextStep(cookieParams, auth);
+				g.writeStringField("activeItem", nextStep != null ? nextStep : "authenticate");
 
-			if (config.applicationLoaderPaths != null) {
-				g.writeObjectFieldStart("applicationLoaderPaths");
-				for (Map.Entry<String, String> entry : config.applicationLoaderPaths.entrySet()) {
-					g.writeStringField(entry.getKey(), entry.getValue());
+				if (config.applicationLoaderPaths != null) {
+					g.writeObjectFieldStart("applicationLoaderPaths");
+					for (Map.Entry<String, String> entry : config.applicationLoaderPaths.entrySet()) {
+						g.writeStringField(entry.getKey(), entry.getValue());
+					}
+					g.writeEndObject();
 				}
+
+				if (config.applicationRequires != null) {
+					g.writeArrayFieldStart("applicationRequires");
+					for (String r : config.applicationRequires) {
+						g.writeString(r);
+					}
+					g.writeEndArray();
+				}
+
+				if (config.applicationViews != null) {
+					g.writeArrayFieldStart("applicationViews");
+					for (String v : config.applicationViews) {
+						g.writeString(v);
+					}
+					g.writeEndArray();
+				}
+
+				if (config.applicationControllers != null) {
+					g.writeArrayFieldStart("applicationControllers");
+					for (String c : config.applicationControllers) {
+						g.writeString(c);
+					}
+					g.writeEndArray();
+				}
+
+				if (config.applicationModels != null) {
+					g.writeArrayFieldStart("applicationModels");
+					for (String m : config.applicationModels) {
+						g.writeString(m);
+					}
+					g.writeEndArray();
+				}
+
+				final Locale locale = Locale.getDefault();
+				final ResourceBundle i18n = new OverridableResourceBundle(
+					(config.i18nBaseCustom == null ? null : ResourceBundle.getBundle(config.i18nBaseCustom, locale)),
+					ResourceBundle.getBundle("ca.digitalcave.moss.auth.i18n", locale)
+				);
+
+				writeExtraFields(g, "extraRegisterStep1Fields", config.extraRegisterStep1Fields, i18n);
+				writeExtraFields(g, "extraRegisterStep2Fields", config.extraRegisterStep2Fields, i18n);
+				writeExtraFields(g, "extraforgotPasswordStep1PanelFields", config.extraforgotPasswordStep1PanelFields, i18n);
+				writeExtraFields(g, "extraforgotPasswordStep2PanelFields", config.extraforgotPasswordStep2PanelFields, i18n);
+				writeExtraFields(g, "extraForgotUsernameStep1PanelFields", config.extraForgotUsernameStep1PanelFields, i18n);
+
 				g.writeEndObject();
 			}
-
-			if (config.applicationRequires != null) {
-				g.writeArrayFieldStart("applicationRequires");
-				for (String r : config.applicationRequires) {
-					g.writeString(r);
-				}
-				g.writeEndArray();
-			}
-
-			if (config.applicationViews != null) {
-				g.writeArrayFieldStart("applicationViews");
-				for (String v : config.applicationViews) {
-					g.writeString(v);
-				}
-				g.writeEndArray();
-			}
-
-			if (config.applicationControllers != null) {
-				g.writeArrayFieldStart("applicationControllers");
-				for (String c : config.applicationControllers) {
-					g.writeString(c);
-				}
-				g.writeEndArray();
-			}
-
-			if (config.applicationModels != null) {
-				g.writeArrayFieldStart("applicationModels");
-				for (String m : config.applicationModels) {
-					g.writeString(m);
-				}
-				g.writeEndArray();
-			}
-
-			final Locale locale = Locale.getDefault();
-			final ResourceBundle i18n = new OverridableResourceBundle(
-				(config.i18nBaseCustom == null ? null : ResourceBundle.getBundle(config.i18nBaseCustom, locale)),
-				ResourceBundle.getBundle("ca.digitalcave.moss.auth.i18n", locale)
-			);
-
-			writeExtraFields(g, "extraRegisterStep1Fields", config.extraRegisterStep1Fields, i18n);
-			writeExtraFields(g, "extraRegisterStep2Fields", config.extraRegisterStep2Fields, i18n);
-			writeExtraFields(g, "extraforgotPasswordStep1PanelFields", config.extraforgotPasswordStep1PanelFields, i18n);
-			writeExtraFields(g, "extraforgotPasswordStep2PanelFields", config.extraforgotPasswordStep2PanelFields, i18n);
-			writeExtraFields(g, "extraForgotUsernameStep1PanelFields", config.extraForgotUsernameStep1PanelFields, i18n);
-
-			g.writeEndObject();
-			g.close();
 			return sw.toString();
 		}
 		catch (Exception e) {

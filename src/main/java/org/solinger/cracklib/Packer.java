@@ -2,7 +2,7 @@ package org.solinger.cracklib;
 
 import java.io.*;
 
-public class Packer {
+public class Packer implements AutoCloseable {
 
 	public static final int MAGIC = 0x70775631;
 	public static final int STRINGSIZE = 1024;
@@ -273,38 +273,28 @@ public class Packer {
 
 	public static final void main(String[] args) throws Exception {
 		if (args.length == 2 && args[0].equals("-dump")) {
-			Packer p = new Packer(args[1],"r");
-			try {
+			try (Packer p = new Packer(args[1], "r")) {
 				for (int i=0;i<p.size();i++) {
 					System.out.println(p.get(i));
 				}
-			} finally {
-				p.close();
 			}
 		} else if (args.length == 3 && args[0].equals("-make")) {
-			Packer p = new Packer(args[1],"rw");
-			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(args[2])));
-			try {
+			try (Packer p = new Packer(args[1], "rw");
+				 BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(args[2])))) {
 				String s = null;
 				while ((s = br.readLine()) != null) {
 					System.out.println("Putting : "+s);
 					p.put(s);
 				}
-			} finally {
-				br.close();
-				p.close();
 			}
 		} else if (args.length == 3 && args[0].equals("-find")) {
-			Packer p = new Packer(args[1],"r");
-			try {
+			try (Packer p = new Packer(args[1], "r")) {
 				int i = p.find(args[2]);
 				if (i != -1) {
 					System.out.println("Found "+p.get(i)+" at "+i);
 				} else {
 					System.out.println(args[2]+" not found.");
 				}
-			} finally {
-				p.close();
 			}
 		} else {
 			usage();

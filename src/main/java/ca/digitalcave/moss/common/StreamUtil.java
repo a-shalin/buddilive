@@ -14,16 +14,15 @@ public class StreamUtil {
 	 * @throws IOException
 	 */
 	public static void copyStream(InputStream is, OutputStream os) throws IOException {
-		BufferedInputStream bis = new BufferedInputStream(is);
-		BufferedOutputStream bos = new BufferedOutputStream(os);
+		final BufferedInputStream bis = new BufferedInputStream(is);
+		try (BufferedOutputStream bos = new BufferedOutputStream(os)) {
+			final byte[] data = new byte[1024];
+			int bytesRead;
+			while((bytesRead = bis.read(data)) > -1){
+				bos.write(data, 0, bytesRead);
+			}
 
-		byte[] data = new byte[1024];
-		int bytesRead;
-		while((bytesRead = bis.read(data)) > -1){
-			bos.write(data, 0, bytesRead);
+			bos.flush();
 		}
-
-		bos.flush();
-		bos.close();
 	}
 }

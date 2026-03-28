@@ -58,8 +58,7 @@ public class TransactionsController {
 		final String searchLower = (search != null ? search.toLowerCase(user.getLocale()) : null);
 
 		return outputStream -> {
-			final JsonGenerator generator = jsonFactory.createGenerator(outputStream);
-			try {
+			try (JsonGenerator generator = jsonFactory.createGenerator(outputStream)) {
 				generator.writeStartObject();
 				generator.writeBooleanField("success", true);
 				generator.writeArrayFieldStart("data");
@@ -128,9 +127,6 @@ public class TransactionsController {
 				generator.writeNumberField("total", total.intValue());
 				generator.writeEndObject();
 				generator.flush();
-			}
-			finally {
-				generator.close();
 			}
 		};
 	}

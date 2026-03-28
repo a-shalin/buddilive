@@ -47,8 +47,7 @@ public class DescriptionsController {
 			}
 
 			return outputStream -> {
-				final JsonGenerator generator = jsonFactory.createGenerator(outputStream);
-				try {
+				try (JsonGenerator generator = jsonFactory.createGenerator(outputStream)) {
 					generator.writeStartObject();
 					generator.writeBooleanField("success", true);
 					generator.writeArrayFieldStart("data");
@@ -81,9 +80,6 @@ public class DescriptionsController {
 				}
 				catch (CryptoException e) {
 					throw new RuntimeException(e);
-				}
-				finally {
-					generator.close();
 				}
 			};
 		}
