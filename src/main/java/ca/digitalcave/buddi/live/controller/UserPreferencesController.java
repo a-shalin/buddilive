@@ -46,28 +46,24 @@ public class UserPreferencesController {
 		try {
 			final Action action = dto.action();
 
-			if (Action.UPDATE == action) {
-				final boolean toggleEncryption = Boolean.TRUE.equals(dto.encrypt()) != user.isEncrypted();
-				if (toggleEncryption) {
-					final String encryptPassword = dto.encryptPassword();
-					if (!DefaultHash.verify(new String(user.getSecret()), encryptPassword)) {
-						throw new ResponseStatusException(HttpStatus.FORBIDDEN, LocaleUtil.getTranslation(user).getString("INCORRECT_PASSWORD"));
+			switch (action) {
+				case UPDATE -> {
+					final boolean toggleEncryption = Boolean.TRUE.equals(dto.encrypt()) != user.isEncrypted();
+					if (toggleEncryption) {
+						final String encryptPassword = dto.encryptPassword();
+						if (!DefaultHash.verify(new String(user.getSecret()), encryptPassword)) {
+							throw new ResponseStatusException(HttpStatus.FORBIDDEN, LocaleUtil.getTranslation(user).getString("INCORRECT_PASSWORD"));
+						}
+					}
+
+					final boolean invalidateTwoFactorCookie = userPreferencesTransactionalService.updatePreferences(user, dto, toggleEncryption);
+					if (invalidateTwoFactorCookie) {
+						CookieUtil.setTwoFactorInvalid(request, response, authenticationHelper);
 					}
 				}
-
-				final boolean invalidateTwoFactorCookie = userPreferencesTransactionalService.updatePreferences(user, dto, toggleEncryption);
-				if (invalidateTwoFactorCookie) {
-					CookieUtil.setTwoFactorInvalid(request, response, authenticationHelper);
-				}
-			}
-			else if (Action.INVALIDATE_TOTP_BACKUPS == action) {
-				userPreferencesTransactionalService.invalidateTotpBackups(user);
-			}
-			else if (Action.DELETE == action) {
-				userPreferencesTransactionalService.deleteUserData(user);
-			}
-			else {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
+				case INVALIDATE_TOTP_BACKUPS -> userPreferencesTransactionalService.invalidateTotpBackups(user);
+				case DELETE -> userPreferencesTransactionalService.deleteUserData(user);
+				default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
 
 			return new SuccessResponseDto(true);

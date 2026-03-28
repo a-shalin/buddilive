@@ -60,38 +60,28 @@ public class CategoriesController {
 			final Action action = request.action();
 			CategoryNodeDto data = null;
 
-			if (Action.INSERT == action) {
-				categoriesTransactionalService.insertCategory(user, Category.fromDto(request));
-			}
-			else if (Action.DELETE == action) {
-				categoriesTransactionalService.deleteCategory(user, Category.fromDto(request));
-			}
-			else if (Action.UNDELETE == action) {
-				categoriesTransactionalService.undeleteCategory(user, Category.fromDto(request));
-			}
-			else if (Action.UPDATE == action) {
-				categoriesTransactionalService.updateCategory(user, Category.fromDto(request));
-			}
-			else if (Action.COPY_FROM_PREVIOUS == action) {
-				categoriesTransactionalService.copyFromPrevious(
+			switch (action) {
+				case INSERT -> categoriesTransactionalService.insertCategory(user, Category.fromDto(request));
+				case DELETE -> categoriesTransactionalService.deleteCategory(user, Category.fromDto(request));
+				case UNDELETE -> categoriesTransactionalService.undeleteCategory(user, Category.fromDto(request));
+				case UPDATE -> categoriesTransactionalService.updateCategory(user, Category.fromDto(request));
+				case COPY_FROM_PREVIOUS -> categoriesTransactionalService.copyFromPrevious(
 						user,
 						CategoryPeriods.valueOf(request.type()),
 						FormatUtil.parseDateInternal(request.date()));
-			}
-			else if (Action.SET == action) {
-				categoriesTransactionalService.setEntry(user, Entry.fromDto(request));
+				case SET -> {
+					categoriesTransactionalService.setEntry(user, Entry.fromDto(request));
 
-				final CategoryPeriod cp = new CategoryPeriod(
-						CategoryPeriods.valueOf(request.periodType()),
-						FormatUtil.parseDateInternal(request.date()),
-						Integer.parseInt(request.offset() != null ? request.offset() : "0"));
+					final CategoryPeriod cp = new CategoryPeriod(
+							CategoryPeriods.valueOf(request.periodType()),
+							FormatUtil.parseDateInternal(request.date()),
+							Integer.parseInt(request.offset() != null ? request.offset() : "0"));
 
-				final Category c = sources.selectCategory(user, cp, request.categoryId());
-				final List<Transaction> txns = transactions.selectTransactions(user, c, cp.getCurrentPeriodStartDate(), cp.getCurrentPeriodEndDate());
-				data = categoriesResponseConverter.convertCategoryNode(c, cp, txns, user);
-			}
-			else {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
+					final Category c = sources.selectCategory(user, cp, request.categoryId());
+					final List<Transaction> txns = transactions.selectTransactions(user, c, cp.getCurrentPeriodStartDate(), cp.getCurrentPeriodEndDate());
+					data = categoriesResponseConverter.convertCategoryNode(c, cp, txns, user);
+				}
+				default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
 
 			return new CategoriesMutationResponseDto(true, data);

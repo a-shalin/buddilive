@@ -51,17 +51,11 @@ public class ScheduledTransactionsController {
 	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final ScheduledTransactionRequestDto request) {
 		try {
 			final Action action = request.action();
-			if (action == Action.INSERT) {
-				scheduledTransactionsTransactionalService.insertScheduledTransaction(user, ScheduledTransaction.fromDto(request));
-			}
-			else if (action == Action.UPDATE) {
-				scheduledTransactionsTransactionalService.updateScheduledTransaction(user, ScheduledTransaction.fromDto(request));
-			}
-			else if (action == Action.DELETE) {
-				scheduledTransactionsTransactionalService.deleteScheduledTransaction(user, request.id());
-			}
-			else {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
+			switch (action) {
+				case INSERT -> scheduledTransactionsTransactionalService.insertScheduledTransaction(user, ScheduledTransaction.fromDto(request));
+				case UPDATE -> scheduledTransactionsTransactionalService.updateScheduledTransaction(user, ScheduledTransaction.fromDto(request));
+				case DELETE -> scheduledTransactionsTransactionalService.deleteScheduledTransaction(user, request.id());
+				default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
 			return new SuccessResponseDto(true);
 		}

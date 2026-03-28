@@ -132,17 +132,11 @@ public class TransactionsController {
 	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final TransactionRequestDto request) {
 		try {
 			final Action action = request.action();
-			if (action == Action.INSERT) {
-				transactionsTransactionalService.insertTransaction(user, Transaction.fromDto(request));
-			}
-			else if (action == Action.UPDATE) {
-				transactionsTransactionalService.updateTransaction(user, Transaction.fromDto(request));
-			}
-			else if (action == Action.DELETE) {
-				transactionsTransactionalService.deleteTransaction(user, request.id());
-			}
-			else {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
+			switch (action) {
+				case INSERT -> transactionsTransactionalService.insertTransaction(user, Transaction.fromDto(request));
+				case UPDATE -> transactionsTransactionalService.updateTransaction(user, Transaction.fromDto(request));
+				case DELETE -> transactionsTransactionalService.deleteTransaction(user, request.id());
+				default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
 
 			return new SuccessResponseDto(true);
