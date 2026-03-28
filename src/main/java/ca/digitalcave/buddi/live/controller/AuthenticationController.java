@@ -1,5 +1,9 @@
 package ca.digitalcave.buddi.live.controller;
 
+import ca.digitalcave.buddi.live.api.dto.AuthenticationFlowResponseDto;
+import ca.digitalcave.buddi.live.api.dto.PasswordCheckResponseDto;
+import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
+import ca.digitalcave.buddi.live.api.dto.TotpSetupResponseDto;
 import ca.digitalcave.buddi.live.security.CookieAuthenticationToken;
 import ca.digitalcave.buddi.live.security.CookieUtil;
 import ca.digitalcave.moss.auth.model.AuthUser;
@@ -42,12 +46,12 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> login(final HttpServletRequest request, final HttpServletResponse response) {
+	public ResponseEntity<AuthenticationFlowResponseDto> login(final HttpServletRequest request, final HttpServletResponse response) {
 		final String identifier = request.getParameter(CookieUtil.FIELD_IDENTIFIER);
 		final String secret = request.getParameter(CookieUtil.FIELD_PASSWORD);
 
 		if (StringUtils.isBlank(identifier) || StringUtils.isBlank(secret)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new AuthenticationFlowResponseDto(false));
 		}
 
 		final AuthUser user = helper.authenticate("", identifier, secret);
@@ -75,14 +79,14 @@ public class AuthenticationController {
 
 			final String nextStep = getNextStep(params, user);
 			if (nextStep != null) {
-				return ResponseEntity.ok("{\"success\": false, \"next\": \"" + nextStep + "\"}");
+				return ResponseEntity.ok(new AuthenticationFlowResponseDto(false, nextStep));
 			}
 
-			return ResponseEntity.ok("{\"success\": true}");
+			return ResponseEntity.ok(new AuthenticationFlowResponseDto(true));
 		}
 		else {
-			try { Thread.sleep((long) (Math.random() * 1000)); } catch (Throwable e) {}
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("{\"success\": false}");
+			try { Thread.sleep((long) (Math.random() * 1000)); } catch (Throwable ignored) {}
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthenticationFlowResponseDto(false));
 		}
 	}
 
@@ -96,10 +100,10 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> register(final HttpServletRequest request) {
+	public ResponseEntity<SuccessResponseDto> register(final HttpServletRequest request) {
 		final String email = request.getParameter(CookieUtil.FIELD_EMAIL);
 		if (StringUtils.isBlank(email)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		try {
@@ -115,12 +119,12 @@ public class AuthenticationController {
 			if (helper.getConfig().directRegistration) {
 				final String password = request.getParameter(CookieUtil.FIELD_PASSWORD);
 				if (StringUtils.isBlank(password)) {
-					return ResponseEntity.badRequest().body("{\"success\": false}");
+					return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 				}
 				helper.insertUser(email, activationKey, formParams);
 				final String hashedPassword = helper.getHash().generate(password);
 				helper.updatePasswordByActivationKey(activationKey, hashedPassword);
-				return ResponseEntity.ok("{\"success\": true}");
+				return ResponseEntity.ok(new SuccessResponseDto(true));
 			}
 			helper.insertUser(email, activationKey, formParams);
 
@@ -128,40 +132,40 @@ public class AuthenticationController {
 			final String body = "Your activation key is: " + activationKey;
 			helper.sendEmail(email, subject, body);
 
-			return ResponseEntity.ok("{\"success\": true}");
+			return ResponseEntity.ok(new SuccessResponseDto(true));
 		}
 		catch (Exception e) {
 			try { Thread.sleep((long) (Math.random() * 1000)); } catch (Throwable t) {}
 			Logger.getLogger(getClass().getName()).log(Level.WARNING, "Registration error", e);
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 	}
 
 	@PostMapping(value = "/activate", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> activate(final HttpServletRequest request) {
+	public ResponseEntity<SuccessResponseDto> activate(final HttpServletRequest request) {
 		return resetPassword(request);
 	}
 
 	@PostMapping(value = "/resetPassword", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> resetPassword(final HttpServletRequest request) {
+	public ResponseEntity<SuccessResponseDto> resetPassword(final HttpServletRequest request) {
 		final String activationKey = request.getParameter(CookieUtil.FIELD_ACTIVATION_KEY);
 		final String password = request.getParameter(CookieUtil.FIELD_PASSWORD);
 
 		if (StringUtils.isBlank(activationKey) || StringUtils.isBlank(password)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		if (activationKey.equals(password)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		final String hashedPassword = helper.getHash().generate(password);
 		if (helper.updatePasswordByActivationKey(activationKey, hashedPassword)) {
-			return ResponseEntity.ok("{\"success\": true}");
+			return ResponseEntity.ok(new SuccessResponseDto(true));
 		}
 
 		try { Thread.sleep((long) (Math.random() * 1000)); } catch (Throwable e) {}
-		return ResponseEntity.badRequest().body("{\"success\": false}");
+		return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 	}
 
 	@PostMapping(value = "/forgotPassword", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -210,7 +214,7 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/checkPassword", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> checkPassword(final HttpServletRequest request) {
+	public ResponseEntity<PasswordCheckResponseDto> checkPassword(final HttpServletRequest request) {
 		final String identifier = request.getParameter(CookieUtil.FIELD_IDENTIFIER);
 		final String password = request.getParameter("secret");
 
@@ -218,73 +222,70 @@ public class AuthenticationController {
 		final boolean passed = checker.isValid(identifier, password);
 		final int score = checker.getStrengthScore(password);
 
-		final StringBuilder json = new StringBuilder("{");
-		json.append("\"score\":").append(score);
-		json.append(",\"passed\":").append(passed);
+		final PasswordCheckResponseDto dto = new PasswordCheckResponseDto(score, passed);
 		if (checker.isLengthEnforced()) {
-			json.append(",\"length\":").append(checker.testLength(password));
-			json.append(",\"minLength\":").append(checker.getMinimumLength());
+			dto.setLength(checker.testLength(password));
+			dto.setMinLength(checker.getMinimumLength());
 		}
 		if (checker.isStrengthEnforced()) {
-			json.append(",\"strength\":").append(checker.testStrength(password));
-			json.append(",\"minStrength\":").append(checker.getMinimumStrength());
+			dto.setStrength(checker.testStrength(password));
+			dto.setMinStrength(checker.getMinimumStrength());
 		}
 		if (checker.isVarianceEnforced()) {
-			json.append(",\"variance\":").append(checker.testVariance(password));
-			json.append(",\"minVariance\":").append(checker.getMinimumVariance());
+			dto.setVariance(checker.testVariance(password));
+			dto.setMinVariance(checker.getMinimumVariance());
 		}
 		if (checker.isMultiClassEnforced()) {
-			json.append(",\"classes\":").append(checker.testMulticlass(password));
-			json.append(",\"minClasses\":").append(checker.getMinimumClasses());
+			dto.setClasses(checker.testMulticlass(password));
+			dto.setMinClasses(checker.getMinimumClasses());
 		}
 		if (checker.isDictionaryEnforced()) {
-			json.append(",\"dictionary\":").append(checker.testDictionary(password));
+			dto.setDictionary(checker.testDictionary(password));
 		}
 		if (checker.isPatternsEnforced()) {
-			json.append(",\"pattern\":").append(checker.testPatterns(password));
+			dto.setPattern(checker.testPatterns(password));
 		}
 		if (checker.isHistoryEnforced()) {
-			json.append(",\"history\":").append(checker.testHistory(identifier, password));
+			dto.setHistory(checker.testHistory(identifier, password));
 		}
 		if (checker.isCustomEnforced()) {
-			json.append(",\"custom\":").append(checker.testCustom(identifier, password));
+			dto.setCustom(checker.testCustom(identifier, password));
 		}
-		json.append("}");
 
-		return ResponseEntity.ok(json.toString());
+		return ResponseEntity.ok(dto);
 	}
 
 	@PostMapping(value = "/passwordExpired", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> passwordExpired(final HttpServletRequest request) {
+	public ResponseEntity<SuccessResponseDto> passwordExpired(final HttpServletRequest request) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new SuccessResponseDto(false));
 		}
 
 		final String identifier = token.getCookieParams().get(CookieUtil.FIELD_IDENTIFIER);
 		if (StringUtils.isBlank(identifier)) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new SuccessResponseDto(false));
 		}
 
 		final String password = request.getParameter(CookieUtil.FIELD_PASSWORD);
 		if (StringUtils.isBlank(password)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		final String hashedPassword = helper.getHash().generate(password);
 		if (helper.updatePassword(identifier, hashedPassword)) {
-			return ResponseEntity.ok("{\"success\": true}");
+			return ResponseEntity.ok(new SuccessResponseDto(true));
 		}
 
 		try { Thread.sleep((long) (Math.random() * 1000)); } catch (Throwable e) {}
-		return ResponseEntity.badRequest().body("{\"success\": false}");
+		return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 	}
 
 	@GetMapping(value = "/totpSetup", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> totpSetupGet(final HttpServletRequest request, final HttpServletResponse response) {
+	public ResponseEntity<TotpSetupResponseDto> totpSetupGet(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new TotpSetupResponseDto(false));
 		}
 
 		try {
@@ -304,39 +305,39 @@ public class AuthenticationController {
 			params.put(CookieUtil.FIELD_TOTP_SHARED_SECRET, secret);
 			CookieUtil.setEncryptedCookie(request, response, helper, params, true);
 
-			return ResponseEntity.ok("{\"success\": true, \"totpSharedSecret\": \"" + secret + "\", \"totpSharedSecretQr\": \"" + qrDataUri + "\"}");
+			return ResponseEntity.ok(new TotpSetupResponseDto(true, secret, qrDataUri));
 		}
 		catch (Exception e) {
 			Logger.getLogger(getClass().getName()).log(Level.WARNING, "TOTP setup error", e);
-			return ResponseEntity.internalServerError().body("{\"success\": false}");
+			return ResponseEntity.internalServerError().body(new TotpSetupResponseDto(false));
 		}
 	}
 
 	@PostMapping(value = "/totpSetup", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> totpSetupPost(final HttpServletRequest request, final HttpServletResponse response) {
+	public ResponseEntity<SuccessResponseDto> totpSetupPost(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new SuccessResponseDto(false));
 		}
 
 		final String totpToken = request.getParameter(CookieUtil.FIELD_TOTP_TOKEN);
 		if (StringUtils.isBlank(totpToken)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		final String secret = token.getCookieParams().get(CookieUtil.FIELD_TOTP_SHARED_SECRET);
 		if (StringUtils.isBlank(secret)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		final CodeVerifier verifier = new DefaultCodeVerifier(new DefaultCodeGenerator(), new SystemTimeProvider());
 		if (!verifier.isValidCode(secret, totpToken)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		final String identifier = token.getCookieParams().get(CookieUtil.FIELD_IDENTIFIER);
 		if (!helper.insertTotpSecret(identifier, secret)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		final Map<String, String> params = new LinkedHashMap<>(token.getCookieParams());
@@ -345,14 +346,14 @@ public class AuthenticationController {
 		params.put(CookieUtil.FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER, identifier);
 		CookieUtil.setEncryptedCookie(request, response, helper, params, true);
 
-		return ResponseEntity.ok("{\"success\": true}");
+		return ResponseEntity.ok(new SuccessResponseDto(true));
 	}
 
 	@DeleteMapping(value = "/totpSetup", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> totpSetupDelete(final HttpServletRequest request, final HttpServletResponse response) {
+	public ResponseEntity<SuccessResponseDto> totpSetupDelete(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new SuccessResponseDto(false));
 		}
 
 		final String identifier = token.getCookieParams().get(CookieUtil.FIELD_IDENTIFIER);
@@ -363,25 +364,25 @@ public class AuthenticationController {
 		params.remove(CookieUtil.FIELD_TWO_FACTOR_VALIDATED_IDENTIFIER);
 		CookieUtil.setEncryptedCookie(request, response, helper, params, true);
 
-		return ResponseEntity.ok("{\"success\": true}");
+		return ResponseEntity.ok(new SuccessResponseDto(true));
 	}
 
 	@PostMapping(value = "/totpToken", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> totpToken(final HttpServletRequest request, final HttpServletResponse response) {
+	public ResponseEntity<AuthenticationFlowResponseDto> totpToken(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthenticationFlowResponseDto(false));
 		}
 
 		final String totpToken = request.getParameter(CookieUtil.FIELD_TOTP_TOKEN);
 		if (StringUtils.isBlank(totpToken)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new AuthenticationFlowResponseDto(false));
 		}
 
 		final String identifier = token.getCookieParams().get(CookieUtil.FIELD_IDENTIFIER);
 		final AuthUser user = helper.selectUser(identifier);
 		if (user == null || StringUtils.isBlank(user.getTwoFactorSecret())) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new AuthenticationFlowResponseDto(false));
 		}
 
 		final CodeVerifier verifier = new DefaultCodeVerifier(new DefaultCodeGenerator(), new SystemTimeProvider());
@@ -399,7 +400,7 @@ public class AuthenticationController {
 		}
 
 		if (!valid) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new AuthenticationFlowResponseDto(false));
 		}
 
 		final Map<String, String> params = new LinkedHashMap<>(token.getCookieParams());
@@ -409,16 +410,16 @@ public class AuthenticationController {
 
 		// Check for next steps
 		if (CookieUtil.isPasswordExpired(params)) {
-			return ResponseEntity.ok("{\"success\": false, \"next\": \"passwordExpired\"}");
+			return ResponseEntity.ok(new AuthenticationFlowResponseDto(false, "passwordExpired"));
 		}
 
 		// Check if backup codes are needed
 		final AuthUser updatedUser = helper.selectUser(identifier);
 		if (updatedUser != null && updatedUser.getTwoFactorBackupCodes() != null && updatedUser.getTwoFactorBackupCodes().size() <= 1) {
-			return ResponseEntity.ok("{\"success\": false, \"next\": \"totpBackupCodesNeeded\"}");
+			return ResponseEntity.ok(new AuthenticationFlowResponseDto(false, "totpBackupCodesNeeded"));
 		}
 
-		return ResponseEntity.ok("{\"success\": true}");
+		return ResponseEntity.ok(new AuthenticationFlowResponseDto(true));
 	}
 
 	@PostMapping(value = "/generateBackupCodes", produces = MediaType.TEXT_PLAIN_VALUE)
@@ -447,20 +448,20 @@ public class AuthenticationController {
 	}
 
 	@PostMapping(value = "/impersonate", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> impersonatePost(final HttpServletRequest request, final HttpServletResponse response) {
+	public ResponseEntity<SuccessResponseDto> impersonatePost(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new SuccessResponseDto(false));
 		}
 
 		final String impersonate = request.getParameter(CookieUtil.FIELD_IMPERSONATE);
 		if (StringUtils.isBlank(impersonate)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		final ca.digitalcave.buddi.live.model.User user = (ca.digitalcave.buddi.live.model.User) token.getPrincipal();
 		if (!user.isImpersonateAllowed(impersonate)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		final Map<String, String> params = new LinkedHashMap<>(token.getCookieParams());
@@ -469,19 +470,19 @@ public class AuthenticationController {
 		params.put(CookieUtil.FIELD_IDENTIFIER, impersonate);
 		CookieUtil.setEncryptedCookie(request, response, helper, params, true);
 
-		return ResponseEntity.ok("{\"success\": true}");
+		return ResponseEntity.ok(new SuccessResponseDto(true));
 	}
 
 	@DeleteMapping(value = "/impersonate", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<String> impersonateDelete(final HttpServletRequest request, final HttpServletResponse response) {
+	public ResponseEntity<SuccessResponseDto> impersonateDelete(final HttpServletRequest request, final HttpServletResponse response) {
 		final CookieAuthenticationToken token = getToken();
 		if (token == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("{\"success\": false}");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new SuccessResponseDto(false));
 		}
 
 		final String authenticator = token.getCookieParams().get(CookieUtil.FIELD_AUTHENTICATOR);
 		if (StringUtils.isBlank(authenticator)) {
-			return ResponseEntity.badRequest().body("{\"success\": false}");
+			return ResponseEntity.badRequest().body(new SuccessResponseDto(false));
 		}
 
 		final Map<String, String> params = new LinkedHashMap<>(token.getCookieParams());
@@ -490,7 +491,7 @@ public class AuthenticationController {
 		params.remove(CookieUtil.FIELD_IMPERSONATE);
 		CookieUtil.setEncryptedCookie(request, response, helper, params, true);
 
-		return ResponseEntity.ok("{\"success\": true}");
+		return ResponseEntity.ok(new SuccessResponseDto(true));
 	}
 
 	@GetMapping("/**")
