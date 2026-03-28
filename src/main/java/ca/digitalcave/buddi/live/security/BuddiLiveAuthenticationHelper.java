@@ -1,5 +1,6 @@
 package ca.digitalcave.buddi.live.security;
 
+import ca.digitalcave.buddi.live.api.dto.ExtJsFieldDto;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
@@ -9,8 +10,8 @@ import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import ca.digitalcave.moss.crypto.DefaultHash;
 import ca.digitalcave.moss.crypto.Hash;
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import org.apache.commons.lang3.StringUtils;
@@ -28,6 +29,8 @@ import java.util.logging.Logger;
 
 @Component
 public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
+
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	private final BuddiLiveAuthenticationTransactionalService txService;
 	private final Properties mailProperties;
@@ -62,40 +65,27 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			@Override
 			public void writeFields(final Writer out, final ResourceBundle translation) {
 				try {
-					final JsonGenerator g = new JsonFactory().createGenerator(out);
-					g.writeStartObject();
-					g.writeStringField("xtype", "selfdocumentingfield");
-					g.writeStringField("messageBody", translation.getString("HELP_LOCALE"));
-					g.writeStringField("type", "localescombobox");
-					g.writeStringField("name", "locale");
-					g.writeStringField("fieldLabel", translation.getString("LOCALE"));
-					g.writeStringField("value", "en_US");
-					g.writeEndObject();
-					g.writeRaw(",");
-					g.writeStartObject();
-					g.writeStringField("xtype", "selfdocumentingfield");
-					g.writeStringField("messageBody", translation.getString("HELP_CURRENCY"));
-					g.writeStringField("type", "currenciescombobox");
-					g.writeStringField("name", "currency");
-					g.writeStringField("fieldLabel", translation.getString("CURRENCY"));
-					g.writeStringField("value", "USD");
-					g.writeEndObject();
-					g.writeRaw(",");
-					g.writeStartObject();
-					g.writeStringField("xtype", "selfdocumentingfield");
-					g.writeStringField("messageBody", translation.getString("CREATE_USER_AGREEMENT_REQUIRED"));
-					g.writeStringField("type", "checkbox");
-					g.writeStringField("boxLabel", translation.getString("AGREE_TERMS_AND_CONDITIONS"));
-					g.writeStringField("name", "agree");
-					g.writeStringField("fieldLabel", " ");
-					g.writeStringField("labelSeparator", "");
-					g.writeEndObject();
-					g.writeRaw(",");
-					g.writeStartObject();
-					g.writeStringField("xtype", "label");
-					g.writeStringField("html", translation.getString(directRegistration ? "HELP_REGISTER_DIRECT" : "HELP_REGISTER"));
-					g.writeEndObject();
-					g.writeRaw(",");
+					final JsonGenerator g = OBJECT_MAPPER.getFactory().createGenerator(out);
+					writeExtJsField(g, ExtJsFieldDto.selfDocumentingField(
+							translation.getString("HELP_LOCALE"),
+							"localescombobox",
+							"locale",
+							translation.getString("LOCALE"),
+							"en_US"));
+					writeExtJsField(g, ExtJsFieldDto.selfDocumentingField(
+							translation.getString("HELP_CURRENCY"),
+							"currenciescombobox",
+							"currency",
+							translation.getString("CURRENCY"),
+							"USD"));
+					writeExtJsField(g, ExtJsFieldDto.selfDocumentingCheckbox(
+							translation.getString("CREATE_USER_AGREEMENT_REQUIRED"),
+							translation.getString("AGREE_TERMS_AND_CONDITIONS"),
+							"agree",
+							" ",
+							""));
+					writeExtJsField(g, ExtJsFieldDto.label(
+							translation.getString(directRegistration ? "HELP_REGISTER_DIRECT" : "HELP_REGISTER")));
 					g.flush();
 				} catch (IOException e) {
 					throw new RuntimeException(e);
@@ -106,12 +96,8 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			@Override
 			public void writeFields(final Writer out, final ResourceBundle translation) {
 				try {
-					final JsonGenerator g = new JsonFactory().createGenerator(out);
-					g.writeStartObject();
-					g.writeStringField("xtype", "label");
-					g.writeStringField("html", translation.getString("HELP_REGISTER_2"));
-					g.writeEndObject();
-					g.writeRaw(",");
+					final JsonGenerator g = OBJECT_MAPPER.getFactory().createGenerator(out);
+					writeExtJsField(g, ExtJsFieldDto.label(translation.getString("HELP_REGISTER_2")));
 					g.flush();
 				} catch (IOException e) {
 					throw new RuntimeException(e);
@@ -122,12 +108,8 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			@Override
 			public void writeFields(final Writer out, final ResourceBundle translation) {
 				try {
-					final JsonGenerator g = new JsonFactory().createGenerator(out);
-					g.writeStartObject();
-					g.writeStringField("xtype", "label");
-					g.writeStringField("html", translation.getString("HELP_RESET_PASSWORD"));
-					g.writeEndObject();
-					g.writeRaw(",");
+					final JsonGenerator g = OBJECT_MAPPER.getFactory().createGenerator(out);
+					writeExtJsField(g, ExtJsFieldDto.label(translation.getString("HELP_RESET_PASSWORD")));
 					g.flush();
 				} catch (IOException e) {
 					throw new RuntimeException(e);
@@ -138,12 +120,8 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			@Override
 			public void writeFields(final Writer out, final ResourceBundle translation) {
 				try {
-					final JsonGenerator g = new JsonFactory().createGenerator(out);
-					g.writeStartObject();
-					g.writeStringField("xtype", "label");
-					g.writeStringField("html", translation.getString("HELP_RESET_PASSWORD_2"));
-					g.writeEndObject();
-					g.writeRaw(",");
+					final JsonGenerator g = OBJECT_MAPPER.getFactory().createGenerator(out);
+					writeExtJsField(g, ExtJsFieldDto.label(translation.getString("HELP_RESET_PASSWORD_2")));
 					g.flush();
 				} catch (IOException e) {
 					throw new RuntimeException(e);
@@ -373,5 +351,10 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 	private String getHashedUsername(final String username) {
 		return new DefaultHash().setSaltLength(0).setIterations(1).generate(username);
+	}
+
+	private void writeExtJsField(final JsonGenerator g, final ExtJsFieldDto field) throws IOException {
+		g.writeObject(field);
+		g.writeRaw(",");
 	}
 }
