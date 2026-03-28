@@ -36,8 +36,8 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	private final Properties mailProperties;
 
 	public BuddiLiveAuthenticationHelper(final BuddiLiveAuthenticationTransactionalService txService,
-											 final Properties mailProperties,
-											 @Value("${buddi.directRegistration:false}") final boolean directRegistration) {
+										 final Properties mailProperties,
+										 @Value("${buddi.directRegistration:false}") final boolean directRegistration) {
 		super(new AuthenticationConfiguration());
 		this.txService = txService;
 		this.mailProperties = mailProperties;
@@ -144,20 +144,15 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		}
 
 		boolean authenticated = false;
-
-		final String storedSecret = new String(user.getSecret());
-
 		boolean legacy = false;
 
+		final String storedSecret = new String(user.getSecret());
 		if (storedSecret.startsWith("SHA-512:")) {
 			authenticated = DefaultHash.verify(storedSecret, secret);
 		}
 		else if (storedSecret.startsWith("SHA-256:")) {
 			authenticated = DefaultHash.verify(storedSecret, secret);
 			legacy = true;
-		}
-		else {
-			authenticated = false;
 		}
 
 		if (authenticated) {
