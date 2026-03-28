@@ -90,14 +90,11 @@ public class IndexController {
 				users.updateUserLoginTime(user);
 			}
 		}
-		catch (CryptoException e) {
-			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
-		}
-		catch (DatabaseException e) {
+		catch (CryptoException | DatabaseException e) {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
 		}
 
-		if (user != null && (!user.isTwoFactorRequired() || user.getTwoFactorBackupCodes().size() > 0)) {
+        if (user != null && (!user.isTwoFactorRequired() || user.getTwoFactorBackupCodes().size() > 0)) {
 			final Map<String, String> cookieParams = getCookieParams();
 			model.addAttribute("user", user);
 			model.addAttribute("translationsJson", serializeTranslationsJson(LocaleUtil.getTranslation(user)));
