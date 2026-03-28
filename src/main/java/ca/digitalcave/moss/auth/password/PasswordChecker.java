@@ -8,6 +8,7 @@ import java.io.*;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -351,7 +352,7 @@ public class PasswordChecker {
 			this.packer = null;
 		}
 		
-		final File file = new File(System.getProperty("java.io.tmpdir"), "words");
+		final File file = new File(System.getProperty("java.io.tmpdir"), "words-" + UUID.randomUUID());
 		try (Packer p = new Packer(file.getAbsolutePath(), "rw");
 			 BufferedReader br = new BufferedReader(reader)) {
 			String s = null;

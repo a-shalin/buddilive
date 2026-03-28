@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.server.ResponseStatusException;
 
 import ca.digitalcave.buddi.live.api.dto.ErrorResponseDto;
@@ -19,6 +20,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(ResponseStatusException.class)
 	public ResponseEntity<ErrorResponseDto> handleResponseStatus(final ResponseStatusException e) {
 		return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponseDto(false, e.getReason()));
+	}
+
+	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+	public ResponseEntity<ErrorResponseDto> handleMethodNotSupported(final HttpRequestMethodNotSupportedException e) {
+		return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(new ErrorResponseDto(false, e.getMessage()));
 	}
 
 	@ExceptionHandler(Exception.class)
