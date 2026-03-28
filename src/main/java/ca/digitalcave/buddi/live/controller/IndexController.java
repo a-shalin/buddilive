@@ -85,7 +85,7 @@ public class IndexController {
 				}
 
 				final List<Account> accounts = sources.selectAccounts(user);
-				if (accounts.size() == 0) model.addAttribute("newUser", "true");
+				if (accounts.isEmpty()) model.addAttribute("newUser", "true");
 
 				users.updateUserLoginTime(user);
 			}
@@ -265,16 +265,15 @@ public class IndexController {
 	private String getNextStep(final Map<String, String> params, final Authentication auth) {
 		final User user = (auth != null && auth.getPrincipal() instanceof User) ? (User) auth.getPrincipal() : null;
 
-		if (params != null
-				&& CookieUtil.isPrimaryAuthenticationValid(params)
-				&& CookieUtil.isSecondaryAuthenticationValid(params)
-				&& CookieUtil.isPasswordExpired(params)) {
+		if (CookieUtil.isPrimaryAuthenticationValid(params)
+                && CookieUtil.isSecondaryAuthenticationValid(params)
+                && CookieUtil.isPasswordExpired(params)) {
 			return "passwordExpired";
 		}
 		else if (CookieUtil.isAuthenticationValid(params)
 				&& CookieUtil.isTwoFactorSetup(params)
 				&& user != null
-				&& user.getTwoFactorBackupCodes().size() == 0) {
+				&& user.getTwoFactorBackupCodes().isEmpty()) {
 			return "totpBackupCodes";
 		}
 		else if (CookieUtil.isPrimaryAuthenticationValid(params)
