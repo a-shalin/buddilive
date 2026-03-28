@@ -1,8 +1,7 @@
 package ca.digitalcave.buddi.live.api.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 import ca.digitalcave.buddi.live.controller.Action;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record UserPreferencesRequestDto(
@@ -20,5 +19,6 @@ public record UserPreferencesRequestDto(
 		Boolean showCurrencySymbol,
 		Boolean currencySpacing,
 		Boolean useTwoFactor,
-		Boolean showDeleted) {
+		Boolean showDeleted,
+		Boolean skipFocusOnTransactionNumber) {
 }

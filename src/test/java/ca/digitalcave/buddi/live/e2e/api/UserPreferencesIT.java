@@ -1,16 +1,10 @@
 package ca.digitalcave.buddi.live.e2e.api;
 
-import okhttp3.OkHttpClient;
-
-import org.json.JSONObject;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-
 import ca.digitalcave.buddi.live.e2e.BaseIT;
 import ca.digitalcave.buddi.live.e2e.TestHelper;
+import okhttp3.OkHttpClient;
+import org.json.JSONObject;
+import org.junit.jupiter.api.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,6 +32,7 @@ public class UserPreferencesIT extends BaseIT {
 		assertThat(prefs.getString("locale")).isEqualTo("en_US");
 		assertThat(prefs.getBoolean("showCurrencySymbol")).isFalse();
 		assertThat(prefs.getBoolean("currencySpacing")).isTrue();
+		assertThat(prefs.getBoolean("skipFocusOnTransactionNumber")).isFalse();
 	}
 
 	@Test
@@ -51,6 +46,7 @@ public class UserPreferencesIT extends BaseIT {
 		update.put("decimalSeparator", ",");
 		update.put("thousandSeparator", " ");
 		update.put("negativeFormat", "B");
+		update.put("skipFocusOnTransactionNumber", true);
 
 		helper.updateUserPreferences(client, update);
 
@@ -62,5 +58,6 @@ public class UserPreferencesIT extends BaseIT {
 		assertThat(prefs.getString("decimalSeparator")).isEqualTo(",");
 		assertThat(prefs.getString("thousandSeparator")).isEqualTo(" ");
 		assertThat(prefs.getString("negativeFormat")).isEqualTo("B");
+		assertThat(prefs.getBoolean("skipFocusOnTransactionNumber")).isTrue();
 	}
 }

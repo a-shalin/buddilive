@@ -13,6 +13,7 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 	private static final String EMAIL = "txn-smoke@example.com";
 	private static final String EMAIL_EDIT = "txn-smoke-edit@example.com";
 	private static final String EMAIL_PREF = "txn-smoke-pref@example.com";
+	private static final String EMAIL_PREF_SKIP_FOCUS = "txn-smoke-pref-skip-focus@example.com";
 	private static final String EMAIL_BUDGET_FORMAT = "txn-smoke-budget-format@example.com";
 	private static final String PASSWORD = "TestPassword123!";
 
@@ -206,6 +207,37 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 				return false;
 			}
 		});
+	}
+
+	@Test
+	void testPreferencesSkipFocusOnTransactionNumberCheckboxPresent() throws Exception {
+		helper.registerUser(EMAIL_PREF_SKIP_FOCUS, PASSWORD, "en_US", "USD");
+		browserLogin(EMAIL_PREF_SKIP_FOCUS, PASSWORD);
+
+		executeJs(
+			"var item = Ext.ComponentQuery.query('menuitem[itemId=showPreferences]')[0];" +
+			"item.fireEvent('click', item);");
+		waitForComponent("preferenceseditor");
+
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"return Ext.ComponentQuery.query('preferenceseditor checkbox[itemId=skipFocusOnTransactionNumber]').length > 0;");
+			}
+			catch (Exception e) {
+				return false;
+			}
+		});
+
+		String actualLabel = (String) executeJs(
+			"return Ext.ComponentQuery.query('preferenceseditor checkbox[itemId=skipFocusOnTransactionNumber]')[0].boxLabel;");
+		String expectedLabel = (String) executeJs(
+			"return BuddiLive.translate('DO_NOT_FOCUS') + ' ' + BuddiLive.translate('NUMBER');");
+		Boolean checked = (Boolean) executeJs(
+			"return Ext.ComponentQuery.query('preferenceseditor checkbox[itemId=skipFocusOnTransactionNumber]')[0].getValue();");
+
+		assertThat(actualLabel).isEqualTo(expectedLabel);
+		assertThat(checked).isFalse();
 	}
 
 	@Test

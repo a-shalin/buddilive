@@ -22,6 +22,7 @@
 		<result column="show_currency_symbol" property="showCurrencySymbol" typeHandler="ca.digitalcave.buddi.live.db.handler.BooleanHandler"/>
 		<result column="currency_spacing" property="currencySpacing"/>
 		<result column="show_deleted" property="showDeleted" typeHandler="ca.digitalcave.buddi.live.db.handler.BooleanHandler"/>
+		<result column="skip_focus_on_transaction_number" property="skipFocusOnTransactionNumber" typeHandler="ca.digitalcave.buddi.live.db.handler.BooleanHandler"/>
 		<result column="created" property="created"/>
 		<result column="modified" property="modified"/>
 		
@@ -50,6 +51,7 @@
 			show_currency_symbol,
 			currency_spacing,
 			show_deleted,
+			skip_focus_on_transaction_number,
 			users.created created,
 			modified,
 			totp_backup
@@ -78,6 +80,7 @@
 			show_currency_symbol,
 			currency_spacing,
 			show_deleted,
+			skip_focus_on_transaction_number,
 			users.created created,
 			modified,
 			totp_backup
@@ -110,6 +113,7 @@
 				currency,
 				show_currency_symbol,
 				show_deleted,
+				skip_focus_on_transaction_number,
 				encryption_version,
 				created, 
 				modified
@@ -126,6 +130,7 @@
 				#{user.currency,javaType=java.util.Currency},
 				'N',
 				'Y',
+				'N',
 				2,
 				CURRENT_TIMESTAMP, 
 				CURRENT_TIMESTAMP
@@ -175,6 +180,7 @@
 			show_currency_symbol = <choose><when test="user.showCurrencySymbol == true">'Y'</when><otherwise>'N'</otherwise></choose>,
 			currency_spacing = #{user.currencySpacing,jdbcType=CHAR},
 			show_deleted = <choose><when test="user.showDeleted == true">'Y'</when><otherwise>'N'</otherwise></choose>,
+			skip_focus_on_transaction_number = <choose><when test="user.skipFocusOnTransactionNumber == true">'Y'</when><otherwise>'N'</otherwise></choose>,
 			use_two_factor = <choose><when test="user.twoFactorRequired == true">'Y'</when><otherwise>'N'</otherwise></choose>,
 			modified = CURRENT_TIMESTAMP
 		WHERE identifier = #{user.identifier}

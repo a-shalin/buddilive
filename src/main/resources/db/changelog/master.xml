@@ -236,4 +236,12 @@
 		<sql>ALTER TABLE users ADD CONSTRAINT cc_users_showcurrencysymbol CHECK (show_currency_symbol IN ('Y', 'N'))</sql>
 		<sql>ALTER TABLE users ADD CONSTRAINT cc_users_currencyspacing CHECK (currency_spacing IS NULL OR currency_spacing IN ('Y', 'N'))</sql>
 	</changeSet>
+
+	<changeSet id="add skip focus on transaction number preference" author="wyatt">
+		<addColumn tableName="users">
+			<column name="skip_focus_on_transaction_number" type="char(1)" defaultValue="N"><constraints nullable="false"/></column>
+		</addColumn>
+
+		<sql>ALTER TABLE users ADD CONSTRAINT cc_users_skipfocusontransactionnumber CHECK (skip_focus_on_transaction_number IN ('Y', 'N'))</sql>
+	</changeSet>
 </databaseChangeLog>

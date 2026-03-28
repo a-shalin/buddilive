@@ -215,6 +215,14 @@ Ext.define('BuddiLive.view.preferences.PreferencesEditor', {
 						labelSeparator: "",
 						checked: d.showDeleted,
 						boxLabel: BuddiLive.translate("SHOW_DELETED")
+					},
+					{
+						xtype: "checkbox",
+						itemId: "skipFocusOnTransactionNumber",
+						fieldLabel: " ",
+						labelSeparator: "",
+						checked: d.skipFocusOnTransactionNumber,
+						boxLabel: BuddiLive.translate("DO_NOT_FOCUS") + " " + BuddiLive.translate("NUMBER")
 					}
 				]
 			}

@@ -1,10 +1,9 @@
 package ca.digitalcave.buddi.live.api.converter;
 
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Component;
-
 import ca.digitalcave.buddi.live.api.dto.UserPreferencesResponseDto;
 import ca.digitalcave.buddi.live.model.User;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
 
 @Component
 public class UserPreferencesResponseConverter {
@@ -24,6 +23,7 @@ public class UserPreferencesResponseConverter {
 				user.useCurrencySpacing(),
 				user.isTwoFactorRequired(),
 				user.isShowDeleted(),
+				user.isSkipFocusOnTransactionNumber(),
 				true);
 	}
 }

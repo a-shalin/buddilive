@@ -76,6 +76,7 @@ Ext.define("BuddiLive.controller.preferences.PreferencesEditor", {
 		let dateFormat = window.down("combobox[itemId='dateFormat']").getValue();
 		request.dateFormat = dateFormat ? dateFormat : "";
 		request.showDeleted = window.down("checkbox[itemId='showDeleted']").getValue();
+		request.skipFocusOnTransactionNumber = window.down("checkbox[itemId='skipFocusOnTransactionNumber']").getValue();
 
 		let mask = new Ext.LoadMask({msg: BuddiLive.translate("PROCESSING"), target: window});
 		mask.show();

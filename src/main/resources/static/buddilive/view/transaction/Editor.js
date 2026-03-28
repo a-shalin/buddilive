@@ -11,6 +11,18 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 	border: false,
 
 	initComponent: function() {
+		const skipFocusOnTransactionNumber = BuddiLive.util.UserConfig.get("skipFocusOnTransactionNumber") === true;
+		const numberField = {
+			xtype: "textfield",
+			itemId: "number",
+			flex: 1,
+			emptyText: BuddiLive.translate("NUMBER"),
+			padding: (this.initialConfig.scheduledTransaction ? "1 0 5 5" : "5 5 5 5")
+		};
+		if (skipFocusOnTransactionNumber) {
+			numberField.tabIndex = -1;
+		}
+
 		this.items = [
 			{xtype: "spliteditor"}
 		];
@@ -46,13 +58,7 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 						emptyText: BuddiLive.translate("DESCRIPTION"),
 						enableKeyEvents: true
 					},
-					{
-						xtype: "textfield",
-						itemId: "number",
-						flex: 1,
-						emptyText: BuddiLive.translate("NUMBER"),
-						padding: (this.initialConfig.scheduledTransaction ? "1 0 5 5" : "5 5 5 5")
-					}
+					numberField
 				]
 			},
 			{

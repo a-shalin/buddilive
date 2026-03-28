@@ -1,11 +1,7 @@
 package ca.digitalcave.buddi.live.service;
 
 import ca.digitalcave.buddi.live.api.dto.request.UserPreferencesRequestDto;
-import ca.digitalcave.buddi.live.db.Entries;
-import ca.digitalcave.buddi.live.db.ScheduledTransactions;
-import ca.digitalcave.buddi.live.db.Sources;
-import ca.digitalcave.buddi.live.db.Transactions;
-import ca.digitalcave.buddi.live.db.Users;
+import ca.digitalcave.buddi.live.db.*;
 import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
 import ca.digitalcave.buddi.live.db.util.DataUpdater;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
@@ -65,6 +61,7 @@ public class UserPreferencesTransactionalService {
 		user.setCurrencySpacing(Boolean.TRUE.equals(dto.currencySpacing()) || (dto.currencySpacing() == null && user.useCurrencySpacing()) ? "Y" : "N");
 		user.setTwoFactorRequired(Boolean.TRUE.equals(dto.useTwoFactor()));
 		user.setShowDeleted(dto.showDeleted() == null || dto.showDeleted());
+		user.setSkipFocusOnTransactionNumber(Boolean.TRUE.equals(dto.skipFocusOnTransactionNumber()) || (dto.skipFocusOnTransactionNumber() == null && user.isSkipFocusOnTransactionNumber()));
 
 		ConstraintsChecker.checkUpdateUserPreferences(user);
 

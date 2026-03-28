@@ -14,5 +14,6 @@ public record UserPreferencesResponseDto(
 		boolean currencySpacing,
 		boolean useTwoFactor,
 		boolean showDeleted,
+		boolean skipFocusOnTransactionNumber,
 		boolean success) {
 }

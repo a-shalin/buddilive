@@ -39,6 +39,7 @@ public class User extends AuthUser {
 	private Boolean showCleared;
 	private Boolean showReconciled;
 	private Boolean showDeleted;
+	private Boolean skipFocusOnTransactionNumber;
 	private Date created;
 	private Date modified;
 
@@ -272,6 +273,12 @@ public class User extends AuthUser {
 	}
 	public void setShowDeleted(final boolean showDeleted) {
 		this.showDeleted = showDeleted;
+	}
+	public boolean isSkipFocusOnTransactionNumber() {
+		return skipFocusOnTransactionNumber != null && skipFocusOnTransactionNumber;
+	}
+	public void setSkipFocusOnTransactionNumber(final Boolean skipFocusOnTransactionNumber) {
+		this.skipFocusOnTransactionNumber = skipFocusOnTransactionNumber;
 	}
 	public boolean isShowReconciled() {
 		return showReconciled;

@@ -121,6 +121,7 @@ public class IndexController {
 				g.writeStringField("thousandSeparator", user.getThousandSeparator());
 				g.writeStringField("currencySymbol", user.getCurrencySymbol());
 				g.writeStringField("plaintextIdentifier", user.getPlaintextIdentifier());
+				g.writeBooleanField("skipFocusOnTransactionNumber", user.isSkipFocusOnTransactionNumber());
 				g.writeNumberField("sessionTimeoutMillis", sessionTimeoutMillis);
 				g.writeNumberField("sessionRefreshWindowMillis", CookieUtil.COOKIE_REFRESH_WINDOW_MILLIS);
 				g.writeEndObject();
