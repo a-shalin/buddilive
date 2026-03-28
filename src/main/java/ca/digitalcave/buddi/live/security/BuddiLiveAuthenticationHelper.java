@@ -21,9 +21,10 @@ import jakarta.mail.internet.InternetAddress;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail2.core.EmailException;
 import org.apache.commons.mail2.jakarta.HtmlEmail;
-import org.apache.ibatis.session.SqlSession;
-import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
@@ -36,14 +37,17 @@ import java.util.logging.Logger;
 @Component
 public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
-	private final SqlSessionFactory sqlSessionFactory;
+	private final Users users;
+	private final BuddiSystem buddiSystem;
 	private final Properties mailProperties;
 
-	public BuddiLiveAuthenticationHelper(final SqlSessionFactory sqlSessionFactory,
-										 final Properties mailProperties,
-										 @org.springframework.beans.factory.annotation.Value("${buddi.directRegistration:false}") final boolean directRegistration) {
+	public BuddiLiveAuthenticationHelper(final Users users,
+											 final BuddiSystem buddiSystem,
+											 final Properties mailProperties,
+											 @org.springframework.beans.factory.annotation.Value("${buddi.directRegistration:false}") final boolean directRegistration) {
 		super(new AuthenticationConfiguration());
-		this.sqlSessionFactory = sqlSessionFactory;
+		this.users = users;
+		this.buddiSystem = buddiSystem;
 		this.mailProperties = mailProperties;
 
 		getConfig().directRegistration = directRegistration;
@@ -167,9 +171,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			return null;
 		}
 
-		final String authenticator = identifier;
-
-		final User user = (User) selectUser(authenticator);
+		final User user = users.selectUser(getHashedUsername(identifier));
 		if (user == null) {
 			return null;
 		}
@@ -193,14 +195,11 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 		if (authenticated) {
 			if (legacy) {
-				try (SqlSession sql2 = sqlSessionFactory.openSession()) {
-					try {
-						sql2.getMapper(Users.class).updateUserSecret(user, getHash().generate(secret));
-						sql2.commit();
-					}
-					catch (Exception e) {
-						sql2.rollback(true);
-					}
+				try {
+					users.updateUserSecret(user, getHash().generate(secret));
+				}
+				catch (Exception e) {
+					// Keep authentication successful even if legacy hash upgrade fails.
 				}
 			}
 
@@ -214,12 +213,9 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public AuthUser selectUser(final String username) {
-		try (SqlSession sql = sqlSessionFactory.openSession()) {
-			User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
-			sql.commit(true);
-			return user;
-		}
+		return users.selectUser(getHashedUsername(username));
 	}
 
 	@Override
@@ -227,157 +223,137 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		throw new RuntimeException("Forgot Username not implemented");
 	}
 
+	@Transactional
 	public boolean insertTotpSecret(final String username, final String totpSharedSecret) {
-		try (SqlSession sql = sqlSessionFactory.openSession()) {
-			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
-			if (user != null) {
-				sql.getMapper(Users.class).deleteUnusedBackupCodes(user);
-				int count = sql.getMapper(Users.class).updateUserTotpSecret(user, totpSharedSecret);
-				if (count == 1) {
-					sql.commit(true);
-					return true;
-				}
+		final User user = users.selectUser(getHashedUsername(username));
+		if (user != null) {
+			users.deleteUnusedBackupCodes(user);
+			final int count = users.updateUserTotpSecret(user, totpSharedSecret);
+			if (count == 1) {
+				return true;
 			}
-
-			sql.rollback(true);
-			return false;
 		}
+
+		markCurrentTransactionForRollback();
+		return false;
 	}
 
 	@Override
+	@Transactional
 	public void insertTotpBackupCodes(final String username) {
-		try (SqlSession sql = sqlSessionFactory.openSession()) {
-			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
-			if (user != null) {
-				sql.getMapper(Users.class).deleteUnusedBackupCodes(user);
-				for (int i = 0; i < 10; i++) {
-					final String backupCode = UUID.randomUUID().toString();
-					sql.getMapper(Users.class).insertTotpBackupCode(user, backupCode);
-				}
+		final User user = users.selectUser(getHashedUsername(username));
+		if (user != null) {
+			users.deleteUnusedBackupCodes(user);
+			for (int i = 0; i < 10; i++) {
+				final String backupCode = UUID.randomUUID().toString();
+				users.insertTotpBackupCode(user, backupCode);
+			}
+			return;
+		}
 
-				sql.commit(true);
+		markCurrentTransactionForRollback();
+	}
+
+	@Override
+	@Transactional
+	public void updateTotpBackupCodeMarkUsed(final String username, final String backupCode) {
+		final User user = users.selectUser(getHashedUsername(username));
+		if (user != null) {
+			final int count = users.updateUserTotpBackupCodeUsed(user, backupCode);
+			if (count == 1) {
 				return;
 			}
-
-			sql.rollback(true);
 		}
+
+		markCurrentTransactionForRollback();
 	}
 
 	@Override
-	public void updateTotpBackupCodeMarkUsed(final String username, final String backupCode) {
-		try (SqlSession sql = sqlSessionFactory.openSession()) {
-			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
-			if (user != null) {
-				int count = sql.getMapper(Users.class).updateUserTotpBackupCodeUsed(user, backupCode);
-				if (count == 1) {
-					sql.commit(true);
-					return;
-				}
-			}
-
-			sql.rollback(true);
-		}
-	}
-
-	@Override
+	@Transactional
 	public void disableTotp(final String username) {
-		try (SqlSession sql = sqlSessionFactory.openSession()) {
-			final User user = sql.getMapper(Users.class).selectUser(getHashedUsername(username));
-			if (user != null && StringUtils.isBlank(user.getTwoFactorSecret())) {
-				user.setTwoFactorRequired(false);
-				int count = sql.getMapper(Users.class).updateUser(user);
-				if (count == 1) {
-					sql.getMapper(Users.class).updateUserTotpSecret(user, null);
-					sql.getMapper(Users.class).deleteUnusedBackupCodes(user);
-
-					sql.commit(true);
-					return;
-				}
+		final User user = users.selectUser(getHashedUsername(username));
+		if (user != null && StringUtils.isBlank(user.getTwoFactorSecret())) {
+			user.setTwoFactorRequired(false);
+			final int count = users.updateUser(user);
+			if (count == 1) {
+				users.updateUserTotpSecret(user, null);
+				users.deleteUnusedBackupCodes(user);
+				return;
 			}
-
-			sql.rollback(true);
 		}
+
+		markCurrentTransactionForRollback();
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public String updateActivationKey(final String username, final String activationKey) throws Exception {
-		try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+		try {
 			final String hashedIdentifier = getHashedUsername(username);
-			final User user = sqlSession.getMapper(Users.class).selectUser(hashedIdentifier);
+			final User user = users.selectUser(hashedIdentifier);
 			if (user == null) throw new DatabaseException("Could not find user with hashed identifier" + hashedIdentifier);
 			if (user.isEncrypted()) throw new DatabaseException("Users with encrypted data cannot reset passwords.");
 
-			cleanupUsers(sqlSession, user);
+			cleanupUsers(user);
 
-			final Integer count = sqlSession.getMapper(Users.class).insertActivationKey(user, activationKey);
+			final Integer count = users.insertActivationKey(user, activationKey);
 			if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-
-			sqlSession.commit();
 
 			return username;
 		}
 		catch (DatabaseException e) {
 			Logger.getLogger(this.getClass().getName()).log(Level.INFO, e.getMessage());
+			markCurrentTransactionForRollback();
 		}
 		return null;
 	}
 
 	@Override
+	@Transactional
 	public boolean updatePasswordByActivationKey(final String activationKey, final String hashedPassword) {
-		try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-			final User user = sqlSession.getMapper(Users.class).selectUserByActivationKey(activationKey);
-			if (user == null) {
-				throw new DatabaseException("Activation key is not valid");
-			}
-			final Integer count = sqlSession.getMapper(Users.class).updateUserSecret(user, hashedPassword);
-			if (count != 1) {
-				throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
-			}
-
-			cleanupUsers(sqlSession, user);
-
-			sqlSession.commit();
-			return true;
+		final User user = users.selectUserByActivationKey(activationKey);
+		if (user == null) {
+			throw new DatabaseException("Activation key is not valid");
 		}
-		catch (DatabaseException e) {
-			throw new RuntimeException(e);
+		final Integer count = users.updateUserSecret(user, hashedPassword);
+		if (count != 1) {
+			throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
 		}
+
+		cleanupUsers(user);
+		return true;
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public void insertUser(final String email, final String activationKey, final Map<String, String> formParams) throws Exception {
-		try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-			if (!"on".equals(formParams.getOrDefault("agree", "off"))) {
-				throw new IllegalArgumentException(LocaleUtil.getTranslation().getString("CREATE_USER_AGREEMENT_REQUIRED"));
-			}
-
-			final User newUser = new User();
-			newUser.setIdentifier(getHashedUsername(email));
-			newUser.setUuid(UUID.randomUUID().toString());
-			newUser.setCurrency(Currency.getInstance(formParams.getOrDefault("currency", "USD")));
-			newUser.setLocale(LocaleUtil.parseLocale(formParams.getOrDefault("locale", "en_US"), Locale.US));
-
-			final User existingUser = sqlSession.getMapper(Users.class).selectUser(newUser.getIdentifier());
-			if (existingUser != null) {
-				if (existingUser.getSecret() != null && existingUser.getSecret().length > 0) {
-					throw new DatabaseException("The user name already exists");
-				}
-				sqlSession.getMapper(Users.class).deleteActivationKey(existingUser);
-				final Integer insertActivationCount = sqlSession.getMapper(Users.class).insertActivationKey(existingUser, activationKey);
-				if (insertActivationCount != 1) throw new DatabaseException(String.format("Activation key insert failed; expected 1 row, returned %s", insertActivationCount));
-				sqlSession.commit();
-				return;
-			}
-
-			cleanupUsers(sqlSession, null);
-
-			final Integer insertUserCount = sqlSession.getMapper(Users.class).insertUser(newUser);
-			if (insertUserCount != 1) throw new DatabaseException(String.format("User insert failed; expected 1 row, returned %s", insertUserCount));
-			final Integer insertActivationCount = sqlSession.getMapper(Users.class).insertActivationKey(newUser, activationKey);
-			if (insertActivationCount != 1) throw new DatabaseException(String.format("Activation key insert failed; expected 1 row, returned %s", insertActivationCount));
-
-			sqlSession.commit();
+		if (!"on".equals(formParams.getOrDefault("agree", "off"))) {
+			throw new IllegalArgumentException(LocaleUtil.getTranslation().getString("CREATE_USER_AGREEMENT_REQUIRED"));
 		}
+
+		final User newUser = new User();
+		newUser.setIdentifier(getHashedUsername(email));
+		newUser.setUuid(UUID.randomUUID().toString());
+		newUser.setCurrency(Currency.getInstance(formParams.getOrDefault("currency", "USD")));
+		newUser.setLocale(LocaleUtil.parseLocale(formParams.getOrDefault("locale", "en_US"), Locale.US));
+
+		final User existingUser = users.selectUser(newUser.getIdentifier());
+		if (existingUser != null) {
+			if (existingUser.getSecret() != null && existingUser.getSecret().length > 0) {
+				throw new DatabaseException("The user name already exists");
+			}
+			users.deleteActivationKey(existingUser);
+			final int insertActivationCount = users.insertActivationKey(existingUser, activationKey);
+			if (insertActivationCount != 1) throw new DatabaseException(String.format("Activation key insert failed; expected 1 row, returned %s", insertActivationCount));
+			return;
+		}
+
+		cleanupUsers(null);
+
+		final int insertUserCount = users.insertUser(newUser);
+		if (insertUserCount != 1) throw new DatabaseException(String.format("User insert failed; expected 1 row, returned %s", insertUserCount));
+		final int insertActivationCount = users.insertActivationKey(newUser, activationKey);
+		if (insertActivationCount != 1) throw new DatabaseException(String.format("Activation key insert failed; expected 1 row, returned %s", insertActivationCount));
 	}
 
 	@Override
@@ -419,7 +395,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		htmlEmail.setSmtpPort(Integer.parseInt(mailProperties.getProperty("mail.smtp.port", "25")));
 
 		final InternetAddress[] fromAddresses = InternetAddress.parse(from, false);
-		if (fromAddresses != null && fromAddresses.length > 0) {
+		if (fromAddresses.length > 0) {
 			htmlEmail.setFrom(fromAddresses[0].getAddress(), fromAddresses[0].getPersonal());
 		}
 
@@ -456,36 +432,35 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		return htmlEmail;
 	}
 
-	private void cleanupUsers(final SqlSession sqlSession, final User user) throws DatabaseException {
+	private void cleanupUsers(final User user) {
 		if (user == null) {
-			sqlSession.getMapper(Users.class).deleteActivationKey();
+			users.deleteActivationKey();
 		}
 		else {
-			sqlSession.getMapper(Users.class).deleteActivationKey(user);
+			users.deleteActivationKey(user);
 		}
-		sqlSession.getMapper(Users.class).deleteInactiveUsers();
+		users.deleteInactiveUsers();
 	}
 
 	@Override
+	@Transactional
 	public Key getKey() {
-		try (SqlSession sql = sqlSessionFactory.openSession()) {
+		try {
 			SecretKey key;
 			try {
-				String keyEncoded = sql.getMapper(BuddiSystem.class).selectCookieEncryptionKey();
+				String keyEncoded = buddiSystem.selectCookieEncryptionKey();
 				if (keyEncoded == null) {
 					key = new Crypto().setAlgorithm(Algorithm.AES_256).generateSecretKey();
 					keyEncoded = Crypto.encodeSecretKey(key);
-					sql.getMapper(BuddiSystem.class).deleteCookieEncryptionKey();
-					sql.getMapper(BuddiSystem.class).insertCookieEncryptionKey(keyEncoded);
-					sql.commit();
+					buddiSystem.deleteCookieEncryptionKey();
+					buddiSystem.insertCookieEncryptionKey(keyEncoded);
 				}
 				key = Crypto.recoverSecretKey(keyEncoded);
 			}
 			catch (CryptoException e) {
 				key = new Crypto().setAlgorithm(Algorithm.AES_256).generateSecretKey();
 				String keyEncoded = Crypto.encodeSecretKey(key);
-				sql.getMapper(BuddiSystem.class).updateCookieEncryptionKey(keyEncoded);
-				sql.commit();
+				buddiSystem.updateCookieEncryptionKey(keyEncoded);
 			}
 			return key;
 		}
@@ -501,5 +476,11 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 	private String getHashedUsername(final String username) {
 		return new DefaultHash().setSaltLength(0).setIterations(1).generate(username);
+	}
+
+	private void markCurrentTransactionForRollback() {
+		if (TransactionSynchronizationManager.isActualTransactionActive()) {
+			TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+		}
 	}
 }

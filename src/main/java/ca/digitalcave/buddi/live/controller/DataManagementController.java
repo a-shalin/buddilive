@@ -181,7 +181,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreAccounts(final List<RestoreAccountDto> accounts, final User user, final Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+	private void restoreAccounts(final List<RestoreAccountDto> accounts, final User user, final Map<String, Integer> sourceIDsByUUID) throws CryptoException {
 		if (accounts != null) {
 			for (final RestoreAccountDto a : accounts) {
 				final Account existing = sources.selectAccount(user, a.uuid());
@@ -207,7 +207,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreCategories(final List<RestoreCategoryDto> categories, final User user, final Map<String, Integer> sourceIDsByUUID, final String parentUuid) throws DatabaseException, CryptoException {
+	private void restoreCategories(final List<RestoreCategoryDto> categories, final User user, final Map<String, Integer> sourceIDsByUUID, final String parentUuid) throws CryptoException {
 		if (categories != null) {
 			for (final RestoreCategoryDto c : categories) {
 				final Category existing = sources.selectCategory(user, c.uuid());
@@ -237,7 +237,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreEntries(final List<RestoreEntryDto> entryList, final User user, final Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+	private void restoreEntries(final List<RestoreEntryDto> entryList, final User user, final Map<String, Integer> sourceIDsByUUID) throws CryptoException {
 		if (entryList != null) {
 			for (final RestoreEntryDto e : entryList) {
 				final Entry entry = new Entry();
@@ -263,7 +263,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreTransactions(final List<RestoreTransactionDto> txnList, final User user, final Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+	private void restoreTransactions(final List<RestoreTransactionDto> txnList, final User user, final Map<String, Integer> sourceIDsByUUID) throws CryptoException {
 		if (txnList != null) {
 			for (final RestoreTransactionDto t : txnList) {
 				if (Boolean.TRUE.equals(t.deleted())) continue;
@@ -312,7 +312,7 @@ public class DataManagementController {
 		}
 	}
 
-	private void restoreScheduledTransactions(final List<RestoreScheduledTransactionDto> txnList, final User user, final Map<String, Integer> sourceIDsByUUID) throws DatabaseException, CryptoException {
+	private void restoreScheduledTransactions(final List<RestoreScheduledTransactionDto> txnList, final User user, final Map<String, Integer> sourceIDsByUUID) throws CryptoException {
 		if (txnList != null) {
 			for (final RestoreScheduledTransactionDto t : txnList) {
 				if (scheduledTransactions.selectScheduledTransactionCount(user, t.uuid()) == 0) {

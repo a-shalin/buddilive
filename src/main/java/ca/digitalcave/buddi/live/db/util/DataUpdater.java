@@ -16,7 +16,7 @@ import java.util.*;
 
 public class DataUpdater {
 
-	public static void updateBalances(final User user, final Sources sources, final Transactions transactions, final Crypto crypto) throws DatabaseException, CryptoException {
+	public static void updateBalances(final User user, final Sources sources, final Transactions transactions, final Crypto crypto) throws CryptoException {
 		//Look through all splits in all accounts.  Start with the earliest split in each account.  If we find a
 		// split which does not have the correct balance, we update it; if the balance is already good, leave it alone.
 		final List<Split> splits = transactions.selectSplits(user);
@@ -75,7 +75,7 @@ public class DataUpdater {
 	}
 
 	public static String updateScheduledTransactions(final User user, final Sources sources, final Transactions transactionsMapper,
-			final ScheduledTransactions scheduledTransactionsMapper, final Crypto crypto, final Date userDate) throws CryptoException, DatabaseException {
+			final ScheduledTransactions scheduledTransactionsMapper, final Crypto crypto, final Date userDate) throws CryptoException {
 		final Date today = DateUtil.getEndOfDay(userDate);
 
 		boolean thereWasAnUpate = false;
@@ -230,7 +230,7 @@ public class DataUpdater {
 
 	public static void turnOnEncryption(final User user, final Sources sources, final Entries entries,
 			final Transactions transactionsMapper, final ScheduledTransactions scheduledTransactionsMapper,
-			final Users users, final Crypto crypto) throws DatabaseException, CryptoException {
+			final Users users, final Crypto crypto) throws CryptoException {
 		if (user.isEncrypted()) throw new DatabaseException("This account is already encrypted");
 
 		final String password = user.getPlaintextSecret();
@@ -283,7 +283,7 @@ public class DataUpdater {
 
 	public static void turnOffEncryption(final User user, final Sources sources, final Entries entries,
 			final Transactions transactionsMapper, final ScheduledTransactions scheduledTransactionsMapper,
-			final Users users, final Crypto crypto) throws DatabaseException, CryptoException {
+			final Users users, final Crypto crypto) throws CryptoException {
 		if (!user.isEncrypted()) throw new DatabaseException("This account is not encrypted");
 
 		final SecretKey key = user.getDecryptedSecretKey();
@@ -336,7 +336,7 @@ public class DataUpdater {
 
 	public static void upgradeEncryptionFrom1(final User user, final Sources sources, final Entries entries,
 			final Transactions transactionsMapper, final ScheduledTransactions scheduledTransactionsMapper,
-			final Users users, final Crypto crypto) throws DatabaseException, CryptoException {
+			final Users users, final Crypto crypto) throws CryptoException {
 		if (!user.isEncrypted()) {
 			users.updateUserEncryptionVersion(user, 2);
 			return;
