@@ -1,16 +1,11 @@
 package ca.digitalcave.buddi.live.security;
 
-import ca.digitalcave.buddi.live.db.BuddiSystem;
-import ca.digitalcave.buddi.live.db.Users;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
 import ca.digitalcave.buddi.live.model.User;
-import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.auth.config.AuthenticationConfiguration;
 import ca.digitalcave.moss.auth.model.AuthUser;
 import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import ca.digitalcave.moss.auth.template.ExtraFieldsDirective;
-import ca.digitalcave.moss.crypto.Crypto;
-import ca.digitalcave.moss.crypto.Crypto.Algorithm;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import ca.digitalcave.moss.crypto.DefaultHash;
 import ca.digitalcave.moss.crypto.Hash;
@@ -21,12 +16,9 @@ import jakarta.mail.internet.InternetAddress;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail2.core.EmailException;
 import org.apache.commons.mail2.jakarta.HtmlEmail;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.io.Writer;
 import java.security.Key;
@@ -37,17 +29,14 @@ import java.util.logging.Logger;
 @Component
 public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
-	private final Users users;
-	private final BuddiSystem buddiSystem;
+	private final BuddiLiveAuthenticationTransactionalService txService;
 	private final Properties mailProperties;
 
-	public BuddiLiveAuthenticationHelper(final Users users,
-											 final BuddiSystem buddiSystem,
+	public BuddiLiveAuthenticationHelper(final BuddiLiveAuthenticationTransactionalService txService,
 											 final Properties mailProperties,
-											 @org.springframework.beans.factory.annotation.Value("${buddi.directRegistration:false}") final boolean directRegistration) {
+											 @Value("${buddi.directRegistration:false}") final boolean directRegistration) {
 		super(new AuthenticationConfiguration());
-		this.users = users;
-		this.buddiSystem = buddiSystem;
+		this.txService = txService;
 		this.mailProperties = mailProperties;
 
 		getConfig().directRegistration = directRegistration;
@@ -171,7 +160,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 			return null;
 		}
 
-		final User user = users.selectUser(getHashedUsername(identifier));
+		final User user = txService.selectUserByHashedIdentifier(getHashedUsername(identifier));
 		if (user == null) {
 			return null;
 		}
@@ -196,7 +185,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		if (authenticated) {
 			if (legacy) {
 				try {
-					users.updateUserSecret(user, getHash().generate(secret));
+					txService.upgradeLegacyUserSecret(user, getHash().generate(secret));
 				}
 				catch (Exception e) {
 					// Keep authentication successful even if legacy hash upgrade fails.
@@ -213,9 +202,8 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 	}
 
 	@Override
-	@Transactional(readOnly = true)
 	public AuthUser selectUser(final String username) {
-		return users.selectUser(getHashedUsername(username));
+		return txService.selectUserByHashedIdentifier(getHashedUsername(username));
 	}
 
 	@Override
@@ -223,137 +211,73 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		throw new RuntimeException("Forgot Username not implemented");
 	}
 
-	@Transactional
+	@Override
 	public boolean insertTotpSecret(final String username, final String totpSharedSecret) {
-		final User user = users.selectUser(getHashedUsername(username));
-		if (user != null) {
-			users.deleteUnusedBackupCodes(user);
-			final int count = users.updateUserTotpSecret(user, totpSharedSecret);
-			if (count == 1) {
-				return true;
-			}
+		try {
+			txService.insertTotpSecret(getHashedUsername(username), totpSharedSecret);
+			return true;
 		}
-
-		markCurrentTransactionForRollback();
-		return false;
+		catch (DatabaseException e) {
+			return false;
+		}
 	}
 
 	@Override
-	@Transactional
 	public void insertTotpBackupCodes(final String username) {
-		final User user = users.selectUser(getHashedUsername(username));
-		if (user != null) {
-			users.deleteUnusedBackupCodes(user);
-			for (int i = 0; i < 10; i++) {
-				final String backupCode = UUID.randomUUID().toString();
-				users.insertTotpBackupCode(user, backupCode);
-			}
-			return;
+		try {
+			txService.insertTotpBackupCodes(getHashedUsername(username));
 		}
-
-		markCurrentTransactionForRollback();
+		catch (DatabaseException e) {
+			// Do nothing; this path intentionally does not return detailed error info.
+		}
 	}
 
 	@Override
-	@Transactional
 	public void updateTotpBackupCodeMarkUsed(final String username, final String backupCode) {
-		final User user = users.selectUser(getHashedUsername(username));
-		if (user != null) {
-			final int count = users.updateUserTotpBackupCodeUsed(user, backupCode);
-			if (count == 1) {
-				return;
-			}
+		try {
+			txService.updateTotpBackupCodeMarkUsed(getHashedUsername(username), backupCode);
 		}
-
-		markCurrentTransactionForRollback();
+		catch (DatabaseException e) {
+			// Do nothing; this path intentionally does not return detailed error info.
+		}
 	}
 
 	@Override
-	@Transactional
 	public void disableTotp(final String username) {
-		final User user = users.selectUser(getHashedUsername(username));
-		if (user != null && StringUtils.isBlank(user.getTwoFactorSecret())) {
-			user.setTwoFactorRequired(false);
-			final int count = users.updateUser(user);
-			if (count == 1) {
-				users.updateUserTotpSecret(user, null);
-				users.deleteUnusedBackupCodes(user);
-				return;
-			}
+		try {
+			txService.disableTotp(getHashedUsername(username));
 		}
-
-		markCurrentTransactionForRollback();
+		catch (DatabaseException e) {
+			// Do nothing; this path intentionally does not return detailed error info.
+		}
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
 	public String updateActivationKey(final String username, final String activationKey) throws Exception {
 		try {
-			final String hashedIdentifier = getHashedUsername(username);
-			final User user = users.selectUser(hashedIdentifier);
-			if (user == null) throw new DatabaseException("Could not find user with hashed identifier" + hashedIdentifier);
-			if (user.isEncrypted()) throw new DatabaseException("Users with encrypted data cannot reset passwords.");
-
-			cleanupUsers(user);
-
-			final Integer count = users.insertActivationKey(user, activationKey);
-			if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
-
+			txService.updateActivationKey(getHashedUsername(username), activationKey);
 			return username;
 		}
 		catch (DatabaseException e) {
 			Logger.getLogger(this.getClass().getName()).log(Level.INFO, e.getMessage());
-			markCurrentTransactionForRollback();
 		}
 		return null;
 	}
 
 	@Override
-	@Transactional
 	public boolean updatePasswordByActivationKey(final String activationKey, final String hashedPassword) {
-		final User user = users.selectUserByActivationKey(activationKey);
-		if (user == null) {
-			throw new DatabaseException("Activation key is not valid");
+		try {
+			txService.updatePasswordByActivationKey(activationKey, hashedPassword);
+			return true;
 		}
-		final Integer count = users.updateUserSecret(user, hashedPassword);
-		if (count != 1) {
-			throw new DatabaseException(String.format("Update failed; expected 1 row, returned %s", count));
+		catch (DatabaseException e) {
+			return false;
 		}
-
-		cleanupUsers(user);
-		return true;
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
 	public void insertUser(final String email, final String activationKey, final Map<String, String> formParams) throws Exception {
-		if (!"on".equals(formParams.getOrDefault("agree", "off"))) {
-			throw new IllegalArgumentException(LocaleUtil.getTranslation().getString("CREATE_USER_AGREEMENT_REQUIRED"));
-		}
-
-		final User newUser = new User();
-		newUser.setIdentifier(getHashedUsername(email));
-		newUser.setUuid(UUID.randomUUID().toString());
-		newUser.setCurrency(Currency.getInstance(formParams.getOrDefault("currency", "USD")));
-		newUser.setLocale(LocaleUtil.parseLocale(formParams.getOrDefault("locale", "en_US"), Locale.US));
-
-		final User existingUser = users.selectUser(newUser.getIdentifier());
-		if (existingUser != null) {
-			if (existingUser.getSecret() != null && existingUser.getSecret().length > 0) {
-				throw new DatabaseException("The user name already exists");
-			}
-			users.deleteActivationKey(existingUser);
-			final int insertActivationCount = users.insertActivationKey(existingUser, activationKey);
-			if (insertActivationCount != 1) throw new DatabaseException(String.format("Activation key insert failed; expected 1 row, returned %s", insertActivationCount));
-			return;
-		}
-
-		cleanupUsers(null);
-
-		final int insertUserCount = users.insertUser(newUser);
-		if (insertUserCount != 1) throw new DatabaseException(String.format("User insert failed; expected 1 row, returned %s", insertUserCount));
-		final int insertActivationCount = users.insertActivationKey(newUser, activationKey);
-		if (insertActivationCount != 1) throw new DatabaseException(String.format("Activation key insert failed; expected 1 row, returned %s", insertActivationCount));
+		txService.insertUser(getHashedUsername(email), activationKey, formParams);
 	}
 
 	@Override
@@ -432,37 +356,10 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		return htmlEmail;
 	}
 
-	private void cleanupUsers(final User user) {
-		if (user == null) {
-			users.deleteActivationKey();
-		}
-		else {
-			users.deleteActivationKey(user);
-		}
-		users.deleteInactiveUsers();
-	}
-
 	@Override
-	@Transactional
 	public Key getKey() {
 		try {
-			SecretKey key;
-			try {
-				String keyEncoded = buddiSystem.selectCookieEncryptionKey();
-				if (keyEncoded == null) {
-					key = new Crypto().setAlgorithm(Algorithm.AES_256).generateSecretKey();
-					keyEncoded = Crypto.encodeSecretKey(key);
-					buddiSystem.deleteCookieEncryptionKey();
-					buddiSystem.insertCookieEncryptionKey(keyEncoded);
-				}
-				key = Crypto.recoverSecretKey(keyEncoded);
-			}
-			catch (CryptoException e) {
-				key = new Crypto().setAlgorithm(Algorithm.AES_256).generateSecretKey();
-				String keyEncoded = Crypto.encodeSecretKey(key);
-				buddiSystem.updateCookieEncryptionKey(keyEncoded);
-			}
-			return key;
+			return txService.getOrCreateCookieEncryptionKey();
 		}
 		catch (CryptoException e) {
 			throw new RuntimeException(e);
@@ -476,11 +373,5 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 	private String getHashedUsername(final String username) {
 		return new DefaultHash().setSaltLength(0).setIterations(1).generate(username);
-	}
-
-	private void markCurrentTransactionForRollback() {
-		if (TransactionSynchronizationManager.isActualTransactionActive()) {
-			TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-		}
 	}
 }
