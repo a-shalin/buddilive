@@ -2,6 +2,7 @@ package ca.digitalcave.buddi.live.db;
 
 import java.util.List;
 
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import ca.digitalcave.buddi.live.model.ScheduledTransaction;
@@ -9,7 +10,7 @@ import ca.digitalcave.buddi.live.model.Split;
 import ca.digitalcave.buddi.live.model.User;
 
 
-@org.apache.ibatis.annotations.Mapper
+@Mapper
 public interface ScheduledTransactions {
 
 	/**
@@ -21,20 +22,20 @@ public interface ScheduledTransactions {
 	 * 
 	 * This is used at when determining which scheduled transactions we need to check and (possibly) add.
 	 */
-	public List<ScheduledTransaction> selectOustandingScheduledTransactions(@Param("user") User user);
+	List<ScheduledTransaction> selectOustandingScheduledTransactions(@Param("user") User user);
 	
-	public List<ScheduledTransaction> selectScheduledTransactions(@Param("user") User user);
+	List<ScheduledTransaction> selectScheduledTransactions(@Param("user") User user);
 	
-	public int selectScheduledTransactionCount(@Param("user") User user, @Param("uuid") String uuid);
+	int selectScheduledTransactionCount(@Param("user") User user, @Param("uuid") String uuid);
 	
-	public Integer insertScheduledTransaction(@Param("user") User user, @Param("transaction") ScheduledTransaction transaction);
-	public Integer insertScheduledSplit(@Param("user") User user, @Param("split") Split split);
+	Integer insertScheduledTransaction(@Param("user") User user, @Param("transaction") ScheduledTransaction transaction);
+	Integer insertScheduledSplit(@Param("user") User user, @Param("split") Split split);
 	
-	public Integer updateScheduledTransaction(@Param("user") User user, @Param("transaction") ScheduledTransaction transaction);
-	public Integer updateScheduledSplit(@Param("user") User user, @Param("split") Split split);
+	Integer updateScheduledTransaction(@Param("user") User user, @Param("transaction") ScheduledTransaction transaction);
+	Integer updateScheduledSplit(@Param("user") User user, @Param("split") Split split);
 	
-	public Integer deleteAllScheduledTransactions(@Param("user") User user);
-	public Integer deleteScheduledTransaction(@Param("user") User user, @Param("transaction") ScheduledTransaction transaction);
-	public Integer deleteScheduledSplits(@Param("user") User user, @Param("transaction") ScheduledTransaction transaction);
-	public Integer deleteScheduledSplit(@Param("user") User user, @Param("split") Split split);
+	Integer deleteAllScheduledTransactions(@Param("user") User user);
+	Integer deleteScheduledTransaction(@Param("user") User user, @Param("transaction") ScheduledTransaction transaction);
+	Integer deleteScheduledSplits(@Param("user") User user, @Param("transaction") ScheduledTransaction transaction);
+	Integer deleteScheduledSplit(@Param("user") User user, @Param("split") Split split);
 }
