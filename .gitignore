@@ -6,6 +6,7 @@
 /conf/server/config.properties
 /conf/test/config.properties
 /src/main/webapp/WEB-INF/classes/
+/src/main/resources/static/mobile/buddilive-android.apk
 /.env
 /ansible/inventory/production.ini
 /buddilive-data/

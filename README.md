@@ -23,6 +23,7 @@ Build profiles control the database and mail configuration:
 | `server` (default) | PostgreSQL (env vars) | Docker / production |
 | `standalone` | Embedded Derby | Local use (no email needed) |
 | `e2etest` | Embedded Derby | Automated tests |
+| `androide2e` (runtime profile) | Embedded Derby (`target/androide2e-derby`) | Android instrumentation E2E |
 
 Select a profile with `-P<profile>`, e.g. `mvn package -Pstandalone -DskipTests`.
 
@@ -44,6 +45,22 @@ This builds and starts the server on `http://localhost:8080`. Registration is di
 mvn package -Pstandalone -DskipTests
 java -jar target/buddilive.jar --spring.profiles.active=standalone
 ```
+
+### Android E2E backend (fresh DB every start)
+
+```bash
+./run-android-e2e-backend.sh
+```
+
+This runs with Spring profile `androide2e` and always starts from a clean Derby DB.
+
+Run backend + Android instrumentation E2E in one command:
+
+```bash
+./run-android-e2e-tests.sh
+```
+
+This script starts backend, waits for `http://localhost:8080`, runs Android E2E, and stops backend automatically.
 
 ### Server (PostgreSQL)
 
