@@ -30,10 +30,37 @@ public class LoginSmokeIT extends BrowserBaseIT {
 	}
 
 	@Test
+	void testLegacyIndexHtmlRedirectsToRootAndStaysCanonicalAfterLogin() throws Exception {
+		final String canonicalEmail = "login-smoke-canonical@example.com";
+		helper.registerUser(canonicalEmail, PASSWORD, "en_US", "USD");
+
+		driver.get(getBaseUrl() + "/index.html");
+		waitForExtJs();
+		waitForComponent("login");
+		assertThat(driver.getCurrentUrl()).isEqualTo(getBaseUrl() + "/");
+
+		setExtFieldValue("login textfield[name=identifier]", canonicalEmail);
+		setExtFieldValue("login textfield[name=password]", PASSWORD);
+		clickExtButton("login button[itemId=authenticate]");
+
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"return typeof BuddiLive !== 'undefined' && BuddiLive.app != null && BuddiLive.app.viewport != null;");
+			}
+			catch (Exception e) {
+				return false;
+			}
+		});
+
+		assertThat(driver.getCurrentUrl()).isEqualTo(getBaseUrl() + "/");
+	}
+
+	@Test
 	void testLoginWithBadPasswordStaysOnLoginPage() throws Exception {
 		helper.registerUser("login-smoke-bad@example.com", PASSWORD, "en_US", "USD");
 
-		driver.get(getBaseUrl() + "/index.html");
+		driver.get(getBaseUrl() + "/");
 		waitForExtJs();
 		waitForComponent("login");
 
@@ -57,7 +84,7 @@ public class LoginSmokeIT extends BrowserBaseIT {
 
 	@Test
 	void testRegisterComboboxesAreSearchable() {
-		driver.get(getBaseUrl() + "/index.html");
+		driver.get(getBaseUrl() + "/");
 		waitForExtJs();
 		waitForComponent("login");
 

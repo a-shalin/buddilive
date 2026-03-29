@@ -1,5 +1,6 @@
 package ca.digitalcave.buddi.live.e2e.api;
 
+import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,7 +30,7 @@ public class StaticResourceCachingIT extends BaseIT {
 	void testIndexExposesVersionedAssetUrlsAndNoCacheHtml() throws Exception {
 		final OkHttpClient client = helper.newClient();
 		final Request request = new Request.Builder()
-			.url(getBaseUrl() + "/index")
+			.url(getBaseUrl() + "/")
 			.get()
 			.build();
 
@@ -62,15 +63,38 @@ public class StaticResourceCachingIT extends BaseIT {
 		assertStaticAssetCacheHeaders(client, "/css/buddilive.css?v=" + assetVersion);
 	}
 
+	@Test
+	void testLegacyEntryUrlsRedirectToRoot() throws Exception {
+		final OkHttpClient client = helper.newClient().newBuilder().followRedirects(false).build();
+
+		assertRedirectToRoot(client, "/index");
+		assertRedirectToRoot(client, "/index.html");
+		assertRedirectToRoot(client, "/buddilive");
+	}
+
 	private String fetchIndexAssetVersion(final OkHttpClient client) throws Exception {
 		final Request request = new Request.Builder()
-			.url(getBaseUrl() + "/index")
+			.url(getBaseUrl() + "/")
 			.get()
 			.build();
 
 		try (Response response = client.newCall(request).execute()) {
 			assertThat(response.code()).isEqualTo(200);
 			return extractAssetVersion(response.body().string());
+		}
+	}
+
+	private void assertRedirectToRoot(final OkHttpClient client, final String path) throws Exception {
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + path)
+			.get()
+			.build();
+
+		try (Response response = client.newCall(request).execute()) {
+			assertThat(response.code()).isEqualTo(302);
+			final String location = response.header("Location", "");
+			assertThat(location).isNotBlank();
+			assertThat(URI.create(location).getPath()).isEqualTo("/");
 		}
 	}
 

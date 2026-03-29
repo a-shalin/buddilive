@@ -163,7 +163,7 @@ public abstract class BrowserBaseIT extends BaseIT {
 	}
 
 	protected void browserLogin(String email, String password) {
-		driver.get(getBaseUrl() + "/index.html");
+		driver.get(getBaseUrl() + "/");
 		waitForExtJs();
 		waitForComponent("login");
 

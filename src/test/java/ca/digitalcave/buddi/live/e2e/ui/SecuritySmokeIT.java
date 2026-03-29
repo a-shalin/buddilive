@@ -82,7 +82,7 @@ public class SecuritySmokeIT extends BrowserBaseIT {
 	}
 
 	private void loginToMainApp(final String email, final String password) {
-		driver.get(getBaseUrl() + "/index.html");
+		driver.get(getBaseUrl() + "/");
 		waitForLoginPage();
 		submitLogin(email, password);
 		waitForMainApp();

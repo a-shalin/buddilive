@@ -2,7 +2,9 @@ Ext.define("BuddiLive.store.transaction.ListStore", {
 	extend: "Ext.data.BufferedStore",
 	requires: [],
 	fields: ["date", "description", "number", "deleted", "splits"],
-	pageSize: 250,
+	pageSize: 100,
+	leadingBufferZone: 0,
+	trailingBufferZone: 0,
 	buffered: true,
 	proxy: {
 		type: "ajax",

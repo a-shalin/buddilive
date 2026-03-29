@@ -22,9 +22,9 @@ public class WebConfig implements WebMvcConfigurer {
 
 	@Override
 	public void addViewControllers(final ViewControllerRegistry registry) {
-		registry.addRedirectViewController("/", "/index");
-		registry.addRedirectViewController("/index.html", "/index");
-		registry.addRedirectViewController("/buddilive", "/index");
+		registry.addRedirectViewController("/index", "/");
+		registry.addRedirectViewController("/index.html", "/");
+		registry.addRedirectViewController("/buddilive", "/");
 		registry.addRedirectViewController("/favicon.ico", "/img/logo-icon-small.png");
 	}
 

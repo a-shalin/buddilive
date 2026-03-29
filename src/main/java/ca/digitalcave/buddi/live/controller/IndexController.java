@@ -46,7 +46,7 @@ public class IndexController {
 	@Autowired
 	private AssetVersionTokenProvider assetVersionTokenProvider;
 
-	@GetMapping("/index")
+	@GetMapping("/")
 	public String index(@AuthenticationPrincipal final User user, final Model model, final HttpServletResponse response) {
 		response.setHeader(CACHE_CONTROL_HEADER, CACHE_CONTROL_NO_STORE_VALUE);
 		response.setHeader(PRAGMA_HEADER, PRAGMA_NO_CACHE_VALUE);

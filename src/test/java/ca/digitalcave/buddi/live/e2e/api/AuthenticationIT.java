@@ -130,7 +130,7 @@ public class AuthenticationIT extends BaseIT {
 	void testAuthenticatedIndexContainsSessionTimingConfig() throws Exception {
 		final OkHttpClient client = helper.login(EMAIL, PASSWORD);
 		final Request request = new Request.Builder()
-			.url(getBaseUrl() + "/index")
+			.url(getBaseUrl() + "/")
 			.get()
 			.build();
 
