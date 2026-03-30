@@ -1,12 +1,18 @@
 package ca.digitalcave.buddilive.mobile
 
 import android.content.Context
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import okhttp3.Cookie
@@ -44,6 +50,7 @@ class StandaloneBackendE2eTest {
 	private lateinit var reserveAccountName: String
 	private lateinit var transactionOneDescription: String
 	private lateinit var transactionTwoDescription: String
+	private var primaryAccountId: Int = 0
 
 	@Before
 	fun setUp() {
@@ -60,9 +67,10 @@ class StandaloneBackendE2eTest {
 
 		backend.registerUser(email, password)
 		val apiClient = backend.login(email, password)
-		val primaryAccountId = backend.createAccount(apiClient, primaryAccountName, "1500.00")
+		primaryAccountId = backend.createAccount(apiClient, primaryAccountName, "1500.00")
 		val secondaryAccountId = backend.createAccount(apiClient, secondaryAccountName, "500.00")
 		val reserveAccountId = backend.createAccount(apiClient, reserveAccountName, "700.00")
+		backend.updateUserDateFormat(apiClient, PREFERRED_DATE_FORMAT)
 
 		backend.createTransaction(
 			client = apiClient,
@@ -84,6 +92,60 @@ class StandaloneBackendE2eTest {
 
 	@Test
 	fun loginShowsAccountsAndTransactionsFromStandaloneBackend() {
+		loginAndOpenPrimaryAccountTransactions()
+		assertEventuallyVisible(transactionOneDescription)
+		assertEventuallyVisible(transactionTwoDescription)
+	}
+
+	@Test
+	fun transactionEditorAppliesPreferredDateFormatAndStillAllowsUpdate() {
+		loginAndOpenPrimaryAccountTransactions()
+		openFirstTransactionEditor()
+
+		assertEventuallyVisible("Date ($PREFERRED_DATE_FORMAT)")
+
+		val updatedDescription = "$transactionOneDescription Updated"
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_DESCRIPTION_TAG, useUnmergedTree = true)
+			.performTextReplacement(updatedDescription)
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_SAVE_TAG, useUnmergedTree = true)
+			.assertIsEnabled()
+			.performClick()
+
+		assertEventuallyVisible(updatedDescription)
+		val apiClient = backend.login(email, password)
+		assertTrue(
+			"Updated transaction was not found in backend response.",
+			backend.hasTransactionDescription(apiClient, primaryAccountId.toLong(), updatedDescription)
+		)
+	}
+
+	@Test
+	fun transactionEditorInvalidDateDisablesSaveAndShowsFormatHint() {
+		loginAndOpenPrimaryAccountTransactions()
+		openFirstTransactionEditor()
+
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_SAVE_TAG, useUnmergedTree = true)
+			.assertIsEnabled()
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_DATE_TAG, useUnmergedTree = true)
+			.performTextReplacement("2026-03-20")
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_SAVE_TAG, useUnmergedTree = true)
+			.assertIsNotEnabled()
+		assertEventuallyVisibleSubstring("Use $PREFERRED_DATE_FORMAT")
+	}
+
+	private fun waitForLoginFields() {
+		composeTestRule.waitUntil(timeoutMillis = 20_000) {
+			composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
+				.fetchSemanticsNodes().size >= 2
+		}
+	}
+
+	private fun loginAndOpenPrimaryAccountTransactions() {
 		waitForLoginFields()
 
 		val fields = composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
@@ -96,16 +158,22 @@ class StandaloneBackendE2eTest {
 		assertEventuallyVisible(reserveAccountName)
 
 		composeTestRule.onNodeWithText(primaryAccountName).performClick()
-
 		assertEventuallyVisible("Transactions: $primaryAccountName")
-		assertEventuallyVisible(transactionOneDescription)
-		assertEventuallyVisible(transactionTwoDescription)
 	}
 
-	private fun waitForLoginFields() {
+	private fun openFirstTransactionEditor() {
 		composeTestRule.waitUntil(timeoutMillis = 20_000) {
-			composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
-				.fetchSemanticsNodes().size >= 2
+			composeTestRule
+				.onAllNodes(hasContentDescription("Edit"), useUnmergedTree = true)
+				.fetchSemanticsNodes().isNotEmpty()
+		}
+		composeTestRule
+			.onAllNodes(hasContentDescription("Edit"), useUnmergedTree = true)[0]
+			.performClick()
+		composeTestRule.waitUntil(timeoutMillis = 20_000) {
+			composeTestRule
+				.onAllNodesWithTag(TRANSACTION_EDITOR_DATE_TAG, useUnmergedTree = true)
+				.fetchSemanticsNodes().isNotEmpty()
 		}
 	}
 
@@ -119,12 +187,29 @@ class StandaloneBackendE2eTest {
 		)
 	}
 
+	private fun assertEventuallyVisibleSubstring(text: String) {
+		composeTestRule.waitUntil(timeoutMillis = 20_000) {
+			composeTestRule.onAllNodes(hasText(text, substring = true), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+		}
+		assertTrue(
+			"Expected text not visible: $text",
+			composeTestRule.onAllNodes(hasText(text, substring = true), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+		)
+	}
+
 	private fun clearMobileCookies() {
 		val context = ApplicationProvider.getApplicationContext<Context>()
 		context.getSharedPreferences("buddilive_mobile_cookies", Context.MODE_PRIVATE)
 			.edit()
 			.clear()
 			.commit()
+	}
+
+	companion object {
+		private const val PREFERRED_DATE_FORMAT = "dd/MM/yyyy"
+		private const val TRANSACTION_EDITOR_DATE_TAG = "transactionEditorDate"
+		private const val TRANSACTION_EDITOR_DESCRIPTION_TAG = "transactionEditorDescription"
+		private const val TRANSACTION_EDITOR_SAVE_TAG = "transactionEditorSave"
 	}
 }
 
@@ -207,6 +292,27 @@ private class BackendClient(private val baseUrl: String) {
 			.put("splits", JSONArray().put(split))
 
 		postJson(client, "/data/transactions", payload)
+	}
+
+	fun updateUserDateFormat(client: OkHttpClient, dateFormat: String) {
+		val payload = JSONObject()
+			.put("action", "update")
+			.put("locale", "en_US")
+			.put("currency", "USD")
+			.put("dateFormat", dateFormat)
+		postJson(client, "/data/userpreferences", payload)
+	}
+
+	fun hasTransactionDescription(client: OkHttpClient, sourceId: Long, description: String): Boolean {
+		val response = getJson(client, "/data/transactions?source=$sourceId&start=0&limit=200")
+		val data = response.optJSONArray("data") ?: return false
+		for (index in 0 until data.length()) {
+			val transaction = data.optJSONObject(index) ?: continue
+			if (transaction.optString("description") == description) {
+				return true
+			}
+		}
+		return false
 	}
 
 	private fun findAccountIdByName(client: OkHttpClient, name: String): Int {

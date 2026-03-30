@@ -3,6 +3,9 @@ package ca.digitalcave.buddilive.mobile.data
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import java.math.BigDecimal
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 data class AuthenticationFlowResponseDto(
 	val success: Boolean,
@@ -54,6 +57,12 @@ data class SplitDto(
 
 data class SuccessResponseDto(
 	val success: Boolean
+)
+
+data class UserPreferencesResponseDto(
+	val success: Boolean,
+	val locale: String?,
+	val dateFormat: String?
 )
 
 data class TransactionMutationRequestDto(
@@ -116,6 +125,11 @@ data class TransactionEditInput(
 	val fromId: Int,
 	val toId: Int,
 	val memo: String
+)
+
+data class UserDatePreferences(
+	val dateFormat: String,
+	val localeTag: String
 )
 
 fun AccountsResponseDto.toAccountSummaries(): List<AccountSummary> {
@@ -188,3 +202,39 @@ fun TransactionsResponseDto.toTransactionsPage(): TransactionsPage {
 	)
 }
 
+fun UserPreferencesResponseDto.toUserDatePreferences(): UserDatePreferences {
+	val locale = toLocale(locale)
+	val requestedDateFormat = dateFormat?.trim().orEmpty()
+	val resolvedDateFormat = when {
+		requestedDateFormat.isEmpty() -> resolveDateFormatFromLocale(locale)
+		isValidDateFormat(requestedDateFormat) -> requestedDateFormat
+		else -> resolveDateFormatFromLocale(locale)
+	}
+	return UserDatePreferences(
+		dateFormat = resolvedDateFormat,
+		localeTag = locale.toLanguageTag()
+	)
+}
+
+private fun toLocale(localeTag: String?): Locale {
+	if (localeTag.isNullOrBlank()) {
+		return Locale.getDefault()
+	}
+	val parsed = Locale.forLanguageTag(localeTag.replace('_', '-'))
+	if (parsed == Locale.ROOT) {
+		return Locale.getDefault()
+	}
+	return parsed
+}
+
+private fun resolveDateFormatFromLocale(locale: Locale): String {
+	val format = DateFormat.getDateInstance(DateFormat.SHORT, locale)
+	if (format is SimpleDateFormat) {
+		return format.toLocalizedPattern()
+	}
+	return "yyyy-MM-dd"
+}
+
+private fun isValidDateFormat(format: String): Boolean {
+	return runCatching { SimpleDateFormat(format) }.isSuccess
+}

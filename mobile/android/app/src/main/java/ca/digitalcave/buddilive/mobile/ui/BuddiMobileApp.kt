@@ -1,5 +1,6 @@
 package ca.digitalcave.buddilive.mobile.ui
 
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
@@ -45,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -60,8 +62,46 @@ import ca.digitalcave.buddilive.mobile.data.TransactionSummary
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+private val isoDateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+
+private fun createInputDateFormatter(pattern: String, localeTag: String): DateTimeFormatter {
+	val locale = parseLocaleTag(localeTag)
+	val normalizedPattern = pattern.trim().ifEmpty { "yyyy-MM-dd" }
+	return runCatching {
+		DateTimeFormatter.ofPattern(normalizedPattern, locale)
+	}.getOrElse {
+		DateTimeFormatter.ofPattern("yyyy-MM-dd", locale)
+	}
+}
+
+private fun parseLocaleTag(localeTag: String): Locale {
+	val parsedLocale = Locale.forLanguageTag(localeTag)
+	if (parsedLocale == Locale.ROOT) {
+		return Locale.getDefault()
+	}
+	return parsedLocale
+}
+
+private fun parseInputDate(value: String, formatter: DateTimeFormatter): LocalDate? {
+	val normalized = value.trim()
+	if (normalized.isEmpty()) {
+		return null
+	}
+	val parsed = runCatching { LocalDate.parse(normalized, formatter) }.getOrNull() ?: return null
+	if (parsed.format(formatter) != normalized) {
+		return null
+	}
+	return parsed
+}
+
+private fun formatIsoDateForInput(dateIso: String?, inputFormatter: DateTimeFormatter): String {
+	val parsedDate = dateIso
+		?.let { runCatching { LocalDate.parse(it, isoDateFormatter) }.getOrNull() }
+		?: LocalDate.now()
+	return parsedDate.format(inputFormatter)
+}
 
 @Composable
 fun BuddiMobileApp(repository: BuddiRepository) {
@@ -369,6 +409,8 @@ private fun TransactionsScreen(
 			existing = editingTransaction,
 			fromSources = state.fromSources,
 			toSources = state.toSources,
+			dateFormat = state.dateFormat,
+			localeTag = state.localeTag,
 			onDismiss = { showEditor = false },
 			onSave = { input ->
 				val existingId = editingTransaction?.id
@@ -406,14 +448,19 @@ private fun TransactionEditorDialog(
 	existing: TransactionSummary?,
 	fromSources: List<SourceOption>,
 	toSources: List<SourceOption>,
+	dateFormat: String,
+	localeTag: String,
 	onDismiss: () -> Unit,
 	onSave: (TransactionEditInput) -> Unit
 ) {
-	val defaultDate = remember { LocalDate.now().format(dateFormatter) }
-	var state by remember(existing, fromSources, toSources) {
+	val context = LocalContext.current
+	val inputDateFormatter = remember(dateFormat, localeTag) { createInputDateFormatter(dateFormat, localeTag) }
+	val defaultDate = remember(inputDateFormatter) { LocalDate.now().format(inputDateFormatter) }
+	val dateFormatExample = remember(inputDateFormatter) { LocalDate.now().format(inputDateFormatter) }
+	var state by remember(existing, fromSources, toSources, dateFormat, localeTag) {
 		mutableStateOf(
 			TransactionFormState(
-				dateIso = existing?.dateIso ?: defaultDate,
+				dateIso = existing?.dateIso?.let { formatIsoDateForInput(it, inputDateFormatter) } ?: defaultDate,
 				description = existing?.description.orEmpty(),
 				number = existing?.number.orEmpty(),
 				amount = existing?.split?.amountNumber?.stripTrailingZeros()?.toPlainString().orEmpty(),
@@ -424,7 +471,10 @@ private fun TransactionEditorDialog(
 		)
 	}
 
-	val isValid = state.dateIso.isNotBlank()
+	val selectedDate = parseInputDate(state.dateIso, inputDateFormatter)
+	val isDateValid = selectedDate != null
+	val isDateInvalid = state.dateIso.isNotBlank() && !isDateValid
+	val isValid = isDateValid
 		&& state.description.isNotBlank()
 		&& state.amount.isNotBlank()
 		&& state.fromId != null
@@ -438,12 +488,44 @@ private fun TransactionEditorDialog(
 		text = {
 			Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 				OutlinedTextField(
+					modifier = Modifier
+						.fillMaxWidth()
+						.testTag("transactionEditorDate"),
 					value = state.dateIso,
 					onValueChange = { state = state.copy(dateIso = it) },
-					label = { Text("Date (yyyy-MM-dd)") },
-					singleLine = true
+					label = { Text("Date ($dateFormat)") },
+					singleLine = true,
+					isError = isDateInvalid,
+					supportingText = {
+						if (isDateInvalid) {
+							Text("Use $dateFormat (for example $dateFormatExample).")
+						}
+					},
+					trailingIcon = {
+						TextButton(
+							onClick = {
+								val pickerDate = selectedDate ?: LocalDate.now()
+								DatePickerDialog(
+									context,
+									{ _, year, month, dayOfMonth ->
+										state = state.copy(
+											dateIso = LocalDate.of(year, month + 1, dayOfMonth).format(inputDateFormatter)
+										)
+									},
+									pickerDate.year,
+									pickerDate.monthValue - 1,
+									pickerDate.dayOfMonth
+								).show()
+							}
+						) {
+							Text("Pick")
+						}
+					}
 				)
 				OutlinedTextField(
+					modifier = Modifier
+						.fillMaxWidth()
+						.testTag("transactionEditorDescription"),
 					value = state.description,
 					onValueChange = { state = state.copy(description = it) },
 					label = { Text("Description") },
@@ -483,9 +565,10 @@ private fun TransactionEditorDialog(
 		},
 		confirmButton = {
 			TextButton(
+				modifier = Modifier.testTag("transactionEditorSave"),
 				onClick = {
 					val input = TransactionEditInput(
-						dateIso = state.dateIso,
+						dateIso = selectedDate?.format(isoDateFormatter) ?: return@TextButton,
 						description = state.description.trim(),
 						number = state.number.trim(),
 						amount = state.amount.trim(),

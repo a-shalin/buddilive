@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class TransactionsUiState(
 	val isLoading: Boolean = false,
@@ -22,6 +23,8 @@ data class TransactionsUiState(
 	val error: String? = null,
 	val fromSources: List<SourceOption> = emptyList(),
 	val toSources: List<SourceOption> = emptyList(),
+	val dateFormat: String = "yyyy-MM-dd",
+	val localeTag: String = Locale.getDefault().toLanguageTag(),
 	val needsLogin: Boolean = false,
 	val isMutating: Boolean = false
 )
@@ -37,6 +40,7 @@ class TransactionsViewModel(
 	fun loadInitial() {
 		loadTransactions(start = 0, append = false)
 		loadSources()
+		loadDatePreferences()
 	}
 
 	fun refresh() {
@@ -136,6 +140,31 @@ class TransactionsViewModel(
 		}
 	}
 
+	private fun loadDatePreferences() {
+		viewModelScope.launch {
+			val result = repository.fetchUserDatePreferences()
+			result.fold(
+				onSuccess = { preferences ->
+					_state.update {
+						it.copy(
+							dateFormat = preferences.dateFormat,
+							localeTag = preferences.localeTag
+						)
+					}
+				},
+				onFailure = { error ->
+					val needsLogin = error is UnauthorizedException
+					_state.update {
+						it.copy(
+							error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Unable to load preferences.",
+							needsLogin = needsLogin
+						)
+					}
+				}
+			)
+		}
+	}
+
 	private fun loadTransactions(start: Int, append: Boolean) {
 		viewModelScope.launch {
 			_state.update { it.copy(isLoading = true, error = null, needsLogin = false) }
@@ -178,4 +207,3 @@ class TransactionsViewModelFactory(
 		throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
 	}
 }
-

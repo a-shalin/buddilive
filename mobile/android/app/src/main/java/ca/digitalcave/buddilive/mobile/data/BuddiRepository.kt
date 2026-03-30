@@ -46,6 +46,16 @@ class BuddiRepository(private val api: BuddiApi) {
 		}
 	}
 
+	suspend fun fetchUserDatePreferences(): Result<UserDatePreferences> {
+		return runApi {
+			val response = api.getUserPreferences()
+			if (!response.success) {
+				return@runApi Result.failure(IllegalStateException("User preferences request failed."))
+			}
+			Result.success(response.toUserDatePreferences())
+		}
+	}
+
 	suspend fun createTransaction(input: TransactionEditInput): Result<Unit> {
 		return mutateTransaction(
 			TransactionMutationRequestDto(

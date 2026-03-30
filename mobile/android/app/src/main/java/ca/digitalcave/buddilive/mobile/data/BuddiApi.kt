@@ -36,6 +36,9 @@ interface BuddiApi {
 	@POST("data/transactions")
 	suspend fun mutateTransaction(@Body request: TransactionMutationRequestDto): SuccessResponseDto
 
+	@GET("data/userpreferences")
+	suspend fun getUserPreferences(): UserPreferencesResponseDto
+
 	@GET("data/sources/{direction}")
 	suspend fun getSources(@Path("direction") direction: String): SourcesResponseDto
 }
@@ -55,4 +58,3 @@ object BuddiApiFactory {
 			.create(BuddiApi::class.java)
 	}
 }
-
