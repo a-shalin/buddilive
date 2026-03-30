@@ -123,10 +123,13 @@ data class AccountSummary(
 )
 
 data class SourceOption(
-	val id: Int,
+	val id: Int?,
 	val label: String,
 	val type: String?
-)
+) {
+	val selectable: Boolean
+		get() = id != null
+}
 
 data class TransactionDescriptionTemplateSplit(
 	val amountNumber: BigDecimal,
@@ -219,12 +222,9 @@ fun SourcesResponseDto.toSourceOptions(): List<SourceOption> {
 			return@mapNotNull null
 		}
 		val primitive = value.asJsonPrimitive
-		if (!primitive.isNumber) {
-			return@mapNotNull null
-		}
 		SourceOption(
-			id = primitive.asInt,
-			label = item.text.replace('\u00a0', ' ').trim(),
+			id = if (primitive.isNumber) primitive.asInt else null,
+			label = item.text.replace('\u00a0', ' '),
 			type = item.type
 		)
 	}

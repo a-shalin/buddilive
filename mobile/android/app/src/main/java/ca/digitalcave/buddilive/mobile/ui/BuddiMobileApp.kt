@@ -755,6 +755,37 @@ private fun applyDescriptionTemplate(
 	)
 }
 
+private fun firstSelectableSourceId(options: List<SourceOption>): Int? {
+	return options.firstNotNullOfOrNull { option -> option.id }
+}
+
+private fun firstSelectableSourceId(options: List<SourceOption>, excludeId: Int?): Int? {
+	return options.firstOrNull { option ->
+		option.id != null && option.id != excludeId
+	}?.id ?: firstSelectableSourceId(options)
+}
+
+private fun applySourceSelection(
+	currentState: TransactionFormState,
+	selectedId: Int,
+	selectedAccountId: Int,
+	isFromSelection: Boolean
+): TransactionFormState {
+	if (isFromSelection) {
+		if (selectedId != selectedAccountId) {
+			return currentState.copy(fromId = selectedId, toId = selectedAccountId)
+		}
+		val toId = if (currentState.toId == selectedAccountId) null else currentState.toId
+		return currentState.copy(fromId = selectedId, toId = toId)
+	}
+
+	if (selectedId != selectedAccountId) {
+		return currentState.copy(fromId = selectedAccountId, toId = selectedId)
+	}
+	val fromId = if (currentState.fromId == selectedAccountId) null else currentState.fromId
+	return currentState.copy(fromId = fromId, toId = selectedId)
+}
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun TransactionEditorScreen(
@@ -783,11 +814,10 @@ private fun TransactionEditorScreen(
 	val selectedAccountIdInt = remember(selectedAccountId) { selectedAccountId.toInt() }
 	var state by remember(existing, fromSources, toSources, selectedAccountIdInt, dateFormat, amountFormat) {
 		val initialFromId = existing?.split?.fromId
-			?: fromSources.firstOrNull { it.id == selectedAccountIdInt }?.id
-			?: fromSources.firstOrNull()?.id
+			?: fromSources.firstOrNull { it.id == selectedAccountIdInt && it.selectable }?.id
+			?: firstSelectableSourceId(fromSources)
 		val initialToId = existing?.split?.toId
-			?: toSources.firstOrNull { it.id != initialFromId }?.id
-			?: toSources.firstOrNull()?.id
+			?: firstSelectableSourceId(toSources, initialFromId)
 		mutableStateOf(
 			TransactionFormState(
 				dateIso = toTextFieldValue(existing?.dateIso?.let { formatIsoDateForInput(it, inputDateFormatter) } ?: defaultDate),
@@ -986,14 +1016,28 @@ private fun TransactionEditorScreen(
 				label = "From",
 				options = fromSources,
 				selectedId = state.fromId,
-				onSelect = { state = state.copy(fromId = it) }
+				onSelect = { selectedId ->
+					state = applySourceSelection(
+						currentState = state,
+						selectedId = selectedId,
+						selectedAccountId = selectedAccountIdInt,
+						isFromSelection = true
+					)
+				}
 			)
 			SourceSelector(
 				modifier = Modifier.testTag("transactionEditorTo"),
 				label = "To",
 				options = toSources,
 				selectedId = state.toId,
-				onSelect = { state = state.copy(toId = it) }
+				onSelect = { selectedId ->
+					state = applySourceSelection(
+						currentState = state,
+						selectedId = selectedId,
+						selectedAccountId = selectedAccountIdInt,
+						isFromSelection = false
+					)
+				}
 			)
 			DoubleTapSelectAllOutlinedTextField(
 				modifier = Modifier
@@ -1041,7 +1085,7 @@ private fun SourceSelector(
 	onSelect: (Int) -> Unit
 ) {
 	var expanded by remember { mutableStateOf(false) }
-	val selected = options.firstOrNull { it.id == selectedId }
+	val selected = options.firstOrNull { it.id == selectedId && it.selectable }
 
 	Box {
 		OutlinedTextField(
@@ -1049,7 +1093,7 @@ private fun SourceSelector(
 				.then(modifier)
 				.fillMaxWidth()
 				.clickable { expanded = true },
-			value = selected?.label.orEmpty(),
+			value = selected?.label?.trimStart().orEmpty(),
 			onValueChange = {},
 			readOnly = true,
 			label = { Text(label) }
@@ -1059,10 +1103,25 @@ private fun SourceSelector(
 			onDismissRequest = { expanded = false }
 		) {
 			for (option in options) {
+				val sourceId = option.id
 				DropdownMenuItem(
-					text = { Text(option.label) },
+					enabled = option.selectable,
+					text = {
+						Text(
+							text = option.label,
+							color = if (option.selectable) {
+								MaterialTheme.colorScheme.onSurface
+							}
+							else {
+								MaterialTheme.colorScheme.onSurfaceVariant
+							}
+						)
+					},
 					onClick = {
-						onSelect(option.id)
+						if (sourceId == null) {
+							return@DropdownMenuItem
+						}
+						onSelect(sourceId)
 						expanded = false
 					}
 				)
