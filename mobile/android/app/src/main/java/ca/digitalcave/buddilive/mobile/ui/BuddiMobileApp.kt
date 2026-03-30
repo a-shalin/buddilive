@@ -53,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -400,19 +401,28 @@ private fun AccountsScreen(
 				Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
 			}
 
-			LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-				items(state.accounts, key = { it.id }) { account ->
-					Column(
-						modifier = Modifier
-							.fillMaxWidth()
-							.clickable { onAccountSelected(account) }
-							.padding(12.dp)
-					) {
-						Text(text = account.name, style = MaterialTheme.typography.titleMedium)
-						Text(text = account.balance, style = MaterialTheme.typography.bodyLarge)
+				LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+					items(state.accounts, key = { it.id }) { account ->
+						Row(
+							modifier = Modifier
+								.fillMaxWidth()
+								.clickable { onAccountSelected(account) }
+								.padding(12.dp),
+							horizontalArrangement = Arrangement.SpaceBetween
+						) {
+							Text(
+								text = account.name,
+								style = MaterialTheme.typography.titleMedium,
+								modifier = Modifier.weight(1f)
+							)
+							Text(
+								text = account.balance,
+								style = MaterialTheme.typography.titleMedium,
+								textAlign = TextAlign.End
+							)
+						}
 					}
 				}
-			}
 		}
 	}
 }
