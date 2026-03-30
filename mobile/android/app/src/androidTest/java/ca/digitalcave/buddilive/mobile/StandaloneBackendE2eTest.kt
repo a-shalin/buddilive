@@ -225,6 +225,30 @@ class StandaloneBackendE2eTest {
 		)
 	}
 
+	@Test
+	fun transactionDeleteFromEditorRequiresConfirmationAndDeletes() {
+		loginAndOpenPrimaryAccountTransactions()
+		openFirstTransactionEditor()
+		val deletedTransactionNumber = currentEditorNumber()
+		assertTrue("Editor Number field is empty.", deletedTransactionNumber.isNotBlank())
+
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_DELETE_TAG, useUnmergedTree = true)
+			.performClick()
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_DELETE_CONFIRM_TAG, useUnmergedTree = true)
+			.performClick()
+
+		assertEventuallyVisible("Transactions: $primaryAccountName")
+		assertEventuallyTagNotVisible(TRANSACTION_EDITOR_DATE_TAG)
+
+		val apiClient = backend.login(email, password)
+		assertTrue(
+			"Deleted transaction Number '$deletedTransactionNumber' still exists in backend response.",
+			backend.getTransactionAmountByNumber(apiClient, primaryAccountId.toLong(), deletedTransactionNumber).isBlank()
+		)
+	}
+
 	private fun waitForLoginFields() {
 		composeTestRule.waitUntil(timeoutMillis = 20_000) {
 			composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
@@ -315,6 +339,16 @@ class StandaloneBackendE2eTest {
 		)
 	}
 
+	private fun assertEventuallyTagNotVisible(tag: String) {
+		composeTestRule.waitUntil(timeoutMillis = 20_000) {
+			composeTestRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
+		}
+		assertTrue(
+			"Expected tag to be absent: $tag",
+			composeTestRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
+		)
+	}
+
 	private fun clearMobileCookies() {
 		val context = ApplicationProvider.getApplicationContext<Context>()
 		context.getSharedPreferences("buddilive_mobile_cookies", Context.MODE_PRIVATE)
@@ -334,6 +368,8 @@ class StandaloneBackendE2eTest {
 		private const val TRANSACTION_EDITOR_DESCRIPTION_TAG = "transactionEditorDescription"
 		private const val TRANSACTION_EDITOR_NUMBER_TAG = "transactionEditorNumber"
 		private const val TRANSACTION_EDITOR_AMOUNT_TAG = "transactionEditorAmount"
+		private const val TRANSACTION_EDITOR_DELETE_TAG = "transactionEditorDelete"
+		private const val TRANSACTION_EDITOR_DELETE_CONFIRM_TAG = "transactionEditorDeleteConfirm"
 		private const val TRANSACTION_EDITOR_SAVE_TAG = "transactionEditorSave"
 	}
 }

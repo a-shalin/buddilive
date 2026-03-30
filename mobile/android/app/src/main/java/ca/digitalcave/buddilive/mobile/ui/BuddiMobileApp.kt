@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
@@ -520,12 +523,6 @@ private fun TransactionsScreen(
 							}) {
 								Icon(Icons.Filled.Edit, contentDescription = "Edit")
 							}
-							IconButton(
-								onClick = { viewModel.deleteTransaction(transaction.id) {} },
-								enabled = !state.isMutating
-							) {
-								Icon(Icons.Filled.Delete, contentDescription = "Delete")
-							}
 						}
 					}
 				}
@@ -567,6 +564,14 @@ private fun TransactionsScreen(
 						}
 					}
 				}
+			},
+			onDelete = { transactionId ->
+				viewModel.deleteTransaction(transactionId) { success ->
+					if (success) {
+						editingTransaction = null
+						showEditor = false
+					}
+				}
 			}
 		)
 	}
@@ -590,7 +595,8 @@ private fun TransactionEditorDialog(
 	dateFormat: String,
 	amountFormat: AmountFormat,
 	onDismiss: () -> Unit,
-	onSave: (TransactionEditInput) -> Unit
+	onSave: (TransactionEditInput) -> Unit,
+	onDelete: (Long) -> Unit
 ) {
 	val context = LocalContext.current
 	val inputDateFormatter = remember(dateFormat, amountFormat.localeTag) {
@@ -615,6 +621,7 @@ private fun TransactionEditorDialog(
 			)
 		)
 	}
+	var showDeleteConfirmation by remember(existing) { mutableStateOf(false) }
 
 	val selectedDate = parseInputDate(state.dateIso, inputDateFormatter)
 	val parsedAmount = parseAmountInput(state.amount, amountFormat)
@@ -723,31 +730,76 @@ private fun TransactionEditorDialog(
 			}
 		},
 		confirmButton = {
-			TextButton(
-				modifier = Modifier.testTag("transactionEditorSave"),
-				onClick = {
-					val input = TransactionEditInput(
-						dateIso = selectedDate?.format(isoDateFormatter) ?: return@TextButton,
-						description = state.description.trim(),
-						number = state.number.trim(),
-						amount = parsedAmount?.toPlainString() ?: return@TextButton,
-						fromId = state.fromId ?: return@TextButton,
-						toId = state.toId ?: return@TextButton,
-						memo = state.memo.trim()
-					)
-					onSave(input)
-				},
-				enabled = isValid
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically
 			) {
-				Text("Save")
-			}
-		},
-		dismissButton = {
-			TextButton(onClick = onDismiss) {
-				Text("Cancel")
+				if (existing != null) {
+					IconButton(
+						modifier = Modifier.testTag("transactionEditorDelete"),
+						onClick = { showDeleteConfirmation = true }
+					) {
+						Icon(
+							Icons.Filled.Delete,
+							contentDescription = "Delete",
+							tint = MaterialTheme.colorScheme.error
+						)
+					}
+				}
+				else {
+					Spacer(modifier = Modifier.width(48.dp))
+				}
+				Spacer(modifier = Modifier.weight(1f))
+				Row {
+					IconButton(onClick = onDismiss) {
+						Icon(Icons.Filled.Close, contentDescription = "Cancel")
+					}
+					IconButton(
+						modifier = Modifier.testTag("transactionEditorSave"),
+						onClick = {
+							val input = TransactionEditInput(
+								dateIso = selectedDate?.format(isoDateFormatter) ?: return@IconButton,
+								description = state.description.trim(),
+								number = state.number.trim(),
+								amount = parsedAmount?.toPlainString() ?: return@IconButton,
+								fromId = state.fromId ?: return@IconButton,
+								toId = state.toId ?: return@IconButton,
+								memo = state.memo.trim()
+							)
+							onSave(input)
+						},
+						enabled = isValid
+					) {
+						Icon(Icons.Filled.Check, contentDescription = "Save")
+					}
+				}
 			}
 		}
 	)
+
+	if (showDeleteConfirmation && existing != null) {
+		AlertDialog(
+			onDismissRequest = { showDeleteConfirmation = false },
+			title = { Text("Delete Transaction?") },
+			text = { Text("This action cannot be undone.") },
+			confirmButton = {
+				TextButton(
+					modifier = Modifier.testTag("transactionEditorDeleteConfirm"),
+					onClick = {
+						showDeleteConfirmation = false
+						onDelete(existing.id)
+					}
+				) {
+					Text("Delete", color = MaterialTheme.colorScheme.error)
+				}
+			},
+			dismissButton = {
+				TextButton(onClick = { showDeleteConfirmation = false }) {
+					Text("Cancel")
+				}
+			}
+		)
+	}
 }
 
 @Composable
