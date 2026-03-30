@@ -59,12 +59,26 @@ import ca.digitalcave.buddilive.mobile.data.LoginResult
 import ca.digitalcave.buddilive.mobile.data.SourceOption
 import ca.digitalcave.buddilive.mobile.data.TransactionEditInput
 import ca.digitalcave.buddilive.mobile.data.TransactionSummary
+import java.math.BigDecimal
+import java.text.DecimalFormat
+import java.text.NumberFormat
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val isoDateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+
+private data class AmountFormat(
+	val localeTag: String,
+	val decimalSeparator: Char,
+	val thousandSeparator: Char,
+	val currencyToken: String,
+	val currencyAfter: Boolean,
+	val negativeFormat: String,
+	val currencySpacing: Boolean,
+	val fractionDigits: Int
+)
 
 private fun createInputDateFormatter(pattern: String, localeTag: String): DateTimeFormatter {
 	val locale = parseLocaleTag(localeTag)
@@ -101,6 +115,110 @@ private fun formatIsoDateForInput(dateIso: String?, inputFormatter: DateTimeForm
 		?.let { runCatching { LocalDate.parse(it, isoDateFormatter) }.getOrNull() }
 		?: LocalDate.now()
 	return parsedDate.format(inputFormatter)
+}
+
+private fun formatAmountForInput(value: BigDecimal, amountFormat: AmountFormat): String {
+	val locale = parseLocaleTag(amountFormat.localeTag)
+	val decimalFormat = (NumberFormat.getNumberInstance(locale) as? DecimalFormat) ?: DecimalFormat()
+	val symbols = decimalFormat.decimalFormatSymbols
+	symbols.decimalSeparator = amountFormat.decimalSeparator
+	symbols.groupingSeparator = amountFormat.thousandSeparator
+	decimalFormat.decimalFormatSymbols = symbols
+	decimalFormat.maximumFractionDigits = amountFormat.fractionDigits
+	decimalFormat.minimumFractionDigits = amountFormat.fractionDigits
+	decimalFormat.isGroupingUsed = true
+	return decimalFormat.format(value)
+}
+
+private fun parseAmountInput(value: String, amountFormat: AmountFormat): BigDecimal? {
+	var normalized = value.replace('\u00a0', ' ').trim()
+	if (normalized.isEmpty()) {
+		return null
+	}
+
+	val token = amountFormat.currencyToken
+	if (token.isNotBlank()) {
+		if (normalized.startsWith(token)) {
+			normalized = normalized.removePrefix(token).trim()
+		}
+		if (normalized.endsWith(token)) {
+			normalized = normalized.removeSuffix(token).trim()
+		}
+	}
+
+	var isNegative = false
+	if (normalized.startsWith("(") && normalized.endsWith(")")) {
+		isNegative = true
+		normalized = normalized.substring(1, normalized.length - 1).trim()
+	}
+	if (normalized.startsWith("-")) {
+		isNegative = true
+		normalized = normalized.removePrefix("-").trim()
+	}
+	if (normalized.contains('-')) {
+		return null
+	}
+	if (token.isNotBlank() && normalized.contains(token)) {
+		return null
+	}
+	if (!isValidGroupedAmount(normalized, amountFormat.decimalSeparator, amountFormat.thousandSeparator)) {
+		return null
+	}
+
+	val decimalIndex = normalized.indexOf(amountFormat.decimalSeparator)
+	val integerPart = if (decimalIndex >= 0) normalized.substring(0, decimalIndex) else normalized
+	val fractionPart = if (decimalIndex >= 0) normalized.substring(decimalIndex + 1) else ""
+	val integerDigits = integerPart.replace(amountFormat.thousandSeparator.toString(), "")
+	val normalizedInteger = if (integerDigits.isEmpty()) "0" else integerDigits
+	val normalizedDecimal = if (fractionPart.isEmpty()) normalizedInteger else "$normalizedInteger.$fractionPart"
+
+	val parsed = normalizedDecimal.toBigDecimalOrNull() ?: return null
+	return if (isNegative) parsed.negate() else parsed
+}
+
+private fun isValidGroupedAmount(value: String, decimalSeparator: Char, thousandSeparator: Char): Boolean {
+	if (value.isBlank()) {
+		return false
+	}
+	if (decimalSeparator == thousandSeparator) {
+		return false
+	}
+	if (value.count { it == decimalSeparator } > 1) {
+		return false
+	}
+
+	val decimalIndex = value.indexOf(decimalSeparator)
+	val integerPart = if (decimalIndex >= 0) value.substring(0, decimalIndex) else value
+	val fractionPart = if (decimalIndex >= 0) value.substring(decimalIndex + 1) else ""
+	if (decimalIndex >= 0 && fractionPart.isEmpty()) {
+		return false
+	}
+	if (fractionPart.any { !it.isDigit() }) {
+		return false
+	}
+
+	if (integerPart.isEmpty()) {
+		return true
+	}
+	if (!integerPart.contains(thousandSeparator)) {
+		return integerPart.all { it.isDigit() }
+	}
+
+	val groups = integerPart.split(thousandSeparator)
+	if (groups.isEmpty() || groups.any { it.isEmpty() }) {
+		return false
+	}
+	val first = groups.first()
+	if (first.length !in 1..3 || !first.all { it.isDigit() }) {
+		return false
+	}
+	for (index in 1 until groups.size) {
+		val group = groups[index]
+		if (group.length != 3 || !group.all { it.isDigit() }) {
+			return false
+		}
+	}
+	return true
 }
 
 @Composable
@@ -310,6 +428,27 @@ private fun TransactionsScreen(
 		factory = TransactionsViewModelFactory(repository, accountId)
 	)
 	val state by viewModel.state.collectAsStateWithLifecycle()
+	val amountFormat = remember(
+		state.localeTag,
+		state.decimalSeparator,
+		state.thousandSeparator,
+		state.currencyToken,
+		state.currencyAfter,
+		state.negativeFormat,
+		state.currencySpacing,
+		state.fractionDigits
+	) {
+		AmountFormat(
+			localeTag = state.localeTag,
+			decimalSeparator = state.decimalSeparator,
+			thousandSeparator = state.thousandSeparator,
+			currencyToken = state.currencyToken,
+			currencyAfter = state.currencyAfter,
+			negativeFormat = state.negativeFormat,
+			currencySpacing = state.currencySpacing,
+			fractionDigits = state.fractionDigits
+		)
+	}
 
 	var editingTransaction by remember { mutableStateOf<TransactionSummary?>(null) }
 	var showEditor by remember { mutableStateOf(false) }
@@ -410,7 +549,7 @@ private fun TransactionsScreen(
 			fromSources = state.fromSources,
 			toSources = state.toSources,
 			dateFormat = state.dateFormat,
-			localeTag = state.localeTag,
+			amountFormat = amountFormat,
 			onDismiss = { showEditor = false },
 			onSave = { input ->
 				val existingId = editingTransaction?.id
@@ -449,21 +588,27 @@ private fun TransactionEditorDialog(
 	fromSources: List<SourceOption>,
 	toSources: List<SourceOption>,
 	dateFormat: String,
-	localeTag: String,
+	amountFormat: AmountFormat,
 	onDismiss: () -> Unit,
 	onSave: (TransactionEditInput) -> Unit
 ) {
 	val context = LocalContext.current
-	val inputDateFormatter = remember(dateFormat, localeTag) { createInputDateFormatter(dateFormat, localeTag) }
+	val inputDateFormatter = remember(dateFormat, amountFormat.localeTag) {
+		createInputDateFormatter(dateFormat, amountFormat.localeTag)
+	}
 	val defaultDate = remember(inputDateFormatter) { LocalDate.now().format(inputDateFormatter) }
 	val dateFormatExample = remember(inputDateFormatter) { LocalDate.now().format(inputDateFormatter) }
-	var state by remember(existing, fromSources, toSources, dateFormat, localeTag) {
+	val amountFormatExample = remember(amountFormat) { formatAmountForInput(BigDecimal("1234.56"), amountFormat) }
+	val amountFieldLabel = remember(amountFormat.currencyToken) {
+		if (amountFormat.currencyToken.isBlank()) "Amount" else "Amount (${amountFormat.currencyToken})"
+	}
+	var state by remember(existing, fromSources, toSources, dateFormat, amountFormat) {
 		mutableStateOf(
 			TransactionFormState(
 				dateIso = existing?.dateIso?.let { formatIsoDateForInput(it, inputDateFormatter) } ?: defaultDate,
 				description = existing?.description.orEmpty(),
 				number = existing?.number.orEmpty(),
-				amount = existing?.split?.amountNumber?.stripTrailingZeros()?.toPlainString().orEmpty(),
+				amount = existing?.split?.amountNumber?.let { formatAmountForInput(it, amountFormat) }.orEmpty(),
 				fromId = existing?.split?.fromId ?: fromSources.firstOrNull()?.id,
 				toId = existing?.split?.toId ?: toSources.firstOrNull()?.id,
 				memo = existing?.split?.memo.orEmpty()
@@ -472,15 +617,17 @@ private fun TransactionEditorDialog(
 	}
 
 	val selectedDate = parseInputDate(state.dateIso, inputDateFormatter)
+	val parsedAmount = parseAmountInput(state.amount, amountFormat)
 	val isDateValid = selectedDate != null
 	val isDateInvalid = state.dateIso.isNotBlank() && !isDateValid
+	val isAmountInvalid = state.amount.isNotBlank() && parsedAmount == null
 	val isValid = isDateValid
 		&& state.description.isNotBlank()
 		&& state.amount.isNotBlank()
 		&& state.fromId != null
 		&& state.toId != null
 		&& state.fromId != state.toId
-		&& state.amount.toBigDecimalOrNull() != null
+		&& parsedAmount != null
 
 	AlertDialog(
 		onDismissRequest = onDismiss,
@@ -532,15 +679,27 @@ private fun TransactionEditorDialog(
 					singleLine = true
 				)
 				OutlinedTextField(
+					modifier = Modifier
+						.fillMaxWidth()
+						.testTag("transactionEditorNumber"),
 					value = state.number,
 					onValueChange = { state = state.copy(number = it) },
 					label = { Text("Number") },
 					singleLine = true
 				)
 				OutlinedTextField(
+					modifier = Modifier
+						.fillMaxWidth()
+						.testTag("transactionEditorAmount"),
 					value = state.amount,
 					onValueChange = { state = state.copy(amount = it) },
-					label = { Text("Amount") },
+					label = { Text(amountFieldLabel) },
+					isError = isAmountInvalid,
+					supportingText = {
+						if (isAmountInvalid) {
+							Text("Use format $amountFormatExample.")
+						}
+					},
 					singleLine = true
 				)
 				SourceSelector(
@@ -571,7 +730,7 @@ private fun TransactionEditorDialog(
 						dateIso = selectedDate?.format(isoDateFormatter) ?: return@TextButton,
 						description = state.description.trim(),
 						number = state.number.trim(),
-						amount = state.amount.trim(),
+						amount = parsedAmount?.toPlainString() ?: return@TextButton,
 						fromId = state.fromId ?: return@TextButton,
 						toId = state.toId ?: return@TextButton,
 						memo = state.memo.trim()

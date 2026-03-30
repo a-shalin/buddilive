@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 data class TransactionsUiState(
@@ -25,6 +26,13 @@ data class TransactionsUiState(
 	val toSources: List<SourceOption> = emptyList(),
 	val dateFormat: String = "yyyy-MM-dd",
 	val localeTag: String = Locale.getDefault().toLanguageTag(),
+	val decimalSeparator: Char = DecimalFormatSymbols.getInstance(Locale.getDefault()).decimalSeparator,
+	val thousandSeparator: Char = DecimalFormatSymbols.getInstance(Locale.getDefault()).groupingSeparator,
+	val currencyToken: String = "",
+	val currencyAfter: Boolean = false,
+	val negativeFormat: String = "N",
+	val currencySpacing: Boolean = true,
+	val fractionDigits: Int = 2,
 	val needsLogin: Boolean = false,
 	val isMutating: Boolean = false
 )
@@ -148,7 +156,14 @@ class TransactionsViewModel(
 					_state.update {
 						it.copy(
 							dateFormat = preferences.dateFormat,
-							localeTag = preferences.localeTag
+							localeTag = preferences.localeTag,
+							decimalSeparator = preferences.decimalSeparator,
+							thousandSeparator = preferences.thousandSeparator,
+							currencyToken = preferences.currencyToken,
+							currencyAfter = preferences.currencyAfter,
+							negativeFormat = preferences.negativeFormat,
+							currencySpacing = preferences.currencySpacing,
+							fractionDigits = preferences.fractionDigits
 						)
 					}
 				},

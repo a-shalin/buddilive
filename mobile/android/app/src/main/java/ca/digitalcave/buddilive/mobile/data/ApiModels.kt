@@ -3,8 +3,12 @@ package ca.digitalcave.buddilive.mobile.data
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import java.math.BigDecimal
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.text.DateFormat
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
+import java.util.Currency
 import java.util.Locale
 
 data class AuthenticationFlowResponseDto(
@@ -62,7 +66,14 @@ data class SuccessResponseDto(
 data class UserPreferencesResponseDto(
 	val success: Boolean,
 	val locale: String?,
-	val dateFormat: String?
+	val currency: String?,
+	val dateFormat: String?,
+	val currencyAfter: Boolean?,
+	val decimalSeparator: String?,
+	val thousandSeparator: String?,
+	val negativeFormat: String?,
+	val showCurrencySymbol: Boolean?,
+	val currencySpacing: Boolean?
 )
 
 data class TransactionMutationRequestDto(
@@ -129,7 +140,14 @@ data class TransactionEditInput(
 
 data class UserDatePreferences(
 	val dateFormat: String,
-	val localeTag: String
+	val localeTag: String,
+	val decimalSeparator: Char,
+	val thousandSeparator: Char,
+	val currencyToken: String,
+	val currencyAfter: Boolean,
+	val negativeFormat: String,
+	val currencySpacing: Boolean,
+	val fractionDigits: Int
 )
 
 fun AccountsResponseDto.toAccountSummaries(): List<AccountSummary> {
@@ -204,6 +222,10 @@ fun TransactionsResponseDto.toTransactionsPage(): TransactionsPage {
 
 fun UserPreferencesResponseDto.toUserDatePreferences(): UserDatePreferences {
 	val locale = toLocale(locale)
+	val currencyCode = currency?.trim().orEmpty()
+	val showCurrencySymbol = showCurrencySymbol ?: false
+	val resolvedDecimalSeparator = resolveDecimalSeparator(locale, decimalSeparator)
+	val resolvedThousandSeparator = resolveThousandSeparator(locale, thousandSeparator, resolvedDecimalSeparator)
 	val requestedDateFormat = dateFormat?.trim().orEmpty()
 	val resolvedDateFormat = when {
 		requestedDateFormat.isEmpty() -> resolveDateFormatFromLocale(locale)
@@ -212,7 +234,14 @@ fun UserPreferencesResponseDto.toUserDatePreferences(): UserDatePreferences {
 	}
 	return UserDatePreferences(
 		dateFormat = resolvedDateFormat,
-		localeTag = locale.toLanguageTag()
+		localeTag = locale.toLanguageTag(),
+		decimalSeparator = resolvedDecimalSeparator,
+		thousandSeparator = resolvedThousandSeparator,
+		currencyToken = resolveCurrencyToken(locale, currencyCode, showCurrencySymbol),
+		currencyAfter = currencyAfter ?: resolveCurrencyAfter(locale, currencyCode),
+		negativeFormat = if (negativeFormat == "B") "B" else "N",
+		currencySpacing = currencySpacing ?: !showCurrencySymbol,
+		fractionDigits = resolveCurrencyFractionDigits(currencyCode)
 	)
 }
 
@@ -237,4 +266,83 @@ private fun resolveDateFormatFromLocale(locale: Locale): String {
 
 private fun isValidDateFormat(format: String): Boolean {
 	return runCatching { SimpleDateFormat(format) }.isSuccess
+}
+
+private fun resolveDecimalSeparator(locale: Locale, requestedSeparator: String?): Char {
+	val overrideSeparator = requestedSeparator?.firstOrNull()
+	if (overrideSeparator != null) {
+		return overrideSeparator
+	}
+	return DecimalFormatSymbols.getInstance(locale).decimalSeparator
+}
+
+private fun resolveThousandSeparator(locale: Locale, requestedSeparator: String?, decimalSeparator: Char): Char {
+	val overrideSeparator = requestedSeparator?.firstOrNull()
+	if (overrideSeparator != null && overrideSeparator != decimalSeparator) {
+		return overrideSeparator
+	}
+	val localeSeparator = DecimalFormatSymbols.getInstance(locale).groupingSeparator
+	return if (localeSeparator == decimalSeparator) ',' else localeSeparator
+}
+
+private fun resolveCurrencyToken(locale: Locale, currencyCode: String, showCurrencySymbol: Boolean): String {
+	if (currencyCode.isBlank()) {
+		return ""
+	}
+	if (!showCurrencySymbol) {
+		return currencyCode
+	}
+	val currency = runCatching { Currency.getInstance(currencyCode) }.getOrNull() ?: return currencyCode
+	var bestSymbol: String? = null
+	for (candidateLocale in Locale.getAvailableLocales()) {
+		val candidateCurrency = runCatching { Currency.getInstance(candidateLocale) }.getOrNull()
+		if (candidateCurrency != currency) {
+			continue
+		}
+		val symbol = currency.getSymbol(candidateLocale)
+		if (symbol.isNotBlank() && symbol != currencyCode) {
+			if (bestSymbol == null || symbol.length < bestSymbol.length) {
+				bestSymbol = symbol
+				if (bestSymbol.length == 1) {
+					break
+				}
+			}
+		}
+	}
+	if (bestSymbol != null) {
+		return bestSymbol
+	}
+	val localeSymbol = currency.getSymbol(locale)
+	if (localeSymbol.isNotBlank() && localeSymbol != currencyCode) {
+		return localeSymbol
+	}
+	val fallbackSymbol = currency.symbol
+	if (fallbackSymbol.isNotBlank() && fallbackSymbol != currencyCode) {
+		return fallbackSymbol
+	}
+	return currencyCode
+}
+
+private fun resolveCurrencyAfter(locale: Locale, currencyCode: String): Boolean {
+	if (currencyCode.isBlank()) {
+		return false
+	}
+	val currency = runCatching { Currency.getInstance(currencyCode) }.getOrNull() ?: return false
+	val format = NumberFormat.getCurrencyInstance(locale) as? DecimalFormat ?: return false
+	format.currency = currency
+	val pattern = format.toPattern()
+	val currencyPosition = pattern.indexOf('\u00a4')
+	val numberPosition = pattern.indexOf('#')
+	if (currencyPosition < 0 || numberPosition < 0) {
+		return false
+	}
+	return currencyPosition > numberPosition
+}
+
+private fun resolveCurrencyFractionDigits(currencyCode: String): Int {
+	if (currencyCode.isBlank()) {
+		return 2
+	}
+	val currency = runCatching { Currency.getInstance(currencyCode) }.getOrNull() ?: return 2
+	return maxOf(0, currency.defaultFractionDigits)
 }

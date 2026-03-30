@@ -13,6 +13,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import okhttp3.Cookie
@@ -33,6 +35,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.math.BigDecimal
 import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
@@ -50,6 +53,8 @@ class StandaloneBackendE2eTest {
 	private lateinit var reserveAccountName: String
 	private lateinit var transactionOneDescription: String
 	private lateinit var transactionTwoDescription: String
+	private lateinit var transactionOneNumber: String
+	private lateinit var transactionTwoNumber: String
 	private var primaryAccountId: Int = 0
 
 	@Before
@@ -64,17 +69,25 @@ class StandaloneBackendE2eTest {
 		reserveAccountName = "Android E2E Reserve $suffix"
 		transactionOneDescription = "Android E2E Groceries $suffix"
 		transactionTwoDescription = "Android E2E Transfer $suffix"
+		transactionOneNumber = "ANDROID-E2E-1-$suffix"
+		transactionTwoNumber = "ANDROID-E2E-2-$suffix"
 
 		backend.registerUser(email, password)
 		val apiClient = backend.login(email, password)
 		primaryAccountId = backend.createAccount(apiClient, primaryAccountName, "1500.00")
 		val secondaryAccountId = backend.createAccount(apiClient, secondaryAccountName, "500.00")
 		val reserveAccountId = backend.createAccount(apiClient, reserveAccountName, "700.00")
-		backend.updateUserDateFormat(apiClient, PREFERRED_DATE_FORMAT)
+		backend.updateUserFormatting(
+			client = apiClient,
+			dateFormat = PREFERRED_DATE_FORMAT,
+			decimalSeparator = PREFERRED_DECIMAL_SEPARATOR,
+			thousandSeparator = PREFERRED_THOUSAND_SEPARATOR
+		)
 
 		backend.createTransaction(
 			client = apiClient,
 			description = transactionOneDescription,
+			number = transactionOneNumber,
 			date = "2026-03-20",
 			fromId = primaryAccountId,
 			toId = secondaryAccountId,
@@ -83,6 +96,7 @@ class StandaloneBackendE2eTest {
 		backend.createTransaction(
 			client = apiClient,
 			description = transactionTwoDescription,
+			number = transactionTwoNumber,
 			date = "2026-03-21",
 			fromId = primaryAccountId,
 			toId = reserveAccountId,
@@ -138,6 +152,79 @@ class StandaloneBackendE2eTest {
 		assertEventuallyVisibleSubstring("Use $PREFERRED_DATE_FORMAT")
 	}
 
+	@Test
+	fun transactionEditorAmountUsesPreferredFormatAndValidatesSeparators() {
+		loginAndOpenPrimaryAccountTransactions()
+		openFirstTransactionEditor()
+		val editedTransactionNumber = currentEditorNumber()
+		assertTrue("Editor Number field is empty.", editedTransactionNumber.isNotBlank())
+
+		assertEventuallyVisible(PREFERRED_FIRST_AMOUNT_LABEL)
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_AMOUNT_TAG, useUnmergedTree = true)
+			.performTextReplacement(PREFERRED_INVALID_AMOUNT_INPUT)
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_SAVE_TAG, useUnmergedTree = true)
+			.assertIsNotEnabled()
+		assertEventuallyVisibleSubstring("Use format")
+
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_AMOUNT_TAG, useUnmergedTree = true)
+			.performTextReplacement(PREFERRED_VALID_AMOUNT_INPUT)
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_SAVE_TAG, useUnmergedTree = true)
+			.assertIsEnabled()
+			.performClick()
+
+		assertEventuallyVisible(PREFERRED_VALID_AMOUNT_INPUT)
+		val apiClient = backend.login(email, password)
+		assertTrue(
+			"Updated transaction amount was not found in backend response for Number '$editedTransactionNumber'.",
+			backend.hasTransactionAmountByNumber(apiClient, primaryAccountId.toLong(), editedTransactionNumber, "1234.56")
+		)
+	}
+
+	@Test
+	fun currencySymbolFormattingIsConsistentAcrossListsAndEditorLabel() {
+		val apiClient = backend.login(email, password)
+		backend.updateUserFormatting(
+			client = apiClient,
+			dateFormat = PREFERRED_DATE_FORMAT,
+			decimalSeparator = ".",
+			thousandSeparator = ",",
+			locale = "en_CA",
+			currency = "USD",
+			currencyAfter = false,
+			currencySpacing = false
+		)
+		val expectedAccountBalance = backend.getAccountBalanceByName(apiClient, primaryAccountName)
+		assertTrue("Expected account balance from backend to be present.", expectedAccountBalance.isNotBlank())
+		val expectedTransactionAmount = backend.getTransactionAmountByNumber(
+			client = apiClient,
+			sourceId = primaryAccountId.toLong(),
+			number = transactionOneNumber
+		)
+		assertTrue("Expected transaction amount from backend to be present.", expectedTransactionAmount.isNotBlank())
+		val expectedCurrencyToken = extractCurrencyToken(expectedAccountBalance)
+		assertTrue("Could not extract currency token from backend balance '$expectedAccountBalance'.", expectedCurrencyToken.isNotBlank())
+
+		loginToAccountsScreen()
+		assertEventuallyVisible(expectedAccountBalance)
+
+		composeTestRule.onNodeWithText(primaryAccountName).performClick()
+		assertEventuallyVisible("Transactions: $primaryAccountName")
+		assertEventuallyVisible(transactionOneDescription)
+		assertEventuallyVisible(expectedTransactionAmount)
+
+		openFirstTransactionEditor()
+		assertEventuallyVisible("Amount ($expectedCurrencyToken)")
+		val editorAmount = currentEditorAmount()
+		assertTrue(
+			"Amount editor should not contain currency token '$expectedCurrencyToken': '$editorAmount'.",
+			!editorAmount.contains(expectedCurrencyToken)
+		)
+	}
+
 	private fun waitForLoginFields() {
 		composeTestRule.waitUntil(timeoutMillis = 20_000) {
 			composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
@@ -146,6 +233,13 @@ class StandaloneBackendE2eTest {
 	}
 
 	private fun loginAndOpenPrimaryAccountTransactions() {
+		loginToAccountsScreen()
+
+		composeTestRule.onNodeWithText(primaryAccountName).performClick()
+		assertEventuallyVisible("Transactions: $primaryAccountName")
+	}
+
+	private fun loginToAccountsScreen() {
 		waitForLoginFields()
 
 		val fields = composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
@@ -156,9 +250,6 @@ class StandaloneBackendE2eTest {
 		assertEventuallyVisible(primaryAccountName)
 		assertEventuallyVisible(secondaryAccountName)
 		assertEventuallyVisible(reserveAccountName)
-
-		composeTestRule.onNodeWithText(primaryAccountName).performClick()
-		assertEventuallyVisible("Transactions: $primaryAccountName")
 	}
 
 	private fun openFirstTransactionEditor() {
@@ -175,6 +266,33 @@ class StandaloneBackendE2eTest {
 				.onAllNodesWithTag(TRANSACTION_EDITOR_DATE_TAG, useUnmergedTree = true)
 				.fetchSemanticsNodes().isNotEmpty()
 		}
+	}
+
+	private fun currentEditorNumber(): String {
+		val semanticsNode = composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_NUMBER_TAG, useUnmergedTree = true)
+			.fetchSemanticsNode()
+		return semanticsNode.config.getOrNull(SemanticsProperties.EditableText)?.text?.toString().orEmpty()
+	}
+
+	private fun currentEditorAmount(): String {
+		val semanticsNode = composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_AMOUNT_TAG, useUnmergedTree = true)
+			.fetchSemanticsNode()
+		return semanticsNode.config.getOrNull(SemanticsProperties.EditableText)?.text?.toString().orEmpty()
+	}
+
+	private fun extractCurrencyToken(formattedAmount: String): String {
+		val trimmed = formattedAmount.trim()
+		if (trimmed.isEmpty()) {
+			return ""
+		}
+		val prefix = trimmed.takeWhile { !it.isDigit() && it != '-' && it != '(' }.trim()
+		if (prefix.isNotEmpty()) {
+			return prefix
+		}
+		val suffix = trimmed.reversed().takeWhile { !it.isDigit() && it != '-' && it != ')' }.reversed().trim()
+		return suffix
 	}
 
 	private fun assertEventuallyVisible(text: String) {
@@ -207,8 +325,15 @@ class StandaloneBackendE2eTest {
 
 	companion object {
 		private const val PREFERRED_DATE_FORMAT = "dd/MM/yyyy"
+		private const val PREFERRED_DECIMAL_SEPARATOR = ","
+		private const val PREFERRED_THOUSAND_SEPARATOR = " "
+		private const val PREFERRED_FIRST_AMOUNT_LABEL = "25,75 $"
+		private const val PREFERRED_INVALID_AMOUNT_INPUT = "25.75 $"
+		private const val PREFERRED_VALID_AMOUNT_INPUT = "1 234,56 $"
 		private const val TRANSACTION_EDITOR_DATE_TAG = "transactionEditorDate"
 		private const val TRANSACTION_EDITOR_DESCRIPTION_TAG = "transactionEditorDescription"
+		private const val TRANSACTION_EDITOR_NUMBER_TAG = "transactionEditorNumber"
+		private const val TRANSACTION_EDITOR_AMOUNT_TAG = "transactionEditorAmount"
 		private const val TRANSACTION_EDITOR_SAVE_TAG = "transactionEditorSave"
 	}
 }
@@ -275,6 +400,7 @@ private class BackendClient(private val baseUrl: String) {
 	fun createTransaction(
 		client: OkHttpClient,
 		description: String,
+		number: String,
 		date: String,
 		fromId: Int,
 		toId: Int,
@@ -288,18 +414,33 @@ private class BackendClient(private val baseUrl: String) {
 		val payload = JSONObject()
 			.put("action", "insert")
 			.put("description", description)
+			.put("number", number)
 			.put("date", date)
 			.put("splits", JSONArray().put(split))
 
 		postJson(client, "/data/transactions", payload)
 	}
 
-	fun updateUserDateFormat(client: OkHttpClient, dateFormat: String) {
+	fun updateUserFormatting(
+		client: OkHttpClient,
+		dateFormat: String,
+		decimalSeparator: String,
+		thousandSeparator: String,
+		locale: String = "en_US",
+		currency: String = "USD",
+		currencyAfter: Boolean = true,
+		currencySpacing: Boolean = true
+	) {
 		val payload = JSONObject()
 			.put("action", "update")
-			.put("locale", "en_US")
-			.put("currency", "USD")
+			.put("locale", locale)
+			.put("currency", currency)
+			.put("showCurrencySymbol", true)
+			.put("currencyAfter", currencyAfter)
+			.put("currencySpacing", currencySpacing)
 			.put("dateFormat", dateFormat)
+			.put("decimalSeparator", decimalSeparator)
+			.put("thousandSeparator", thousandSeparator)
 		postJson(client, "/data/userpreferences", payload)
 	}
 
@@ -315,6 +456,52 @@ private class BackendClient(private val baseUrl: String) {
 		return false
 	}
 
+	fun hasTransactionAmountByNumber(client: OkHttpClient, sourceId: Long, number: String, amount: String): Boolean {
+		val expectedAmount = amount.toBigDecimalOrNull() ?: return false
+		val response = getJson(client, "/data/transactions?source=$sourceId&start=0&limit=200")
+		val data = response.optJSONArray("data") ?: return false
+		for (index in 0 until data.length()) {
+			val transaction = data.optJSONObject(index) ?: continue
+			if (transaction.optString("number") != number) {
+				continue
+			}
+			val splits = transaction.optJSONArray("splits") ?: continue
+			for (splitIndex in 0 until splits.length()) {
+				val split = splits.optJSONObject(splitIndex) ?: continue
+				val amountValue = split.opt("amountNumber")?.toString() ?: continue
+				val actualAmount = runCatching { BigDecimal(amountValue) }.getOrNull() ?: continue
+				if (actualAmount.compareTo(expectedAmount) == 0) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	fun getAccountBalanceByName(client: OkHttpClient, name: String): String {
+		val response = getJson(client, "/data/accounts")
+		val account = findAccount(response, name) ?: return ""
+		return account.optString("balance")
+	}
+
+	fun getTransactionAmountByNumber(client: OkHttpClient, sourceId: Long, number: String): String {
+		val response = getJson(client, "/data/transactions?source=$sourceId&start=0&limit=200")
+		val data = response.optJSONArray("data") ?: return ""
+		for (index in 0 until data.length()) {
+			val transaction = data.optJSONObject(index) ?: continue
+			if (transaction.optString("number") != number) {
+				continue
+			}
+			val splits = transaction.optJSONArray("splits") ?: continue
+			if (splits.length() == 0) {
+				continue
+			}
+			val split = splits.optJSONObject(0) ?: continue
+			return split.optString("amount")
+		}
+		return ""
+	}
+
 	private fun findAccountIdByName(client: OkHttpClient, name: String): Int {
 		val response = getJson(client, "/data/accounts")
 		val found = findAccountId(response, name)
@@ -323,14 +510,19 @@ private class BackendClient(private val baseUrl: String) {
 	}
 
 	private fun findAccountId(node: JSONObject, name: String): Int? {
+		val account = findAccount(node, name)
+		return account?.optInt("id")
+	}
+
+	private fun findAccount(node: JSONObject, name: String): JSONObject? {
 		if (node.optString("nodeType") == "account" && node.optString("name") == name) {
-			return node.optInt("id")
+			return node
 		}
 
 		val children = node.optJSONArray("children") ?: return null
 		for (index in 0 until children.length()) {
 			val child = children.optJSONObject(index) ?: continue
-			val found = findAccountId(child, name)
+			val found = findAccount(child, name)
 			if (found != null) {
 				return found
 			}
