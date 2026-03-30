@@ -813,11 +813,21 @@ private fun TransactionEditorScreen(
 	}
 	val selectedAccountIdInt = remember(selectedAccountId) { selectedAccountId.toInt() }
 	var state by remember(existing, fromSources, toSources, selectedAccountIdInt, dateFormat, amountFormat) {
-		val initialFromId = existing?.split?.fromId
-			?: fromSources.firstOrNull { it.id == selectedAccountIdInt && it.selectable }?.id
-			?: firstSelectableSourceId(fromSources)
-		val initialToId = existing?.split?.toId
-			?: firstSelectableSourceId(toSources, initialFromId)
+		val initialFromId = if (existing == null) {
+			null
+		}
+		else {
+			existing.split?.fromId
+				?: fromSources.firstOrNull { it.id == selectedAccountIdInt && it.selectable }?.id
+				?: firstSelectableSourceId(fromSources)
+		}
+		val initialToId = if (existing == null) {
+			null
+		}
+		else {
+			existing.split?.toId
+				?: firstSelectableSourceId(toSources, initialFromId)
+		}
 		mutableStateOf(
 			TransactionFormState(
 				dateIso = toTextFieldValue(existing?.dateIso?.let { formatIsoDateForInput(it, inputDateFormatter) } ?: defaultDate),
