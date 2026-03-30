@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import ca.digitalcave.buddilive.mobile.ui.theme.AppTheme
 import ca.digitalcave.buddilive.mobile.ui.BuddiMobileApp
 
 class MainActivity : ComponentActivity() {
@@ -13,10 +14,11 @@ class MainActivity : ComponentActivity() {
 		super.onCreate(savedInstanceState)
 
 		setContent {
-			Surface(color = MaterialTheme.colorScheme.background) {
-				BuddiMobileApp(repository = AppContainer.repository(applicationContext))
+			AppTheme {
+				Surface(color = MaterialTheme.colorScheme.background) {
+					BuddiMobileApp(repository = AppContainer.repository(applicationContext))
+				}
 			}
 		}
 	}
 }
-
