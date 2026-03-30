@@ -158,8 +158,8 @@ class StandaloneBackendE2eTest {
 		openFirstTransactionEditor()
 		val editedTransactionNumber = currentEditorNumber()
 		assertTrue("Editor Number field is empty.", editedTransactionNumber.isNotBlank())
+		assertTrue("Editor Amount field is empty.", currentEditorAmount().isNotBlank())
 
-		assertEventuallyVisible(PREFERRED_FIRST_AMOUNT_LABEL)
 		composeTestRule
 			.onNodeWithTag(TRANSACTION_EDITOR_AMOUNT_TAG, useUnmergedTree = true)
 			.performTextReplacement(PREFERRED_INVALID_AMOUNT_INPUT)

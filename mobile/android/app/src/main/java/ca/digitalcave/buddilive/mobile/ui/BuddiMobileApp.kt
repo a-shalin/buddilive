@@ -4,6 +4,8 @@ import android.app.DatePickerDialog
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,13 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
@@ -46,7 +46,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -466,88 +465,15 @@ private fun TransactionsScreen(
 		}
 	}
 
-	Scaffold(
-		modifier = modifier.fillMaxSize(),
-		topBar = {
-			TopAppBar(
-				title = { Text("Transactions: $accountName") },
-				navigationIcon = {
-					IconButton(onClick = onBack) {
-						Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
-					}
-				},
-				actions = {
-					TextButton(onClick = {
-						editingTransaction = null
-						showEditor = true
-					}) {
-						Text("New")
-					}
-					TextButton(onClick = viewModel::refresh) {
-						Text("Refresh")
-					}
-				}
-			)
-		}
-	) { paddingValues ->
-		Column(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(paddingValues)
-				.padding(12.dp)
-		) {
-			if (state.isLoading && state.transactions.isEmpty()) {
-				CircularProgressIndicator()
-			}
-
-			state.error?.let {
-				Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
-			}
-
-			LazyColumn(
-				modifier = Modifier.weight(1f, fill = true),
-				verticalArrangement = Arrangement.spacedBy(8.dp)
-			) {
-				items(state.transactions, key = { it.id }) { transaction ->
-					Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-						Text(text = transaction.description, style = MaterialTheme.typography.titleMedium)
-						Text(text = transaction.dateIso, style = MaterialTheme.typography.bodySmall)
-						transaction.split?.let { split ->
-							Text(text = split.amountLabel, style = MaterialTheme.typography.bodyLarge)
-							Text(text = "${split.fromName} -> ${split.toName}", style = MaterialTheme.typography.bodyMedium)
-						}
-						Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-							IconButton(onClick = {
-								editingTransaction = transaction
-								showEditor = true
-							}) {
-								Icon(Icons.Filled.Edit, contentDescription = "Edit")
-							}
-						}
-					}
-				}
-			}
-
-			if (state.transactions.size < state.total) {
-				Button(
-					onClick = viewModel::loadMore,
-					modifier = Modifier.fillMaxWidth(),
-					enabled = !state.isLoading
-				) {
-					Text("Load More")
-				}
-			}
-		}
-	}
-
 	if (showEditor) {
-		TransactionEditorDialog(
+		TransactionEditorScreen(
+			modifier = modifier,
 			existing = editingTransaction,
 			fromSources = state.fromSources,
 			toSources = state.toSources,
 			dateFormat = state.dateFormat,
 			amountFormat = amountFormat,
-			onDismiss = { showEditor = false },
+			onBack = { showEditor = false },
 			onSave = { input ->
 				val existingId = editingTransaction?.id
 				if (existingId == null) {
@@ -575,6 +501,81 @@ private fun TransactionsScreen(
 			}
 		)
 	}
+	else {
+		Scaffold(
+			modifier = modifier.fillMaxSize(),
+			topBar = {
+				TopAppBar(
+					title = { Text("Transactions: $accountName") },
+					navigationIcon = {
+						IconButton(onClick = onBack) {
+							Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+						}
+					},
+					actions = {
+						TextButton(onClick = {
+							editingTransaction = null
+							showEditor = true
+						}) {
+							Text("New")
+						}
+						TextButton(onClick = viewModel::refresh) {
+							Text("Refresh")
+						}
+					}
+				)
+			}
+		) { paddingValues ->
+			Column(
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(paddingValues)
+					.padding(12.dp)
+			) {
+				if (state.isLoading && state.transactions.isEmpty()) {
+					CircularProgressIndicator()
+				}
+
+				state.error?.let {
+					Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
+				}
+
+				LazyColumn(
+					modifier = Modifier.weight(1f, fill = true),
+					verticalArrangement = Arrangement.spacedBy(8.dp)
+				) {
+					items(state.transactions, key = { it.id }) { transaction ->
+						Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+							Text(text = transaction.description, style = MaterialTheme.typography.titleMedium)
+							Text(text = transaction.dateIso, style = MaterialTheme.typography.bodySmall)
+							transaction.split?.let { split ->
+								Text(text = split.amountLabel, style = MaterialTheme.typography.bodyLarge)
+								Text(text = "${split.fromName} -> ${split.toName}", style = MaterialTheme.typography.bodyMedium)
+							}
+							Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+								IconButton(onClick = {
+									editingTransaction = transaction
+									showEditor = true
+								}) {
+									Icon(Icons.Filled.Edit, contentDescription = "Edit")
+								}
+							}
+						}
+					}
+				}
+
+				if (state.transactions.size < state.total) {
+					Button(
+						onClick = viewModel::loadMore,
+						modifier = Modifier.fillMaxWidth(),
+						enabled = !state.isLoading
+					) {
+						Text("Load More")
+					}
+				}
+			}
+		}
+	}
 }
 
 data class TransactionFormState(
@@ -588,13 +589,15 @@ data class TransactionFormState(
 )
 
 @Composable
-private fun TransactionEditorDialog(
+@OptIn(ExperimentalMaterial3Api::class)
+private fun TransactionEditorScreen(
+	modifier: Modifier,
 	existing: TransactionSummary?,
 	fromSources: List<SourceOption>,
 	toSources: List<SourceOption>,
 	dateFormat: String,
 	amountFormat: AmountFormat,
-	onDismiss: () -> Unit,
+	onBack: () -> Unit,
 	onSave: (TransactionEditInput) -> Unit,
 	onDelete: (Long) -> Unit
 ) {
@@ -635,124 +638,30 @@ private fun TransactionEditorDialog(
 		&& state.toId != null
 		&& state.fromId != state.toId
 		&& parsedAmount != null
+	val scrollState = rememberScrollState()
 
-	AlertDialog(
-		onDismissRequest = onDismiss,
-		title = { Text(if (existing == null) "New Transaction" else "Edit Transaction") },
-		text = {
-			Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-				OutlinedTextField(
-					modifier = Modifier
-						.fillMaxWidth()
-						.testTag("transactionEditorDate"),
-					value = state.dateIso,
-					onValueChange = { state = state.copy(dateIso = it) },
-					label = { Text("Date ($dateFormat)") },
-					singleLine = true,
-					isError = isDateInvalid,
-					supportingText = {
-						if (isDateInvalid) {
-							Text("Use $dateFormat (for example $dateFormatExample).")
-						}
-					},
-					trailingIcon = {
-						TextButton(
-							onClick = {
-								val pickerDate = selectedDate ?: LocalDate.now()
-								DatePickerDialog(
-									context,
-									{ _, year, month, dayOfMonth ->
-										state = state.copy(
-											dateIso = LocalDate.of(year, month + 1, dayOfMonth).format(inputDateFormatter)
-										)
-									},
-									pickerDate.year,
-									pickerDate.monthValue - 1,
-									pickerDate.dayOfMonth
-								).show()
-							}
+	Scaffold(
+		modifier = modifier.fillMaxSize(),
+		topBar = {
+			TopAppBar(
+				title = { Text(if (existing == null) "New Transaction" else "Edit Transaction") },
+				navigationIcon = {
+					IconButton(onClick = onBack) {
+						Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+					}
+				},
+				actions = {
+					if (existing != null) {
+						IconButton(
+							modifier = Modifier.testTag("transactionEditorDelete"),
+							onClick = { showDeleteConfirmation = true }
 						) {
-							Text("Pick")
+							Icon(
+								Icons.Filled.Delete,
+								contentDescription = "Delete",
+								tint = MaterialTheme.colorScheme.error
+							)
 						}
-					}
-				)
-				OutlinedTextField(
-					modifier = Modifier
-						.fillMaxWidth()
-						.testTag("transactionEditorDescription"),
-					value = state.description,
-					onValueChange = { state = state.copy(description = it) },
-					label = { Text("Description") },
-					singleLine = true
-				)
-				OutlinedTextField(
-					modifier = Modifier
-						.fillMaxWidth()
-						.testTag("transactionEditorNumber"),
-					value = state.number,
-					onValueChange = { state = state.copy(number = it) },
-					label = { Text("Number") },
-					singleLine = true
-				)
-				OutlinedTextField(
-					modifier = Modifier
-						.fillMaxWidth()
-						.testTag("transactionEditorAmount"),
-					value = state.amount,
-					onValueChange = { state = state.copy(amount = it) },
-					label = { Text(amountFieldLabel) },
-					isError = isAmountInvalid,
-					supportingText = {
-						if (isAmountInvalid) {
-							Text("Use format $amountFormatExample.")
-						}
-					},
-					singleLine = true
-				)
-				SourceSelector(
-					label = "From",
-					options = fromSources,
-					selectedId = state.fromId,
-					onSelect = { state = state.copy(fromId = it) }
-				)
-				SourceSelector(
-					label = "To",
-					options = toSources,
-					selectedId = state.toId,
-					onSelect = { state = state.copy(toId = it) }
-				)
-				OutlinedTextField(
-					value = state.memo,
-					onValueChange = { state = state.copy(memo = it) },
-					label = { Text("Memo") },
-					singleLine = false
-				)
-			}
-		},
-		confirmButton = {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				if (existing != null) {
-					IconButton(
-						modifier = Modifier.testTag("transactionEditorDelete"),
-						onClick = { showDeleteConfirmation = true }
-					) {
-						Icon(
-							Icons.Filled.Delete,
-							contentDescription = "Delete",
-							tint = MaterialTheme.colorScheme.error
-						)
-					}
-				}
-				else {
-					Spacer(modifier = Modifier.width(48.dp))
-				}
-				Spacer(modifier = Modifier.weight(1f))
-				Row {
-					IconButton(onClick = onDismiss) {
-						Icon(Icons.Filled.Close, contentDescription = "Cancel")
 					}
 					IconButton(
 						modifier = Modifier.testTag("transactionEditorSave"),
@@ -773,9 +682,105 @@ private fun TransactionEditorDialog(
 						Icon(Icons.Filled.Check, contentDescription = "Save")
 					}
 				}
-			}
+			)
 		}
-	)
+	) { paddingValues ->
+		Column(
+			modifier = Modifier
+				.fillMaxSize()
+				.padding(paddingValues)
+				.padding(12.dp)
+				.verticalScroll(scrollState),
+			verticalArrangement = Arrangement.spacedBy(8.dp)
+		) {
+			OutlinedTextField(
+				modifier = Modifier
+					.fillMaxWidth()
+					.testTag("transactionEditorDate"),
+				value = state.dateIso,
+				onValueChange = { state = state.copy(dateIso = it) },
+				label = { Text("Date ($dateFormat)") },
+				singleLine = true,
+				isError = isDateInvalid,
+				supportingText = {
+					if (isDateInvalid) {
+						Text("Use $dateFormat (for example $dateFormatExample).")
+					}
+				},
+				trailingIcon = {
+					TextButton(
+						onClick = {
+							val pickerDate = selectedDate ?: LocalDate.now()
+							DatePickerDialog(
+								context,
+								{ _, year, month, dayOfMonth ->
+									state = state.copy(
+										dateIso = LocalDate.of(year, month + 1, dayOfMonth).format(inputDateFormatter)
+									)
+								},
+								pickerDate.year,
+								pickerDate.monthValue - 1,
+								pickerDate.dayOfMonth
+							).show()
+						}
+					) {
+						Text("Pick")
+					}
+				}
+			)
+			OutlinedTextField(
+				modifier = Modifier
+					.fillMaxWidth()
+					.testTag("transactionEditorDescription"),
+				value = state.description,
+				onValueChange = { state = state.copy(description = it) },
+				label = { Text("Description") },
+				singleLine = true
+			)
+			OutlinedTextField(
+				modifier = Modifier
+					.fillMaxWidth()
+					.testTag("transactionEditorNumber"),
+				value = state.number,
+				onValueChange = { state = state.copy(number = it) },
+				label = { Text("Number") },
+				singleLine = true
+			)
+			OutlinedTextField(
+				modifier = Modifier
+					.fillMaxWidth()
+					.testTag("transactionEditorAmount"),
+				value = state.amount,
+				onValueChange = { state = state.copy(amount = it) },
+				label = { Text(amountFieldLabel) },
+				isError = isAmountInvalid,
+				supportingText = {
+					if (isAmountInvalid) {
+						Text("Use format $amountFormatExample.")
+					}
+				},
+				singleLine = true
+			)
+			SourceSelector(
+				label = "From",
+				options = fromSources,
+				selectedId = state.fromId,
+				onSelect = { state = state.copy(fromId = it) }
+			)
+			SourceSelector(
+				label = "To",
+				options = toSources,
+				selectedId = state.toId,
+				onSelect = { state = state.copy(toId = it) }
+			)
+			OutlinedTextField(
+				value = state.memo,
+				onValueChange = { state = state.copy(memo = it) },
+				label = { Text("Memo") },
+				singleLine = false
+			)
+		}
+	}
 
 	if (showDeleteConfirmation && existing != null) {
 		AlertDialog(
