@@ -574,7 +574,7 @@ private fun TransactionsScreen(
 							Row(
 								modifier = Modifier
 									.fillMaxWidth()
-									.padding(12.dp),
+									.padding(start = 12.dp, top = 12.dp, end = 0.dp, bottom = 12.dp),
 								verticalAlignment = Alignment.CenterVertically
 							) {
 								Column(
