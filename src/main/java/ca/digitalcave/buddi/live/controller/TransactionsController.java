@@ -82,7 +82,7 @@ public class TransactionsController {
 							}
 
 							total.increment();
-							if (context.getResultCount() < start || count.intValue() >= limit) return;
+							if (total.intValue() <= start || count.intValue() >= limit) return;
 							count.increment();
 
 							generator.writeStartObject();

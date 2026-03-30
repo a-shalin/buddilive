@@ -11,8 +11,11 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ApplicationProvider
@@ -22,6 +25,7 @@ import okhttp3.CookieJar
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -304,6 +308,32 @@ class StandaloneBackendE2eTest {
 		)
 	}
 
+	@Test
+	fun transactionsListScrollsAfterRestoringThreeHundredTwentyTransactions() {
+		val apiClient = backend.login(email, password)
+		val primaryAccountUuid = backend.getAccountUuidByName(apiClient, primaryAccountName)
+		val secondaryAccountUuid = backend.getAccountUuidByName(apiClient, secondaryAccountName)
+		val descriptionPrefix = "Android E2E Bulk Tx ${System.currentTimeMillis()}"
+		val lastRestoredDescription = "$descriptionPrefix ${(BULK_SCROLL_TRANSACTION_COUNT - 1).toString().padStart(3, '0')}"
+
+		backend.restoreTransactions(
+			client = apiClient,
+			fromAccountUuid = primaryAccountUuid,
+			toAccountUuid = secondaryAccountUuid,
+			descriptionPrefix = descriptionPrefix,
+			transactionCount = BULK_SCROLL_TRANSACTION_COUNT
+		)
+
+		loginAndOpenPrimaryAccountTransactions()
+		loadAllTransactionPages()
+		scrollTransactionListDown()
+
+		composeTestRule
+			.onNodeWithTag(TRANSACTIONS_LIST_TAG, useUnmergedTree = true)
+			.performScrollToNode(hasText(lastRestoredDescription))
+		assertEventuallyVisible(lastRestoredDescription)
+	}
+
 	private fun waitForLoginFields() {
 		composeTestRule.waitUntil(timeoutMillis = 20_000) {
 			composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
@@ -377,6 +407,38 @@ class StandaloneBackendE2eTest {
 		return semanticsNode.config.getOrNull(SemanticsProperties.EditableText)?.text?.toString().orEmpty()
 	}
 
+	private fun loadAllTransactionPages(maxClicks: Int = 6) {
+		for (attempt in 0 until maxClicks) {
+			val loadMoreNodes = composeTestRule
+				.onAllNodes(hasText("Load More"), useUnmergedTree = true)
+				.fetchSemanticsNodes()
+			if (loadMoreNodes.isEmpty()) {
+				return
+			}
+			composeTestRule.waitUntil(timeoutMillis = 20_000) {
+				val nodes = composeTestRule
+					.onAllNodes(hasText("Load More"), useUnmergedTree = true)
+					.fetchSemanticsNodes()
+				nodes.isEmpty() || nodes.any { it.config.getOrNull(SemanticsProperties.Disabled) == null }
+			}
+			val visibleNodes = composeTestRule
+				.onAllNodes(hasText("Load More"), useUnmergedTree = true)
+				.fetchSemanticsNodes()
+			if (visibleNodes.isEmpty()) {
+				return
+			}
+			composeTestRule.onNodeWithText("Load More", useUnmergedTree = true).performClick()
+		}
+	}
+
+	private fun scrollTransactionListDown() {
+		composeTestRule
+			.onNodeWithTag(TRANSACTIONS_LIST_TAG, useUnmergedTree = true)
+			.performTouchInput {
+				repeat(80) { swipeUp() }
+			}
+	}
+
 	private fun extractCurrencyToken(formattedAmount: String): String {
 		val trimmed = formattedAmount.trim()
 		if (trimmed.isEmpty()) {
@@ -443,7 +505,9 @@ class StandaloneBackendE2eTest {
 		private const val TRANSACTION_EDITOR_DELETE_TAG = "transactionEditorDelete"
 		private const val TRANSACTION_EDITOR_DELETE_CONFIRM_TAG = "transactionEditorDeleteConfirm"
 		private const val TRANSACTION_EDITOR_SAVE_TAG = "transactionEditorSave"
+		private const val TRANSACTIONS_LIST_TAG = "transactionsList"
 		private const val SUGGESTION_TEMPLATE_AMOUNT = "88.88"
+		private const val BULK_SCROLL_TRANSACTION_COUNT = 320
 	}
 }
 
@@ -612,6 +676,56 @@ private class BackendClient(private val baseUrl: String) {
 		return account.optString("balance")
 	}
 
+	fun getAccountUuidByName(client: OkHttpClient, name: String): String {
+		val response = getJson(client, "/data/backup")
+		val accounts = response.optJSONArray("accounts") ?: JSONArray()
+		var uuid = ""
+		for (index in 0 until accounts.length()) {
+			val account = accounts.optJSONObject(index) ?: continue
+			if (account.optString("name") == name) {
+				uuid = account.optString("uuid")
+				break
+			}
+		}
+		assertTrue("Account UUID not found for '$name'.", uuid.isNotBlank())
+		return uuid
+	}
+
+	fun restoreTransactions(
+		client: OkHttpClient,
+		fromAccountUuid: String,
+		toAccountUuid: String,
+		descriptionPrefix: String,
+		transactionCount: Int
+	) {
+		val restoreBatch = System.currentTimeMillis()
+		val transactions = JSONArray()
+		for (index in 0 until transactionCount) {
+			val description = "$descriptionPrefix ${index.toString().padStart(3, '0')}"
+			val split = JSONObject()
+				.put("amount", "1.00")
+				.put("from", fromAccountUuid)
+				.put("to", toAccountUuid)
+				.put("memo", "")
+			val transaction = JSONObject()
+				.put("uuid", "android-e2e-restore-$restoreBatch-$index")
+				.put("description", description)
+				.put("number", "ANDROID-E2E-RESTORE-$restoreBatch-$index")
+				.put("date", "2026-03-01")
+				.put("deleted", false)
+				.put("splits", JSONArray().put(split))
+			transactions.put(transaction)
+		}
+
+		val payload = JSONObject()
+			.put("accounts", JSONArray().put(JSONObject().put("uuid", fromAccountUuid)).put(JSONObject().put("uuid", toAccountUuid)))
+			.put("categories", JSONArray())
+			.put("entries", JSONArray())
+			.put("transactions", transactions)
+			.put("scheduledTransactions", JSONArray())
+		postRestore(client, payload)
+	}
+
 	fun getTransactionAmountByNumber(client: OkHttpClient, sourceId: Long, number: String): String {
 		val response = getJson(client, "/data/transactions?source=$sourceId&start=0&limit=200")
 		val data = response.optJSONArray("data") ?: return ""
@@ -677,6 +791,21 @@ private class BackendClient(private val baseUrl: String) {
 		return execute(client.newCall(request).execute()) { response ->
 			assertEquals(200, response.code)
 			JSONObject(response.body?.string().orEmpty())
+		}
+	}
+
+	private fun postRestore(client: OkHttpClient, payload: JSONObject): JSONObject {
+		val multipart = MultipartBody.Builder()
+			.setType(MultipartBody.FORM)
+			.addFormDataPart("file", "restore.json", payload.toString().toRequestBody(JSON_MEDIA_TYPE))
+			.build()
+		val request = Request.Builder()
+			.url("$baseUrl/data/restore")
+			.post(multipart)
+			.build()
+		return execute(client.newCall(request).execute()) { response ->
+			assertEquals(200, response.code)
+			assertSuccess(response)
 		}
 	}
 

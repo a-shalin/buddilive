@@ -211,9 +211,15 @@ class TransactionsViewModel(
 			result.fold(
 				onSuccess = { page ->
 					_state.update { current ->
+						val mergedTransactions = if (append) {
+							(current.transactions + page.items).distinctBy { it.id }
+						}
+						else {
+							page.items.distinctBy { it.id }
+						}
 						current.copy(
 							isLoading = false,
-							transactions = if (append) current.transactions + page.items else page.items,
+							transactions = mergedTransactions,
 							total = page.total,
 							error = null
 						)

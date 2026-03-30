@@ -7,7 +7,9 @@ import okhttp3.Response;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -285,6 +287,31 @@ public class TransactionsIT extends BaseIT {
 		assertThat(countUnhandledExceptions()).isEqualTo(unhandledExceptionsBefore);
 	}
 
+	@Test
+	@Order(8)
+	void testTransactionPagesDoNotOverlap() throws Exception {
+		final String suffix = String.valueOf(System.currentTimeMillis());
+		final int pagedAccountId = helper.createAccount(client, "Paging Account " + suffix, "D", "Chequing", "0.00");
+		for (int i = 0; i < 205; i++) {
+			helper.createTransaction(client, "Paging Tx " + suffix + " #" + i, "2024-03-20", pagedAccountId, categoryId, "1.00");
+		}
+
+		final JSONObject firstPage = helper.getJson(client, "/data/transactions?source=" + pagedAccountId + "&start=0&limit=100");
+		final JSONObject secondPage = helper.getJson(client, "/data/transactions?source=" + pagedAccountId + "&start=100&limit=100");
+
+		assertThat(firstPage.getBoolean("success")).isTrue();
+		assertThat(secondPage.getBoolean("success")).isTrue();
+		assertThat(firstPage.getInt("total")).isEqualTo(205);
+		assertThat(secondPage.getInt("total")).isEqualTo(205);
+		assertThat(firstPage.getJSONArray("data").length()).isEqualTo(100);
+		assertThat(secondPage.getJSONArray("data").length()).isEqualTo(100);
+
+		final Set<Long> firstPageIds = extractTransactionIds(firstPage.getJSONArray("data"));
+		final Set<Long> secondPageIds = extractTransactionIds(secondPage.getJSONArray("data"));
+		firstPageIds.retainAll(secondPageIds);
+		assertThat(firstPageIds).as("Transaction IDs should not overlap across pages").isEmpty();
+	}
+
 	private static int countUnhandledExceptions() {
 		int count = 0;
 		synchronized (globalExceptionLogRecords) {
@@ -295,5 +322,13 @@ public class TransactionsIT extends BaseIT {
 			}
 		}
 		return count;
+	}
+
+	private static Set<Long> extractTransactionIds(final JSONArray data) {
+		final Set<Long> ids = new HashSet<>();
+		for (int i = 0; i < data.length(); i++) {
+			ids.add(data.getJSONObject(i).getLong("id"));
+		}
+		return ids;
 	}
 }

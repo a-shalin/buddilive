@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,13 +57,22 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.autofill.AutofillNode
+import androidx.compose.ui.autofill.AutofillType
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalAutofill
+import androidx.compose.ui.platform.LocalAutofillTree
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
@@ -301,6 +312,7 @@ fun BuddiMobileApp(repository: BuddiRepository) {
 }
 
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 private fun LoginScreen(
 	modifier: Modifier,
 	repository: BuddiRepository,
@@ -309,6 +321,29 @@ private fun LoginScreen(
 ) {
 	val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(repository))
 	val state by viewModel.state.collectAsStateWithLifecycle()
+	val autofill = LocalAutofill.current
+	val autofillTree = LocalAutofillTree.current
+	val identifierAutofillNode = remember {
+		AutofillNode(
+			autofillTypes = listOf(AutofillType.Username, AutofillType.EmailAddress),
+			onFill = viewModel::onIdentifierChanged
+		)
+	}
+	val passwordAutofillNode = remember {
+		AutofillNode(
+			autofillTypes = listOf(AutofillType.Password),
+			onFill = viewModel::onPasswordChanged
+		)
+	}
+
+	DisposableEffect(identifierAutofillNode, autofillTree) {
+		autofillTree += identifierAutofillNode
+		onDispose {}
+	}
+	DisposableEffect(passwordAutofillNode, autofillTree) {
+		autofillTree += passwordAutofillNode
+		onDispose {}
+	}
 
 	Column(
 		modifier = modifier
@@ -320,19 +355,53 @@ private fun LoginScreen(
 		Spacer(modifier = Modifier.height(16.dp))
 
 		OutlinedTextField(
-			modifier = Modifier.fillMaxWidth(),
+			modifier = Modifier
+				.fillMaxWidth()
+				.onGloballyPositioned { coordinates ->
+					identifierAutofillNode.boundingBox = coordinates.boundsInWindow()
+				}
+				.onFocusChanged { focusState ->
+					if (focusState.isFocused) {
+						autofill?.requestAutofillForNode(identifierAutofillNode)
+					}
+					else {
+						autofill?.cancelAutofillForNode(identifierAutofillNode)
+					}
+				},
 			value = state.identifier,
 			onValueChange = viewModel::onIdentifierChanged,
 			label = { Text("Email / Username") },
+			keyboardOptions = KeyboardOptions(
+				keyboardType = KeyboardType.Email,
+				autoCorrectEnabled = false,
+				imeAction = ImeAction.Next
+			),
 			singleLine = true
 		)
 		Spacer(modifier = Modifier.height(8.dp))
 		OutlinedTextField(
-			modifier = Modifier.fillMaxWidth(),
+			modifier = Modifier
+				.fillMaxWidth()
+				.onGloballyPositioned { coordinates ->
+					passwordAutofillNode.boundingBox = coordinates.boundsInWindow()
+				}
+				.onFocusChanged { focusState ->
+					if (focusState.isFocused) {
+						autofill?.requestAutofillForNode(passwordAutofillNode)
+					}
+					else {
+						autofill?.cancelAutofillForNode(passwordAutofillNode)
+					}
+				},
 			value = state.password,
 			onValueChange = viewModel::onPasswordChanged,
 			label = { Text("Password") },
 			visualTransformation = PasswordVisualTransformation(),
+			keyboardOptions = KeyboardOptions(
+				keyboardType = KeyboardType.Password,
+				autoCorrectEnabled = false,
+				imeAction = ImeAction.Done
+			),
 			singleLine = true
 		)
 		Spacer(modifier = Modifier.height(16.dp))
@@ -567,7 +636,9 @@ private fun TransactionsScreen(
 				}
 
 					LazyColumn(
-						modifier = Modifier.weight(1f, fill = true),
+						modifier = Modifier
+							.weight(1f, fill = true)
+							.testTag("transactionsList"),
 						verticalArrangement = Arrangement.spacedBy(8.dp)
 					) {
 						items(state.transactions, key = { it.id }) { transaction ->
