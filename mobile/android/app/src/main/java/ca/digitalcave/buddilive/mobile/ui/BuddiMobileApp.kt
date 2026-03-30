@@ -18,10 +18,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -374,15 +376,15 @@ private fun AccountsScreen(
 	Scaffold(
 		modifier = modifier.fillMaxSize(),
 		topBar = {
-			TopAppBar(
-				title = { Text("Accounts") },
-				actions = {
-					TextButton(onClick = viewModel::refresh) {
-						Text("Refresh")
+				TopAppBar(
+					title = { Text("Accounts") },
+					actions = {
+						IconButton(onClick = viewModel::refresh) {
+							Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+						}
 					}
-				}
-			)
-		}
+				)
+			}
 	) { paddingValues ->
 		Column(
 			modifier = Modifier
@@ -513,14 +515,14 @@ private fun TransactionsScreen(
 						}
 					},
 					actions = {
-						TextButton(onClick = {
+						IconButton(onClick = {
 							editingTransaction = null
 							showEditor = true
 						}) {
-							Text("New")
+							Icon(Icons.Filled.Add, contentDescription = "New")
 						}
-						TextButton(onClick = viewModel::refresh) {
-							Text("Refresh")
+						IconButton(onClick = viewModel::refresh) {
+							Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
 						}
 					}
 				)
