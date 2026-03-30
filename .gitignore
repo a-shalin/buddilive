@@ -10,3 +10,4 @@
 /.env
 /ansible/inventory/production.ini
 /buddilive-data/
+/.idea/
