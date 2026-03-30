@@ -3,7 +3,11 @@ package ca.digitalcave.buddilive.mobile.ui
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.net.Uri
+import android.os.SystemClock
+import android.view.ViewConfiguration
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +50,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,8 +58,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
@@ -629,14 +636,61 @@ private fun TransactionsScreen(
 }
 
 data class TransactionFormState(
-	val dateIso: String,
-	val description: String,
-	val number: String,
-	val amount: String,
+	val dateIso: TextFieldValue,
+	val description: TextFieldValue,
+	val number: TextFieldValue,
+	val amount: TextFieldValue,
 	val fromId: Int?,
 	val toId: Int?,
-	val memo: String
+	val memo: TextFieldValue
 )
+
+private fun toTextFieldValue(text: String): TextFieldValue {
+	return TextFieldValue(text = text, selection = TextRange(text.length))
+}
+
+@Composable
+private fun DoubleTapSelectAllOutlinedTextField(
+	modifier: Modifier = Modifier,
+	value: TextFieldValue,
+	onValueChange: (TextFieldValue) -> Unit,
+	label: @Composable (() -> Unit)? = null,
+	singleLine: Boolean = false,
+	isError: Boolean = false,
+	supportingText: @Composable (() -> Unit)? = null,
+	trailingIcon: @Composable (() -> Unit)? = null
+) {
+	val interactionSource = remember { MutableInteractionSource() }
+	val latestValue by rememberUpdatedState(value)
+	val latestOnValueChange by rememberUpdatedState(onValueChange)
+	val doubleTapTimeoutMillis = remember { ViewConfiguration.getDoubleTapTimeout().toLong() }
+	var lastTapTimestamp by remember { mutableStateOf(0L) }
+
+	LaunchedEffect(interactionSource) {
+		interactionSource.interactions.collect { interaction ->
+			if (interaction !is PressInteraction.Release) {
+				return@collect
+			}
+			val now = SystemClock.uptimeMillis()
+			if (now - lastTapTimestamp <= doubleTapTimeoutMillis && latestValue.text.isNotEmpty()) {
+				latestOnValueChange(latestValue.copy(selection = TextRange(0, latestValue.text.length)))
+			}
+			lastTapTimestamp = now
+		}
+	}
+
+	OutlinedTextField(
+		modifier = modifier,
+		value = value,
+		onValueChange = onValueChange,
+		label = label,
+		singleLine = singleLine,
+		isError = isError,
+		supportingText = supportingText,
+		trailingIcon = trailingIcon,
+		interactionSource = interactionSource
+	)
+}
 
 private fun selectTemplateSplit(
 	template: TransactionDescriptionTemplate,
@@ -691,11 +745,11 @@ private fun applyDescriptionTemplate(
 	amountFormat: AmountFormat
 ): TransactionFormState {
 	val templateSplit = selectTemplateSplit(template, selectedAccountId)
-		?: return currentState.copy(description = template.description)
+		?: return currentState.copy(description = toTextFieldValue(template.description))
 	val (fromId, toId) = resolveTemplateSourceIds(currentState, templateSplit, selectedAccountId)
 	return currentState.copy(
-		description = template.description,
-		amount = formatAmountForInput(templateSplit.amountNumber, amountFormat),
+		description = toTextFieldValue(template.description),
+		amount = toTextFieldValue(formatAmountForInput(templateSplit.amountNumber, amountFormat)),
 		fromId = fromId,
 		toId = toId
 	)
@@ -736,13 +790,13 @@ private fun TransactionEditorScreen(
 			?: toSources.firstOrNull()?.id
 		mutableStateOf(
 			TransactionFormState(
-				dateIso = existing?.dateIso?.let { formatIsoDateForInput(it, inputDateFormatter) } ?: defaultDate,
-				description = existing?.description.orEmpty(),
-				number = existing?.number.orEmpty(),
-				amount = existing?.split?.amountNumber?.let { formatAmountForInput(it, amountFormat) }.orEmpty(),
+				dateIso = toTextFieldValue(existing?.dateIso?.let { formatIsoDateForInput(it, inputDateFormatter) } ?: defaultDate),
+				description = toTextFieldValue(existing?.description.orEmpty()),
+				number = toTextFieldValue(existing?.number.orEmpty()),
+				amount = toTextFieldValue(existing?.split?.amountNumber?.let { formatAmountForInput(it, amountFormat) }.orEmpty()),
 				fromId = initialFromId,
 				toId = initialToId,
-				memo = existing?.split?.memo.orEmpty()
+				memo = toTextFieldValue(existing?.split?.memo.orEmpty())
 			)
 		)
 	}
@@ -750,8 +804,8 @@ private fun TransactionEditorScreen(
 	var showDescriptionSuggestions by remember(existing) { mutableStateOf(false) }
 	var showDeleteConfirmation by remember(existing) { mutableStateOf(false) }
 
-	val filteredDescriptionTemplates = remember(descriptionTemplates, state.description) {
-		val query = state.description.trim()
+	val filteredDescriptionTemplates = remember(descriptionTemplates, state.description.text) {
+		val query = state.description.text.trim()
 		if (query.isBlank()) {
 			emptyList()
 		}
@@ -763,14 +817,14 @@ private fun TransactionEditorScreen(
 		}
 	}
 
-	val selectedDate = parseInputDate(state.dateIso, inputDateFormatter)
-	val parsedAmount = parseAmountInput(state.amount, amountFormat)
+	val selectedDate = parseInputDate(state.dateIso.text, inputDateFormatter)
+	val parsedAmount = parseAmountInput(state.amount.text, amountFormat)
 	val isDateValid = selectedDate != null
-	val isDateInvalid = state.dateIso.isNotBlank() && !isDateValid
-	val isAmountInvalid = state.amount.isNotBlank() && parsedAmount == null
+	val isDateInvalid = state.dateIso.text.isNotBlank() && !isDateValid
+	val isAmountInvalid = state.amount.text.isNotBlank() && parsedAmount == null
 	val isValid = isDateValid
-		&& state.description.isNotBlank()
-		&& state.amount.isNotBlank()
+		&& state.description.text.isNotBlank()
+		&& state.amount.text.isNotBlank()
 		&& state.fromId != null
 		&& state.toId != null
 		&& state.fromId != state.toId
@@ -805,12 +859,12 @@ private fun TransactionEditorScreen(
 						onClick = {
 							val input = TransactionEditInput(
 								dateIso = selectedDate?.format(isoDateFormatter) ?: return@IconButton,
-								description = state.description.trim(),
-								number = state.number.trim(),
+								description = state.description.text.trim(),
+								number = state.number.text.trim(),
 								amount = parsedAmount?.toPlainString() ?: return@IconButton,
 								fromId = state.fromId ?: return@IconButton,
 								toId = state.toId ?: return@IconButton,
-								memo = state.memo.trim()
+								memo = state.memo.text.trim()
 							)
 							onSave(input)
 						},
@@ -830,7 +884,7 @@ private fun TransactionEditorScreen(
 				.verticalScroll(scrollState),
 			verticalArrangement = Arrangement.spacedBy(8.dp)
 		) {
-			OutlinedTextField(
+			DoubleTapSelectAllOutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorDate"),
@@ -852,7 +906,7 @@ private fun TransactionEditorScreen(
 								context,
 								{ _, year, month, dayOfMonth ->
 									state = state.copy(
-										dateIso = LocalDate.of(year, month + 1, dayOfMonth).format(inputDateFormatter)
+										dateIso = toTextFieldValue(LocalDate.of(year, month + 1, dayOfMonth).format(inputDateFormatter))
 									)
 								},
 								pickerDate.year,
@@ -866,7 +920,7 @@ private fun TransactionEditorScreen(
 				}
 			)
 			Box(modifier = Modifier.fillMaxWidth()) {
-				OutlinedTextField(
+				DoubleTapSelectAllOutlinedTextField(
 					modifier = Modifier
 						.fillMaxWidth()
 						.testTag("transactionEditorDescription")
@@ -875,8 +929,8 @@ private fun TransactionEditorScreen(
 							showDescriptionSuggestions = focusState.isFocused
 						},
 					value = state.description,
-					onValueChange = {
-						state = state.copy(description = it)
+					onValueChange = { value ->
+						state = state.copy(description = value)
 						showDescriptionSuggestions = true
 					},
 					label = { Text("Description") },
@@ -903,7 +957,7 @@ private fun TransactionEditorScreen(
 					}
 				}
 			}
-			OutlinedTextField(
+			DoubleTapSelectAllOutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorNumber"),
@@ -912,7 +966,7 @@ private fun TransactionEditorScreen(
 				label = { Text("Number") },
 				singleLine = true
 			)
-			OutlinedTextField(
+			DoubleTapSelectAllOutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorAmount"),
@@ -941,7 +995,7 @@ private fun TransactionEditorScreen(
 				selectedId = state.toId,
 				onSelect = { state = state.copy(toId = it) }
 			)
-			OutlinedTextField(
+			DoubleTapSelectAllOutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorMemo"),
