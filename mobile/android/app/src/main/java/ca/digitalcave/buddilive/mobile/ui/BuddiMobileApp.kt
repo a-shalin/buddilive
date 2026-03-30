@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -552,29 +553,60 @@ private fun TransactionsScreen(
 					Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
 				}
 
-				LazyColumn(
-					modifier = Modifier.weight(1f, fill = true),
-					verticalArrangement = Arrangement.spacedBy(8.dp)
-				) {
-					items(state.transactions, key = { it.id }) { transaction ->
-						Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-							Text(text = transaction.description, style = MaterialTheme.typography.titleMedium)
-							Text(text = transaction.dateIso, style = MaterialTheme.typography.bodySmall)
-							transaction.split?.let { split ->
-								Text(text = split.amountLabel, style = MaterialTheme.typography.bodyLarge)
-								Text(text = "${split.fromName} -> ${split.toName}", style = MaterialTheme.typography.bodyMedium)
-							}
-							Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-								IconButton(onClick = {
-									editingTransaction = transaction
-									showEditor = true
-								}) {
-									Icon(Icons.Filled.Edit, contentDescription = "Edit")
+					LazyColumn(
+						modifier = Modifier.weight(1f, fill = true),
+						verticalArrangement = Arrangement.spacedBy(8.dp)
+					) {
+						items(state.transactions, key = { it.id }) { transaction ->
+							Row(
+								modifier = Modifier
+									.fillMaxWidth()
+									.padding(12.dp),
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Column(
+									modifier = Modifier.weight(1f),
+									verticalArrangement = Arrangement.spacedBy(2.dp)
+								) {
+									Row(modifier = Modifier.fillMaxWidth()) {
+										Text(
+											text = transaction.description,
+											style = MaterialTheme.typography.titleMedium,
+											modifier = Modifier.weight(1f)
+										)
+										Text(
+											text = transaction.split?.amountLabel.orEmpty(),
+											style = MaterialTheme.typography.titleMedium,
+											textAlign = TextAlign.End
+										)
+									}
+									Row(modifier = Modifier.fillMaxWidth()) {
+										Text(
+											text = transaction.dateIso,
+											style = MaterialTheme.typography.bodySmall,
+											modifier = Modifier.weight(1f)
+										)
+										Text(
+											text = transaction.split?.let { "${it.fromName} -> ${it.toName}" }.orEmpty(),
+											style = MaterialTheme.typography.bodySmall,
+											textAlign = TextAlign.End
+										)
+									}
+								}
+								Box(
+									modifier = Modifier.padding(start = 12.dp),
+									contentAlignment = Alignment.Center
+								) {
+									IconButton(onClick = {
+										editingTransaction = transaction
+										showEditor = true
+									}) {
+										Icon(Icons.Filled.Edit, contentDescription = "Edit")
+									}
 								}
 							}
 						}
 					}
-				}
 
 				if (state.transactions.size < state.total) {
 					Button(
