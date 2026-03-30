@@ -15,9 +15,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,10 +83,41 @@ public class DescriptionsController {
 				catch (CryptoException e) {
 					throw new RuntimeException(e);
 				}
+				catch (Exception e) {
+					if (isClientAbort(e)) {
+						return;
+					}
+					if (e instanceof IOException ioException) {
+						throw ioException;
+					}
+					if (e instanceof RuntimeException runtimeException) {
+						throw runtimeException;
+					}
+					throw new RuntimeException(e);
+				}
 			};
 		}
 		catch (CryptoException e) {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
 		}
+	}
+
+	private static boolean isClientAbort(final Throwable exception) {
+		Throwable current = exception;
+		while (current != null) {
+			if (current instanceof AsyncRequestNotUsableException) {
+				return true;
+			}
+			if ("org.apache.catalina.connector.ClientAbortException".equals(current.getClass().getName())) {
+				return true;
+			}
+			if (current instanceof IOException ioException
+					&& ioException.getMessage() != null
+					&& ioException.getMessage().toLowerCase().contains("broken pipe")) {
+				return true;
+			}
+			current = current.getCause();
+		}
+		return false;
 	}
 }

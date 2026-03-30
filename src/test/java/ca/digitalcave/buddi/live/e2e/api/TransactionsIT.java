@@ -1,9 +1,23 @@
 package ca.digitalcave.buddi.live.e2e.api;
 
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
+import java.io.InterruptedIOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+
+import ca.digitalcave.buddi.live.controller.GlobalExceptionHandler;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -25,6 +39,9 @@ public class TransactionsIT extends BaseIT {
 	private static int accountId;
 	private static int account2Id;
 	private static int categoryId;
+	private static final Logger globalExceptionLogger = Logger.getLogger(GlobalExceptionHandler.class.getName());
+	private static final List<LogRecord> globalExceptionLogRecords = Collections.synchronizedList(new ArrayList<>());
+	private static Handler globalExceptionLogHandler;
 
 	@BeforeAll
 	static void setUp() throws Exception {
@@ -35,6 +52,29 @@ public class TransactionsIT extends BaseIT {
 		accountId = helper.createAccount(client, "Chequing", "D", "Chequing", "1000.00");
 		account2Id = helper.createAccount(client, "Savings", "D", "Savings", "5000.00");
 		categoryId = helper.createCategory(client, "Food", "E", "MONTH");
+
+		globalExceptionLogHandler = new Handler() {
+			@Override
+			public void publish(final LogRecord record) {
+				globalExceptionLogRecords.add(record);
+			}
+
+			@Override
+			public void flush() {
+			}
+
+			@Override
+			public void close() {
+			}
+		};
+		globalExceptionLogger.addHandler(globalExceptionLogHandler);
+	}
+
+	@AfterAll
+	static void tearDown() {
+		if (globalExceptionLogHandler != null) {
+			globalExceptionLogger.removeHandler(globalExceptionLogHandler);
+		}
 	}
 
 	@Test
@@ -209,5 +249,51 @@ public class TransactionsIT extends BaseIT {
 		final JSONObject transaction = found.getJSONObject("transaction");
 		assertThat(transaction.getString("description")).isEqualTo(description);
 		assertThat(transaction.getJSONArray("splits").length()).isGreaterThan(0);
+	}
+
+	@Test
+	@Order(7)
+	void testDescriptionsEndpointStillWorksAfterEarlyClientClose() throws Exception {
+		for (int i = 0; i < 300; i++) {
+			helper.createTransaction(client, "Descriptions Abort " + i + " " + "x".repeat(256), "2024-03-20", accountId, categoryId, "1.00");
+		}
+
+		final int unhandledExceptionsBefore = countUnhandledExceptions();
+		final Request request = new Request.Builder()
+			.url(getBaseUrl() + "/data/transactions/descriptions")
+			.header("Accept-Encoding", "gzip")
+			.get()
+			.build();
+
+		final OkHttpClient abortClient = client.newBuilder()
+			.readTimeout(1, TimeUnit.MILLISECONDS)
+			.build();
+
+		for (int i = 0; i < 25; i++) {
+			try (Response response = abortClient.newCall(request).execute()) {
+				if (response.body() != null) {
+					response.body().byteStream().readNBytes(64);
+				}
+			}
+			catch (InterruptedIOException ignored) {
+			}
+		}
+
+		final JSONObject descriptions = helper.getJson(client, "/data/transactions/descriptions");
+		assertThat(descriptions.getBoolean("success")).isTrue();
+		assertThat(descriptions.getJSONArray("data").length()).isGreaterThan(0);
+		assertThat(countUnhandledExceptions()).isEqualTo(unhandledExceptionsBefore);
+	}
+
+	private static int countUnhandledExceptions() {
+		int count = 0;
+		synchronized (globalExceptionLogRecords) {
+			for (LogRecord record : globalExceptionLogRecords) {
+				if ("Unhandled exception".equals(record.getMessage()) && record.getLevel().intValue() >= Level.WARNING.intValue()) {
+					count++;
+				}
+			}
+		}
+		return count;
 	}
 }

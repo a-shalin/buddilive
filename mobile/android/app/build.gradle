@@ -25,9 +25,27 @@ def releaseDomainName = resolveProductionDomainName()
 def releaseBaseUrl = releaseDomainName != null ? "https://${releaseDomainName}/" : "https://missing-domain.invalid/"
 def autoVersionCode = (int) (System.currentTimeMillis() / 1000L)
 
+def androidKeystoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
+def androidKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+def androidKeystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+def androidKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+def hasReleaseSigningConfig = [androidKeystoreFile, androidKeyAlias, androidKeystorePassword, androidKeyPassword]
+	.every { it != null && !it.trim().isEmpty() }
+
 android {
 	namespace "ca.digitalcave.buddilive.mobile"
 	compileSdk 34
+
+	signingConfigs {
+		if (hasReleaseSigningConfig) {
+			release {
+				storeFile file(androidKeystoreFile)
+				storePassword androidKeystorePassword
+				keyAlias androidKeyAlias
+				keyPassword androidKeyPassword
+			}
+		}
+	}
 
 	defaultConfig {
 		applicationId "ca.digitalcave.buddilive.mobile"
@@ -45,6 +63,9 @@ android {
 			buildConfigField "String", "BASE_URL", "\"http://10.0.2.2:8080/\""
 		}
 		release {
+			if (hasReleaseSigningConfig) {
+				signingConfig signingConfigs.release
+			}
 			minifyEnabled false
 			proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
 			buildConfigField "String", "BASE_URL", "\"${releaseBaseUrl}\""
@@ -76,6 +97,17 @@ android {
 	}
 }
 
+tasks.register("validateReleaseSigning") {
+	doLast {
+		if (!hasReleaseSigningConfig) {
+			throw new GradleException("Missing Android release signing config. Set ANDROID_KEYSTORE_FILE, ANDROID_KEY_ALIAS, ANDROID_KEYSTORE_PASSWORD, and ANDROID_KEY_PASSWORD in environment.")
+		}
+		if (!file(androidKeystoreFile).exists()) {
+			throw new GradleException("Android keystore file not found: ${androidKeystoreFile}")
+		}
+	}
+}
+
 tasks.register("validateReleaseDomainName") {
 	doLast {
 		if (releaseDomainName == null) {
@@ -85,6 +117,7 @@ tasks.register("validateReleaseDomainName") {
 }
 
 tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+	dependsOn(tasks.named("validateReleaseSigning"))
 	dependsOn(tasks.named("validateReleaseDomainName"))
 }
 

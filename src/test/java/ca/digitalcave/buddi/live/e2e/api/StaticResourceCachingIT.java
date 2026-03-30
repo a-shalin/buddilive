@@ -51,6 +51,7 @@ public class StaticResourceCachingIT extends BaseIT {
 			assertThat(body).contains("/lib/extjs/charts.js?v=" + assetVersion);
 			assertThat(body).contains("/css/buddilive.css?v=" + assetVersion);
 			assertThat(body).contains("/authentication/app/Application.js?v=" + assetVersion);
+			assertThat(body).contains("/mobile/buddilive-android.apk?v=" + assetVersion);
 		}
 	}
 
