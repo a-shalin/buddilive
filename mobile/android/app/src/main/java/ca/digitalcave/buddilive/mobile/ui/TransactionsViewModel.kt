@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import ca.digitalcave.buddilive.mobile.data.BuddiRepository
 import ca.digitalcave.buddilive.mobile.data.SourceOption
+import ca.digitalcave.buddilive.mobile.data.TransactionDescriptionTemplate
 import ca.digitalcave.buddilive.mobile.data.TransactionEditInput
 import ca.digitalcave.buddilive.mobile.data.TransactionSummary
 import ca.digitalcave.buddilive.mobile.data.UnauthorizedException
@@ -22,6 +23,7 @@ data class TransactionsUiState(
 	val transactions: List<TransactionSummary> = emptyList(),
 	val total: Int = 0,
 	val error: String? = null,
+	val descriptionTemplates: List<TransactionDescriptionTemplate> = emptyList(),
 	val fromSources: List<SourceOption> = emptyList(),
 	val toSources: List<SourceOption> = emptyList(),
 	val dateFormat: String = "yyyy-MM-dd",
@@ -47,6 +49,7 @@ class TransactionsViewModel(
 
 	fun loadInitial() {
 		loadTransactions(start = 0, append = false)
+		loadDescriptionTemplates()
 		loadSources()
 		loadDatePreferences()
 	}
@@ -92,6 +95,7 @@ class TransactionsViewModel(
 			onSuccess = {
 				_state.update { it.copy(isMutating = false, error = null) }
 				refresh()
+				loadDescriptionTemplates()
 				onDone(true)
 			},
 			onFailure = { error ->
@@ -106,6 +110,26 @@ class TransactionsViewModel(
 				onDone(false)
 			}
 		)
+	}
+
+	private fun loadDescriptionTemplates() {
+		viewModelScope.launch {
+			val result = repository.fetchTransactionDescriptionTemplates()
+			result.fold(
+				onSuccess = { templates ->
+					_state.update { it.copy(descriptionTemplates = templates) }
+				},
+				onFailure = { error ->
+					val needsLogin = error is UnauthorizedException
+					_state.update {
+						it.copy(
+							error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Unable to load descriptions.",
+							needsLogin = needsLogin
+						)
+					}
+				}
+			)
+		}
 	}
 
 	private fun loadSources() {

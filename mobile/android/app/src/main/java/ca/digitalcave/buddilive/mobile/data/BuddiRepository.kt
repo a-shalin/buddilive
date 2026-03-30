@@ -36,6 +36,16 @@ class BuddiRepository(private val api: BuddiApi) {
 		}
 	}
 
+	suspend fun fetchTransactionDescriptionTemplates(): Result<List<TransactionDescriptionTemplate>> {
+		return runApi {
+			val response = api.getTransactionDescriptions()
+			if (!response.success) {
+				return@runApi Result.failure(IllegalStateException("Transaction descriptions request failed."))
+			}
+			Result.success(response.toTransactionDescriptionTemplates())
+		}
+	}
+
 	suspend fun fetchSources(direction: String): Result<List<SourceOption>> {
 		return runApi {
 			val response = api.getSources(direction)

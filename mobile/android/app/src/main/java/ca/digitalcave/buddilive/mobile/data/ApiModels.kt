@@ -26,6 +26,29 @@ data class SourcesResponseDto(
 	val data: List<SourceItemDto>
 )
 
+data class TransactionDescriptionsResponseDto(
+	val success: Boolean,
+	val data: List<TransactionDescriptionItemDto>
+)
+
+data class TransactionDescriptionItemDto(
+	val value: String?,
+	val transaction: TransactionDescriptionTransactionDto?
+)
+
+data class TransactionDescriptionTransactionDto(
+	val description: String?,
+	val splits: List<TransactionDescriptionSplitDto>?
+)
+
+data class TransactionDescriptionSplitDto(
+	val amountNumber: BigDecimal?,
+	val fromId: Int,
+	val toId: Int,
+	val fromType: String?,
+	val toType: String?
+)
+
 data class SourceItemDto(
 	val value: JsonElement?,
 	val text: String,
@@ -103,6 +126,19 @@ data class SourceOption(
 	val id: Int,
 	val label: String,
 	val type: String?
+)
+
+data class TransactionDescriptionTemplateSplit(
+	val amountNumber: BigDecimal,
+	val fromId: Int,
+	val toId: Int,
+	val fromType: String?,
+	val toType: String?
+)
+
+data class TransactionDescriptionTemplate(
+	val description: String,
+	val splits: List<TransactionDescriptionTemplateSplit>
 )
 
 data class TransactionSplitSummary(
@@ -190,6 +226,41 @@ fun SourcesResponseDto.toSourceOptions(): List<SourceOption> {
 			id = primitive.asInt,
 			label = item.text.replace('\u00a0', ' ').trim(),
 			type = item.type
+		)
+	}
+}
+
+fun TransactionDescriptionsResponseDto.toTransactionDescriptionTemplates(): List<TransactionDescriptionTemplate> {
+	return data.mapNotNull { item ->
+		val transaction = item.transaction ?: return@mapNotNull null
+		val description = item.value?.trim()
+			?.takeIf { it.isNotEmpty() }
+			?: transaction.description?.trim()?.takeIf { it.isNotEmpty() }
+			?: return@mapNotNull null
+
+		val splits = transaction.splits
+			?.mapNotNull { split ->
+				val amountNumber = split.amountNumber
+				if (amountNumber == null) {
+					null
+				}
+				else {
+					TransactionDescriptionTemplateSplit(
+						amountNumber = amountNumber,
+						fromId = split.fromId,
+						toId = split.toId,
+						fromType = split.fromType,
+						toType = split.toType
+					)
+				}
+			}
+			.orEmpty()
+		if (splits.isEmpty()) {
+			return@mapNotNull null
+		}
+		TransactionDescriptionTemplate(
+			description = description,
+			splits = splits
 		)
 	}
 }

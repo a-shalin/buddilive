@@ -53,8 +53,10 @@ class StandaloneBackendE2eTest {
 	private lateinit var reserveAccountName: String
 	private lateinit var transactionOneDescription: String
 	private lateinit var transactionTwoDescription: String
+	private lateinit var suggestionTemplateDescription: String
 	private lateinit var transactionOneNumber: String
 	private lateinit var transactionTwoNumber: String
+	private lateinit var suggestionTemplateNumber: String
 	private var primaryAccountId: Int = 0
 
 	@Before
@@ -69,8 +71,10 @@ class StandaloneBackendE2eTest {
 		reserveAccountName = "Android E2E Reserve $suffix"
 		transactionOneDescription = "Android E2E Groceries $suffix"
 		transactionTwoDescription = "Android E2E Transfer $suffix"
+		suggestionTemplateDescription = "Android E2E Suggestion Template $suffix"
 		transactionOneNumber = "ANDROID-E2E-1-$suffix"
 		transactionTwoNumber = "ANDROID-E2E-2-$suffix"
+		suggestionTemplateNumber = "ANDROID-E2E-TEMPLATE-$suffix"
 
 		backend.registerUser(email, password)
 		val apiClient = backend.login(email, password)
@@ -101,6 +105,15 @@ class StandaloneBackendE2eTest {
 			fromId = primaryAccountId,
 			toId = reserveAccountId,
 			amount = "40.00"
+		)
+		backend.createTransaction(
+			client = apiClient,
+			description = suggestionTemplateDescription,
+			number = suggestionTemplateNumber,
+			date = "2026-03-22",
+			fromId = secondaryAccountId,
+			toId = reserveAccountId,
+			amount = SUGGESTION_TEMPLATE_AMOUNT
 		)
 	}
 
@@ -249,6 +262,48 @@ class StandaloneBackendE2eTest {
 		)
 	}
 
+	@Test
+	fun descriptionSuggestionAutofillKeepsNumberAndMemo() {
+		loginAndOpenPrimaryAccountTransactions()
+		openNewTransactionEditor()
+
+		val manualNumber = "ANDROID-E2E-MANUAL-${System.currentTimeMillis()}"
+		val manualMemo = "Manual memo ${System.currentTimeMillis()}"
+		val lookupSubstring = suggestionTemplateDescription.substring(0, minOf(20, suggestionTemplateDescription.length))
+
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_NUMBER_TAG, useUnmergedTree = true)
+			.performTextReplacement(manualNumber)
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_MEMO_TAG, useUnmergedTree = true)
+			.performTextReplacement(manualMemo)
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_DESCRIPTION_TAG, useUnmergedTree = true)
+			.performTextInput(lookupSubstring)
+
+		assertEventuallyVisible(suggestionTemplateDescription)
+		composeTestRule.onNodeWithText(suggestionTemplateDescription).performClick()
+
+		assertEquals("Description suggestion should not overwrite Number.", manualNumber, currentEditorNumber())
+		assertEquals("Description suggestion should not overwrite Memo.", manualMemo, currentEditorMemo())
+
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_SAVE_TAG, useUnmergedTree = true)
+			.assertIsEnabled()
+			.performClick()
+
+		assertEventuallyVisible("Transactions: $primaryAccountName")
+		val apiClient = backend.login(email, password)
+		assertTrue(
+			"Saved transaction was not visible in selected account with expected amount.",
+			backend.hasTransactionAmountByNumber(apiClient, primaryAccountId.toLong(), manualNumber, SUGGESTION_TEMPLATE_AMOUNT)
+		)
+		assertTrue(
+			"Saved transaction memo was changed unexpectedly.",
+			backend.hasTransactionMemoByNumber(apiClient, primaryAccountId.toLong(), manualNumber, manualMemo)
+		)
+	}
+
 	private fun waitForLoginFields() {
 		composeTestRule.waitUntil(timeoutMillis = 20_000) {
 			composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
@@ -292,6 +347,15 @@ class StandaloneBackendE2eTest {
 		}
 	}
 
+	private fun openNewTransactionEditor() {
+		composeTestRule.onNode(hasContentDescription("New"), useUnmergedTree = true).performClick()
+		composeTestRule.waitUntil(timeoutMillis = 20_000) {
+			composeTestRule
+				.onAllNodesWithTag(TRANSACTION_EDITOR_DATE_TAG, useUnmergedTree = true)
+				.fetchSemanticsNodes().isNotEmpty()
+		}
+	}
+
 	private fun currentEditorNumber(): String {
 		val semanticsNode = composeTestRule
 			.onNodeWithTag(TRANSACTION_EDITOR_NUMBER_TAG, useUnmergedTree = true)
@@ -302,6 +366,13 @@ class StandaloneBackendE2eTest {
 	private fun currentEditorAmount(): String {
 		val semanticsNode = composeTestRule
 			.onNodeWithTag(TRANSACTION_EDITOR_AMOUNT_TAG, useUnmergedTree = true)
+			.fetchSemanticsNode()
+		return semanticsNode.config.getOrNull(SemanticsProperties.EditableText)?.text?.toString().orEmpty()
+	}
+
+	private fun currentEditorMemo(): String {
+		val semanticsNode = composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_MEMO_TAG, useUnmergedTree = true)
 			.fetchSemanticsNode()
 		return semanticsNode.config.getOrNull(SemanticsProperties.EditableText)?.text?.toString().orEmpty()
 	}
@@ -368,9 +439,11 @@ class StandaloneBackendE2eTest {
 		private const val TRANSACTION_EDITOR_DESCRIPTION_TAG = "transactionEditorDescription"
 		private const val TRANSACTION_EDITOR_NUMBER_TAG = "transactionEditorNumber"
 		private const val TRANSACTION_EDITOR_AMOUNT_TAG = "transactionEditorAmount"
+		private const val TRANSACTION_EDITOR_MEMO_TAG = "transactionEditorMemo"
 		private const val TRANSACTION_EDITOR_DELETE_TAG = "transactionEditorDelete"
 		private const val TRANSACTION_EDITOR_DELETE_CONFIRM_TAG = "transactionEditorDeleteConfirm"
 		private const val TRANSACTION_EDITOR_SAVE_TAG = "transactionEditorSave"
+		private const val SUGGESTION_TEMPLATE_AMOUNT = "88.88"
 	}
 }
 
@@ -507,6 +580,25 @@ private class BackendClient(private val baseUrl: String) {
 				val amountValue = split.opt("amountNumber")?.toString() ?: continue
 				val actualAmount = runCatching { BigDecimal(amountValue) }.getOrNull() ?: continue
 				if (actualAmount.compareTo(expectedAmount) == 0) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	fun hasTransactionMemoByNumber(client: OkHttpClient, sourceId: Long, number: String, memo: String): Boolean {
+		val response = getJson(client, "/data/transactions?source=$sourceId&start=0&limit=200")
+		val data = response.optJSONArray("data") ?: return false
+		for (index in 0 until data.length()) {
+			val transaction = data.optJSONObject(index) ?: continue
+			if (transaction.optString("number") != number) {
+				continue
+			}
+			val splits = transaction.optJSONArray("splits") ?: continue
+			for (splitIndex in 0 until splits.length()) {
+				val split = splits.optJSONObject(splitIndex) ?: continue
+				if (split.optString("memo") == memo) {
 					return true
 				}
 			}

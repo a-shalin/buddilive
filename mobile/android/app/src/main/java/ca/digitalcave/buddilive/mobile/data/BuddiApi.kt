@@ -33,6 +33,9 @@ interface BuddiApi {
 		@Query("search") search: String? = null
 	): TransactionsResponseDto
 
+	@GET("data/transactions/descriptions.json")
+	suspend fun getTransactionDescriptions(): TransactionDescriptionsResponseDto
+
 	@POST("data/transactions")
 	suspend fun mutateTransaction(@Body request: TransactionMutationRequestDto): SuccessResponseDto
 
