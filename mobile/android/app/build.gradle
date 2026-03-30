@@ -23,6 +23,7 @@ def resolveProductionDomainName = {
 
 def releaseDomainName = resolveProductionDomainName()
 def releaseBaseUrl = releaseDomainName != null ? "https://${releaseDomainName}/" : "https://missing-domain.invalid/"
+def autoVersionCode = (int) (System.currentTimeMillis() / 1000L)
 
 android {
 	namespace "ca.digitalcave.buddilive.mobile"
@@ -32,7 +33,7 @@ android {
 		applicationId "ca.digitalcave.buddilive.mobile"
 		minSdk 26
 		targetSdk 34
-		versionCode 1
+		versionCode autoVersionCode
 		versionName "0.1.0"
 		testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 	}
