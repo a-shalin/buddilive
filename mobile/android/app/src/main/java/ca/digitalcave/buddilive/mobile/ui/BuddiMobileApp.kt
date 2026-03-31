@@ -79,6 +79,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -542,6 +543,12 @@ private fun AccountsScreen(
 					}
 					if (isExpanded) {
 						items(accountType.accounts, key = { it.id }) { account ->
+							val deletedAccountTextDecoration = if (account.deleted) {
+								TextDecoration.LineThrough
+							}
+							else {
+								TextDecoration.None
+							}
 							Row(
 								modifier = Modifier
 									.fillMaxWidth()
@@ -552,11 +559,13 @@ private fun AccountsScreen(
 								Text(
 									text = account.name,
 									style = MaterialTheme.typography.titleMedium,
+									textDecoration = deletedAccountTextDecoration,
 									modifier = Modifier.weight(1f)
 								)
 								Text(
 									text = account.balance,
 									style = MaterialTheme.typography.titleMedium,
+									textDecoration = deletedAccountTextDecoration,
 									textAlign = TextAlign.End
 								)
 							}
