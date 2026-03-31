@@ -463,10 +463,6 @@ private fun AccountsScreen(
 		viewModel.refresh()
 	}
 
-	LaunchedEffect(state.overview.accountTypes) {
-		expandedTypes = state.overview.accountTypes.map { it.name }.toSet()
-	}
-
 	LaunchedEffect(state.needsLogin) {
 		if (state.needsLogin) {
 			onNeedsLogin()
