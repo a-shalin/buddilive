@@ -93,6 +93,7 @@ import ca.digitalcave.buddilive.mobile.data.TransactionSummary
 import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.text.NumberFormat
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -931,6 +932,19 @@ private fun TransactionEditorScreen(
 		}
 	}
 
+	LaunchedEffect(descriptionFieldFocused, state.description.text) {
+		if (!descriptionFieldFocused) {
+			showDescriptionSuggestions = false
+			return@LaunchedEffect
+		}
+		showDescriptionSuggestions = false
+		if (state.description.text.isBlank()) {
+			return@LaunchedEffect
+		}
+		delay(1000)
+		showDescriptionSuggestions = true
+	}
+
 	val selectedDate = parseInputDate(state.dateIso.text, inputDateFormatter)
 	val parsedAmount = parseAmountInput(state.amount.text, amountFormat)
 	val isDateValid = selectedDate != null
@@ -1040,13 +1054,11 @@ private fun TransactionEditorScreen(
 						.testTag("transactionEditorDescription")
 						.onFocusChanged { focusState ->
 							descriptionFieldFocused = focusState.isFocused
-							showDescriptionSuggestions = focusState.isFocused
 						},
-					value = state.description,
-					onValueChange = { value ->
-						state = state.copy(description = value)
-						showDescriptionSuggestions = true
-					},
+						value = state.description,
+						onValueChange = { value ->
+							state = state.copy(description = value)
+						},
 					label = { Text("Description") },
 					singleLine = true
 				)
