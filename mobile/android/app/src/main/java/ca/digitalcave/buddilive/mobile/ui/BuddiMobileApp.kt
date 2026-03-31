@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
@@ -1010,7 +1011,7 @@ private fun TransactionEditorScreen(
 					}
 				},
 				trailingIcon = {
-					TextButton(
+					IconButton(
 						onClick = {
 							val pickerDate = selectedDate ?: LocalDate.now()
 							DatePickerDialog(
@@ -1026,7 +1027,7 @@ private fun TransactionEditorScreen(
 							).show()
 						}
 					) {
-						Text("Pick")
+						Icon(Icons.Filled.DateRange, contentDescription = "Pick date")
 					}
 				}
 			)
