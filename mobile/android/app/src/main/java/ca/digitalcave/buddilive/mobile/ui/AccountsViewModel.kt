@@ -3,7 +3,7 @@ package ca.digitalcave.buddilive.mobile.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import ca.digitalcave.buddilive.mobile.data.AccountSummary
+import ca.digitalcave.buddilive.mobile.data.AccountsOverview
 import ca.digitalcave.buddilive.mobile.data.BuddiRepository
 import ca.digitalcave.buddilive.mobile.data.UnauthorizedException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +14,10 @@ import kotlinx.coroutines.launch
 
 data class AccountsUiState(
 	val isLoading: Boolean = false,
-	val accounts: List<AccountSummary> = emptyList(),
+	val overview: AccountsOverview = AccountsOverview(
+		accountTypes = emptyList(),
+		netWorth = null
+	),
 	val error: String? = null,
 	val needsLogin: Boolean = false
 )
@@ -27,10 +30,10 @@ class AccountsViewModel(private val repository: BuddiRepository) : ViewModel() {
 	fun refresh() {
 		viewModelScope.launch {
 			_state.update { it.copy(isLoading = true, error = null, needsLogin = false) }
-			val result = repository.fetchAccounts()
+			val result = repository.fetchAccountsOverview()
 			result.fold(
-				onSuccess = { accounts ->
-					_state.update { it.copy(isLoading = false, accounts = accounts, error = null) }
+				onSuccess = { overview ->
+					_state.update { it.copy(isLoading = false, overview = overview, error = null) }
 				},
 				onFailure = { error ->
 					val needsLogin = error is UnauthorizedException
@@ -56,4 +59,3 @@ class AccountsViewModelFactory(private val repository: BuddiRepository) : ViewMo
 		throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
 	}
 }
-

@@ -229,7 +229,7 @@ class StandaloneBackendE2eTest {
 		assertEventuallyVisible(expectedAccountBalance)
 
 		composeTestRule.onNodeWithText(primaryAccountName).performClick()
-		assertEventuallyVisible("Transactions: $primaryAccountName")
+		assertEventuallyVisible("Transactions")
 		assertEventuallyVisible(transactionOneDescription)
 		assertEventuallyVisible(expectedTransactionAmount)
 
@@ -256,7 +256,7 @@ class StandaloneBackendE2eTest {
 			.onNodeWithTag(TRANSACTION_EDITOR_DELETE_CONFIRM_TAG, useUnmergedTree = true)
 			.performClick()
 
-		assertEventuallyVisible("Transactions: $primaryAccountName")
+		assertEventuallyVisible("Transactions")
 		assertEventuallyTagNotVisible(TRANSACTION_EDITOR_DATE_TAG)
 
 		val apiClient = backend.login(email, password)
@@ -296,7 +296,7 @@ class StandaloneBackendE2eTest {
 			.assertIsEnabled()
 			.performClick()
 
-		assertEventuallyVisible("Transactions: $primaryAccountName")
+		assertEventuallyVisible("Transactions")
 		val apiClient = backend.login(email, password)
 		assertTrue(
 			"Saved transaction was not visible in selected account with expected amount.",
@@ -345,7 +345,7 @@ class StandaloneBackendE2eTest {
 		loginToAccountsScreen()
 
 		composeTestRule.onNodeWithText(primaryAccountName).performClick()
-		assertEventuallyVisible("Transactions: $primaryAccountName")
+		assertEventuallyVisible("Transactions")
 	}
 
 	private fun loginToAccountsScreen() {

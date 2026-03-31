@@ -122,6 +122,22 @@ data class AccountSummary(
 	val deleted: Boolean
 )
 
+data class AccountTypeSummary(
+	val name: String,
+	val balance: String,
+	val accounts: List<AccountSummary>
+)
+
+data class NetWorthSummary(
+	val label: String,
+	val balance: String
+)
+
+data class AccountsOverview(
+	val accountTypes: List<AccountTypeSummary>,
+	val netWorth: NetWorthSummary?
+)
+
 data class SourceOption(
 	val id: Int?,
 	val label: String,
@@ -195,6 +211,56 @@ fun AccountsResponseDto.toAccountSummaries(): List<AccountSummary> {
 		collectAccountNodes(child, accounts)
 	}
 	return accounts.sortedBy { it.name.lowercase() }
+}
+
+fun AccountsResponseDto.toAccountsOverview(): AccountsOverview {
+	val accountTypes = mutableListOf<AccountTypeSummary>()
+	var netWorth: NetWorthSummary? = null
+
+	for (child in children) {
+		val nodeType = child.getAsJsonPrimitive("nodeType")?.asString
+		if (nodeType == "type") {
+			val typeName = child.getAsJsonPrimitive("name")?.asString?.trim().orEmpty()
+			if (typeName.isBlank()) {
+				continue
+			}
+			val typeBalance = child.getAsJsonPrimitive("balance")?.asString ?: ""
+			val accounts = mutableListOf<AccountSummary>()
+			val typeChildren = child.getAsJsonArray("children")
+			if (typeChildren != null) {
+				for (typeChild in typeChildren) {
+					if (typeChild.isJsonObject) {
+						collectAccountNodes(typeChild.asJsonObject, accounts)
+					}
+				}
+			}
+			val sortedAccounts = accounts.sortedBy { it.name.lowercase() }
+			if (sortedAccounts.isNotEmpty()) {
+				accountTypes.add(
+					AccountTypeSummary(
+						name = typeName,
+						balance = typeBalance,
+						accounts = sortedAccounts
+					)
+				)
+			}
+			continue
+		}
+
+		val netWorthLabel = child.getAsJsonPrimitive("name")?.asString?.trim().orEmpty()
+		val netWorthBalance = child.getAsJsonPrimitive("balance")?.asString ?: ""
+		if (netWorthLabel.isNotBlank() && netWorthBalance.isNotBlank()) {
+			netWorth = NetWorthSummary(
+				label = netWorthLabel,
+				balance = netWorthBalance
+			)
+		}
+	}
+
+	return AccountsOverview(
+		accountTypes = accountTypes,
+		netWorth = netWorth
+	)
 }
 
 private fun collectAccountNodes(node: JsonObject, output: MutableList<AccountSummary>) {

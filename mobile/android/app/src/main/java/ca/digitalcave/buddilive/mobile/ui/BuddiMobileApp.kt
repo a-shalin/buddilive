@@ -26,9 +26,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -454,9 +456,14 @@ private fun AccountsScreen(
 ) {
 	val viewModel: AccountsViewModel = viewModel(factory = AccountsViewModelFactory(repository))
 	val state by viewModel.state.collectAsStateWithLifecycle()
+	var expandedTypes by rememberSaveable { mutableStateOf(setOf<String>()) }
 
 	LaunchedEffect(Unit) {
 		viewModel.refresh()
+	}
+
+	LaunchedEffect(state.overview.accountTypes) {
+		expandedTypes = state.overview.accountTypes.map { it.name }.toSet()
 	}
 
 	LaunchedEffect(state.needsLogin) {
@@ -468,15 +475,15 @@ private fun AccountsScreen(
 	Scaffold(
 		modifier = modifier.fillMaxSize(),
 		topBar = {
-				TopAppBar(
-					title = { Text("Accounts") },
-					actions = {
-						IconButton(onClick = viewModel::refresh) {
-							Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
-						}
+			TopAppBar(
+				title = { Text("Accounts") },
+				actions = {
+					IconButton(onClick = viewModel::refresh) {
+						Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
 					}
-				)
-			}
+				}
+			)
+		}
 	) { paddingValues ->
 		Column(
 			modifier = Modifier
@@ -484,7 +491,7 @@ private fun AccountsScreen(
 				.padding(paddingValues)
 				.padding(12.dp)
 		) {
-			if (state.isLoading && state.accounts.isEmpty()) {
+			if (state.isLoading && state.overview.accountTypes.isEmpty()) {
 				CircularProgressIndicator()
 			}
 
@@ -492,28 +499,94 @@ private fun AccountsScreen(
 				Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
 			}
 
-				LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-					items(state.accounts, key = { it.id }) { account ->
+			LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+				for (accountType in state.overview.accountTypes) {
+					val typeName = accountType.name
+					val isExpanded = expandedTypes.contains(typeName)
+					item(key = "type-$typeName") {
 						Row(
 							modifier = Modifier
 								.fillMaxWidth()
-								.clickable { onAccountSelected(account) }
+								.clickable {
+									expandedTypes = if (isExpanded) {
+										expandedTypes - typeName
+									}
+									else {
+										expandedTypes + typeName
+									}
+								}
+								.padding(12.dp),
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							Row(
+								modifier = Modifier.weight(1f),
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Icon(
+									imageVector = if (isExpanded) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight,
+									contentDescription = null
+								)
+								Text(
+									text = accountType.name,
+									style = MaterialTheme.typography.titleMedium,
+									fontWeight = FontWeight.Bold
+								)
+							}
+							Text(
+								text = accountType.balance,
+								style = MaterialTheme.typography.titleMedium,
+								fontWeight = FontWeight.Bold,
+								textAlign = TextAlign.End
+							)
+						}
+					}
+					if (isExpanded) {
+						items(accountType.accounts, key = { it.id }) { account ->
+							Row(
+								modifier = Modifier
+									.fillMaxWidth()
+									.clickable { onAccountSelected(account) }
+									.padding(start = 36.dp, top = 12.dp, end = 12.dp, bottom = 12.dp),
+								horizontalArrangement = Arrangement.SpaceBetween
+							) {
+								Text(
+									text = account.name,
+									style = MaterialTheme.typography.titleMedium,
+									modifier = Modifier.weight(1f)
+								)
+								Text(
+									text = account.balance,
+									style = MaterialTheme.typography.titleMedium,
+									textAlign = TextAlign.End
+								)
+							}
+						}
+					}
+				}
+				state.overview.netWorth?.let { netWorth ->
+					item(key = "net-worth") {
+						Row(
+							modifier = Modifier
+								.fillMaxWidth()
 								.padding(12.dp),
 							horizontalArrangement = Arrangement.SpaceBetween
 						) {
 							Text(
-								text = account.name,
+								text = netWorth.label,
 								style = MaterialTheme.typography.titleMedium,
+								fontWeight = FontWeight.Bold,
 								modifier = Modifier.weight(1f)
 							)
 							Text(
-								text = account.balance,
+								text = netWorth.balance,
 								style = MaterialTheme.typography.titleMedium,
+								fontWeight = FontWeight.Bold,
 								textAlign = TextAlign.End
 							)
 						}
 					}
 				}
+			}
 		}
 	}
 }

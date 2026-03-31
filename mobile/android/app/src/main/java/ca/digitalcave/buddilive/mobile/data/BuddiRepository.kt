@@ -26,6 +26,16 @@ class BuddiRepository(private val api: BuddiApi) {
 		}
 	}
 
+	suspend fun fetchAccountsOverview(): Result<AccountsOverview> {
+		return runApi {
+			val response = api.getAccounts()
+			if (!response.success) {
+				return@runApi Result.failure(IllegalStateException("Accounts request failed."))
+			}
+			Result.success(response.toAccountsOverview())
+		}
+	}
+
 	suspend fun fetchTransactions(sourceId: Long, start: Int, limit: Int): Result<TransactionsPage> {
 		return runApi {
 			val response = api.getTransactions(sourceId = sourceId, start = start, limit = limit)
