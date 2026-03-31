@@ -640,6 +640,7 @@ private fun TransactionsScreen(
 
 	var editingTransaction by remember { mutableStateOf<TransactionSummary?>(null) }
 	var showEditor by remember { mutableStateOf(false) }
+	var lastTransactionDateIso by rememberSaveable(accountId) { mutableStateOf<String?>(null) }
 
 	LaunchedEffect(accountId) {
 		viewModel.loadInitial()
@@ -661,12 +662,16 @@ private fun TransactionsScreen(
 			descriptionTemplates = state.descriptionTemplates,
 			dateFormat = state.dateFormat,
 			amountFormat = amountFormat,
+			preferredNewDateIso = lastTransactionDateIso,
+			isMutating = state.isMutating,
 			onBack = { showEditor = false },
 			onSave = { input ->
 				val existingId = editingTransaction?.id
 				if (existingId == null) {
 					viewModel.createTransaction(input) { success ->
 						if (success) {
+							lastTransactionDateIso = input.dateIso
+							editingTransaction = null
 							showEditor = false
 						}
 					}
@@ -674,6 +679,7 @@ private fun TransactionsScreen(
 				else {
 					viewModel.updateTransaction(existingId, input) { success ->
 						if (success) {
+							lastTransactionDateIso = input.dateIso
 							showEditor = false
 						}
 					}
@@ -981,6 +987,8 @@ private fun TransactionEditorScreen(
 	descriptionTemplates: List<TransactionDescriptionTemplate>,
 	dateFormat: String,
 	amountFormat: AmountFormat,
+	preferredNewDateIso: String?,
+	isMutating: Boolean,
 	onBack: () -> Unit,
 	onSave: (TransactionEditInput) -> Unit,
 	onDelete: (Long) -> Unit
@@ -989,7 +997,6 @@ private fun TransactionEditorScreen(
 	val inputDateFormatter = remember(dateFormat, amountFormat.localeTag) {
 		createInputDateFormatter(dateFormat, amountFormat.localeTag)
 	}
-	val defaultDate = remember(inputDateFormatter) { LocalDate.now().format(inputDateFormatter) }
 	val dateFormatExample = remember(inputDateFormatter) { LocalDate.now().format(inputDateFormatter) }
 	val amountFormatExample = remember(amountFormat) { formatAmountForInput(BigDecimal("1234.56"), amountFormat) }
 	val amountFieldLabel = remember(amountFormat.currencyToken) {
@@ -1014,7 +1021,14 @@ private fun TransactionEditorScreen(
 		}
 		mutableStateOf(
 			TransactionFormState(
-				dateIso = toTextFieldValue(existing?.dateIso?.let { formatIsoDateForInput(it, inputDateFormatter) } ?: defaultDate),
+				dateIso = toTextFieldValue(
+					if (existing == null) {
+						formatIsoDateForInput(preferredNewDateIso, inputDateFormatter)
+					}
+					else {
+						formatIsoDateForInput(existing.dateIso, inputDateFormatter)
+					}
+				),
 				description = toTextFieldValue(existing?.description.orEmpty()),
 				number = toTextFieldValue(existing?.number.orEmpty()),
 				amount = toTextFieldValue(existing?.split?.amountNumber?.let { formatAmountForInput(it, amountFormat) }.orEmpty()),
@@ -1105,7 +1119,7 @@ private fun TransactionEditorScreen(
 							)
 							onSave(input)
 						},
-						enabled = isValid
+						enabled = isValid && !isMutating
 					) {
 						Icon(Icons.Filled.Check, contentDescription = "Save")
 					}
