@@ -262,58 +262,64 @@ fun BuddiMobileApp(repository: BuddiRepository) {
 	var isAuthenticated by rememberSaveable { mutableStateOf(false) }
 	var selectedAccountId by rememberSaveable { mutableStateOf<Long?>(null) }
 	var selectedAccountName by rememberSaveable { mutableStateOf("") }
+	var selectedAccountBalance by rememberSaveable { mutableStateOf("") }
 
 	Scaffold(
 		snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
 	) { paddingValues ->
-		when {
-			!isAuthenticated -> LoginScreen(
-				modifier = Modifier.padding(paddingValues),
-				repository = repository,
-				onLoginSuccess = {
-					isAuthenticated = true
-					selectedAccountId = null
-					selectedAccountName = ""
-				},
-				onNextStep = { nextStep ->
-					coroutineScope.launch {
-						snackbarHostState.showSnackbar("Additional authentication is required: $nextStep")
+			when {
+				!isAuthenticated -> LoginScreen(
+					modifier = Modifier.padding(paddingValues),
+					repository = repository,
+					onLoginSuccess = {
+						isAuthenticated = true
+						selectedAccountId = null
+						selectedAccountName = ""
+						selectedAccountBalance = ""
+					},
+					onNextStep = { nextStep ->
+						coroutineScope.launch {
+							snackbarHostState.showSnackbar("Additional authentication is required: $nextStep")
 					}
 					val intent = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.BASE_URL))
 					context.startActivity(intent)
 				}
 			)
 
-			selectedAccountId == null -> AccountsScreen(
-				modifier = Modifier.padding(paddingValues),
-				repository = repository,
-				onAccountSelected = { account ->
-					selectedAccountId = account.id
-					selectedAccountName = account.name
-				},
-				onNeedsLogin = {
-					isAuthenticated = false
-				}
+				selectedAccountId == null -> AccountsScreen(
+					modifier = Modifier.padding(paddingValues),
+					repository = repository,
+					onAccountSelected = { account ->
+						selectedAccountId = account.id
+						selectedAccountName = account.name
+						selectedAccountBalance = account.balance
+					},
+					onNeedsLogin = {
+						isAuthenticated = false
+					}
 			)
 
-			else -> TransactionsScreen(
-				modifier = Modifier.padding(paddingValues),
-				repository = repository,
-				accountId = selectedAccountId ?: return@Scaffold,
-				accountName = selectedAccountName,
-				onBack = {
-					selectedAccountId = null
-					selectedAccountName = ""
-				},
-				onNeedsLogin = {
-					isAuthenticated = false
-					selectedAccountId = null
-					selectedAccountName = ""
-				}
-			)
+				else -> TransactionsScreen(
+					modifier = Modifier.padding(paddingValues),
+					repository = repository,
+					accountId = selectedAccountId ?: return@Scaffold,
+					accountName = selectedAccountName,
+					accountBalance = selectedAccountBalance,
+					onBack = {
+						selectedAccountId = null
+						selectedAccountName = ""
+						selectedAccountBalance = ""
+					},
+					onNeedsLogin = {
+						isAuthenticated = false
+						selectedAccountId = null
+						selectedAccountName = ""
+						selectedAccountBalance = ""
+					}
+				)
+			}
 		}
 	}
-}
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
@@ -519,6 +525,7 @@ private fun TransactionsScreen(
 	repository: BuddiRepository,
 	accountId: Long,
 	accountName: String,
+	accountBalance: String,
 	onBack: () -> Unit,
 	onNeedsLogin: () -> Unit
 ) {
@@ -599,35 +606,55 @@ private fun TransactionsScreen(
 				}
 			}
 		)
-	}
-	else {
-		Scaffold(
-			modifier = modifier.fillMaxSize(),
-			topBar = {
-				TopAppBar(
-					title = { Text("Transactions: $accountName") },
-					navigationIcon = {
-						IconButton(onClick = onBack) {
-							Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+		}
+		else {
+			Scaffold(
+				modifier = modifier.fillMaxSize(),
+				topBar = {
+					TopAppBar(
+						title = { Text("Transactions") },
+						navigationIcon = {
+							IconButton(onClick = onBack) {
+								Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+							}
+						},
+						actions = {
+							IconButton(onClick = {
+								editingTransaction = null
+								showEditor = true
+							}) {
+								Icon(Icons.Filled.Add, contentDescription = "New")
+							}
+							IconButton(onClick = viewModel::refresh) {
+								Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+							}
 						}
-					},
-					actions = {
-						IconButton(onClick = {
-							editingTransaction = null
-							showEditor = true
-						}) {
-							Icon(Icons.Filled.Add, contentDescription = "New")
-						}
-						IconButton(onClick = viewModel::refresh) {
-							Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
-						}
+					)
+				},
+				bottomBar = {
+					Row(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(start = 24.dp, top = 8.dp, end = 72.dp, bottom = 8.dp)
+					) {
+						Text(
+							text = "$accountName:",
+							style = MaterialTheme.typography.titleMedium,
+							fontWeight = FontWeight.Bold,
+							modifier = Modifier.weight(1f)
+						)
+						Text(
+							text = state.accountBalance.ifBlank { accountBalance },
+							style = MaterialTheme.typography.titleMedium,
+							fontWeight = FontWeight.Bold,
+							textAlign = TextAlign.End
+						)
 					}
-				)
-			}
-		) { paddingValues ->
-			Column(
-				modifier = Modifier
-					.fillMaxSize()
+				}
+			) { paddingValues ->
+				Column(
+					modifier = Modifier
+						.fillMaxSize()
 					.padding(paddingValues)
 					.padding(12.dp)
 			) {

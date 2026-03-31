@@ -35,6 +35,7 @@ data class TransactionsUiState(
 	val negativeFormat: String = "N",
 	val currencySpacing: Boolean = true,
 	val fractionDigits: Int = 2,
+	val accountBalance: String = "",
 	val needsLogin: Boolean = false,
 	val isMutating: Boolean = false
 )
@@ -52,10 +53,12 @@ class TransactionsViewModel(
 		loadDescriptionTemplates()
 		loadSources()
 		loadDatePreferences()
+		loadAccountBalance()
 	}
 
 	fun refresh() {
 		loadTransactions(start = 0, append = false)
+		loadAccountBalance()
 	}
 
 	fun loadMore() {
@@ -233,6 +236,28 @@ class TransactionsViewModel(
 							error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Unable to load transactions.",
 							needsLogin = needsLogin
 						)
+					}
+				}
+			)
+		}
+	}
+
+	private fun loadAccountBalance() {
+		viewModelScope.launch {
+			val result = repository.fetchAccounts()
+			result.fold(
+				onSuccess = { accounts ->
+					val updatedBalance = accounts.firstOrNull { it.id == accountId }?.balance.orEmpty()
+					_state.update { it.copy(accountBalance = updatedBalance) }
+				},
+				onFailure = { error ->
+					if (error is UnauthorizedException) {
+						_state.update {
+							it.copy(
+								error = "Session expired. Please sign in again.",
+								needsLogin = true
+							)
+						}
 					}
 				}
 			)
