@@ -36,6 +36,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -1158,6 +1160,7 @@ private fun TransactionEditorScreen(
 	}
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SourceSelector(
 	modifier: Modifier = Modifier,
@@ -1169,16 +1172,20 @@ private fun SourceSelector(
 	var expanded by remember { mutableStateOf(false) }
 	val selected = options.firstOrNull { it.id == selectedId && it.selectable }
 
-	Box {
+	ExposedDropdownMenuBox(
+		modifier = modifier.fillMaxWidth(),
+		expanded = expanded,
+		onExpandedChange = { expanded = !expanded }
+	) {
 		OutlinedTextField(
 			modifier = Modifier
-				.then(modifier)
-				.fillMaxWidth()
-				.clickable { expanded = true },
+				.menuAnchor()
+				.fillMaxWidth(),
 			value = selected?.label?.trimStart().orEmpty(),
 			onValueChange = {},
 			readOnly = true,
-			label = { Text(label) }
+			label = { Text(label) },
+			trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
 		)
 		DropdownMenu(
 			expanded = expanded,
