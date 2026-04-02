@@ -37,7 +37,8 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 
 	public BuddiLiveAuthenticationHelper(final BuddiLiveAuthenticationTransactionalService txService,
 										 final Properties mailProperties,
-										 @Value("${buddi.directRegistration:false}") final boolean directRegistration) {
+										 @Value("${buddi.directRegistration:false}") final boolean directRegistration,
+										 @Value("${buddi.disableIpLockGlobally:false}") final boolean disableIpLockGlobally) {
 		super(new AuthenticationConfiguration());
 		this.txService = txService;
 		this.mailProperties = mailProperties;
@@ -48,7 +49,7 @@ public class BuddiLiveAuthenticationHelper extends AuthenticationHelper {
 		getConfig().showForgotPassword = !directRegistration;
 		getConfig().showRegister = true;
 		getConfig().showImpersonate = false;
-		getConfig().showDisableIpLock = true;
+		getConfig().showDisableIpLock = !disableIpLockGlobally;
 		getConfig().i18nBaseCustom = "i18n";
 		getConfig().totpIssuer = "Buddi Live";
 		getConfig().applicationLoaderPaths = new HashMap<>();

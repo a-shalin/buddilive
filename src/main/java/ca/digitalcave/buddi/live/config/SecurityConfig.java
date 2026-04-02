@@ -3,6 +3,7 @@ package ca.digitalcave.buddi.live.config;
 import ca.digitalcave.buddi.live.security.CookieAuthenticationFilter;
 import ca.digitalcave.moss.auth.service.AuthenticationHelper;
 import jakarta.servlet.DispatcherType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,8 +16,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
 	@Bean
-	public CookieAuthenticationFilter cookieAuthenticationFilter(final AuthenticationHelper authenticationHelper) {
-		return new CookieAuthenticationFilter(authenticationHelper);
+	public CookieAuthenticationFilter cookieAuthenticationFilter(final AuthenticationHelper authenticationHelper,
+																 @Value("${buddi.disableIpLockGlobally:false}") final boolean disableIpLockGlobally) {
+		return new CookieAuthenticationFilter(authenticationHelper, disableIpLockGlobally);
 	}
 
 	@Bean

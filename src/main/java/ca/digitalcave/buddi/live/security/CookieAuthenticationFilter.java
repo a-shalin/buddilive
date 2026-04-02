@@ -24,10 +24,12 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
 	private static final Map<String, Long> loggedInUsers = Collections.synchronizedMap(new HashMap<>());
 
 	private final AuthenticationHelper authenticationHelper;
+	private final boolean disableIpLockGlobally;
 	private final int delay;
 
-	public CookieAuthenticationFilter(final AuthenticationHelper authenticationHelper) {
+	public CookieAuthenticationFilter(final AuthenticationHelper authenticationHelper, final boolean disableIpLockGlobally) {
 		this.authenticationHelper = authenticationHelper;
+		this.disableIpLockGlobally = disableIpLockGlobally;
 		this.delay = 1500;
 	}
 
@@ -59,7 +61,7 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
 		// Validate IP lock
 		final boolean disableIpLock = Boolean.parseBoolean(params.getOrDefault(CookieUtil.FIELD_DISABLE_IP_LOCK, "false"));
 		final String clientAddress = params.getOrDefault(CookieUtil.FIELD_CLIENT_ADDRESS, "");
-		if (!disableIpLock && StringUtils.isNotBlank(clientAddress) && !StringUtils.equals(clientAddress, CookieUtil.getClientAddress(request))) {
+		if (!disableIpLockGlobally && !disableIpLock && StringUtils.isNotBlank(clientAddress) && !StringUtils.equals(clientAddress, CookieUtil.getClientAddress(request))) {
 			CookieUtil.deleteCookie(authenticationHelper, response);
 			filterChain.doFilter(request, response);
 			return;

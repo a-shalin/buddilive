@@ -355,10 +355,27 @@ class StandaloneBackendE2eTest {
 		fields[0].performTextInput(email)
 		fields[1].performTextInput(password)
 		composeTestRule.onNodeWithText("Sign In").performClick()
+		expandAccountTypeIfCollapsed(DEFAULT_ACCOUNT_TYPE, primaryAccountName)
 
 		assertEventuallyVisible(primaryAccountName)
 		assertEventuallyVisible(secondaryAccountName)
 		assertEventuallyVisible(reserveAccountName)
+	}
+
+	private fun expandAccountTypeIfCollapsed(typeName: String, accountName: String) {
+		if (isTextVisible(accountName)) {
+			return
+		}
+		assertEventuallyVisible(typeName)
+		composeTestRule.onNodeWithText(typeName, useUnmergedTree = true).performClick()
+		assertEventuallyVisible(accountName)
+	}
+
+	private fun isTextVisible(text: String): Boolean {
+		return composeTestRule
+			.onAllNodes(hasText(text), useUnmergedTree = true)
+			.fetchSemanticsNodes()
+			.isNotEmpty()
 	}
 
 	private fun openFirstTransactionEditor() {
@@ -508,6 +525,7 @@ class StandaloneBackendE2eTest {
 		private const val TRANSACTIONS_LIST_TAG = "transactionsList"
 		private const val SUGGESTION_TEMPLATE_AMOUNT = "88.88"
 		private const val BULK_SCROLL_TRANSACTION_COUNT = 320
+		private const val DEFAULT_ACCOUNT_TYPE = "Chequing"
 	}
 }
 
