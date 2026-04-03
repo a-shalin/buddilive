@@ -72,6 +72,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalAutofill
 import androidx.compose.ui.platform.LocalAutofillTree
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -982,7 +983,7 @@ private fun applySourceSelection(
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 private fun TransactionEditorScreen(
 	modifier: Modifier,
 	existing: TransactionSummary?,
@@ -1046,6 +1047,7 @@ private fun TransactionEditorScreen(
 	var descriptionFieldFocused by remember(existing) { mutableStateOf(false) }
 	var showDescriptionSuggestions by remember(existing) { mutableStateOf(false) }
 	var showDeleteConfirmation by remember(existing) { mutableStateOf(false) }
+	val keyboardController = LocalSoftwareKeyboardController.current
 
 	val filteredDescriptionTemplates = remember(descriptionTemplates, state.description.text) {
 		val query = state.description.text.trim()
@@ -1206,6 +1208,7 @@ private fun TransactionEditorScreen(
 									amountFormat = amountFormat
 								)
 								showDescriptionSuggestions = false
+								keyboardController?.hide()
 							}
 						)
 					}
