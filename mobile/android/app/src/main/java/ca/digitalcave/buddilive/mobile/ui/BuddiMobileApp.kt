@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -637,6 +638,7 @@ private fun TransactionsScreen(
 	var editingTransaction by remember { mutableStateOf<TransactionSummary?>(null) }
 	var showEditor by remember { mutableStateOf(false) }
 	var lastTransactionDateIso by rememberSaveable(accountId) { mutableStateOf<String?>(null) }
+	val transactionsListState = rememberLazyListState()
 
 	LaunchedEffect(accountId) {
 		viewModel.loadInitial()
@@ -645,6 +647,12 @@ private fun TransactionsScreen(
 	LaunchedEffect(state.needsLogin) {
 		if (state.needsLogin) {
 			onNeedsLogin()
+		}
+	}
+
+	LaunchedEffect(state.scrollToTopRequestKey) {
+		if (state.scrollToTopRequestKey > 0L) {
+			transactionsListState.scrollToItem(0)
 		}
 	}
 
@@ -754,6 +762,7 @@ private fun TransactionsScreen(
 						modifier = Modifier
 							.weight(1f, fill = true)
 							.testTag("transactionsList"),
+						state = transactionsListState,
 						verticalArrangement = Arrangement.spacedBy(8.dp)
 					) {
 						items(state.transactions, key = { it.id }) { transaction ->
