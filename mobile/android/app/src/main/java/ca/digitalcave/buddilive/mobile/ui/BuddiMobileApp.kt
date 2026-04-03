@@ -268,6 +268,7 @@ fun BuddiMobileApp(repository: BuddiRepository) {
 	var selectedAccountId by rememberSaveable { mutableStateOf<Long?>(null) }
 	var selectedAccountName by rememberSaveable { mutableStateOf("") }
 	var selectedAccountBalance by rememberSaveable { mutableStateOf("") }
+	var expandedAccountTypes by rememberSaveable { mutableStateOf(setOf<String>()) }
 
 	Scaffold(
 		snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -294,6 +295,8 @@ fun BuddiMobileApp(repository: BuddiRepository) {
 				selectedAccountId == null -> AccountsScreen(
 					modifier = Modifier.padding(paddingValues),
 					repository = repository,
+					expandedTypes = expandedAccountTypes,
+					onExpandedTypesChange = { expandedAccountTypes = it },
 					onAccountSelected = { account ->
 						selectedAccountId = account.id
 						selectedAccountName = account.name
@@ -454,12 +457,13 @@ private fun LoginScreen(
 private fun AccountsScreen(
 	modifier: Modifier,
 	repository: BuddiRepository,
+	expandedTypes: Set<String>,
+	onExpandedTypesChange: (Set<String>) -> Unit,
 	onAccountSelected: (AccountSummary) -> Unit,
 	onNeedsLogin: () -> Unit
 ) {
 	val viewModel: AccountsViewModel = viewModel(factory = AccountsViewModelFactory(repository))
 	val state by viewModel.state.collectAsStateWithLifecycle()
-	var expandedTypes by rememberSaveable { mutableStateOf(setOf<String>()) }
 
 	LaunchedEffect(Unit) {
 		viewModel.refresh()
@@ -507,12 +511,12 @@ private fun AccountsScreen(
 							modifier = Modifier
 								.fillMaxWidth()
 								.clickable {
-									expandedTypes = if (isExpanded) {
+									onExpandedTypesChange(if (isExpanded) {
 										expandedTypes - typeName
 									}
 									else {
 										expandedTypes + typeName
-									}
+									})
 								}
 								.padding(12.dp),
 							verticalAlignment = Alignment.CenterVertically

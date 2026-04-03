@@ -129,6 +129,20 @@ class StandaloneBackendE2eTest {
 	}
 
 	@Test
+	fun accountTypeExpansionIsPreservedAfterReturningFromTransactions() {
+		loginToAccountsScreen()
+
+		composeTestRule.onNodeWithText(primaryAccountName).performClick()
+		assertEventuallyVisible("Transactions")
+
+		composeTestRule.onNode(hasContentDescription("Back"), useUnmergedTree = true).performClick()
+		assertEventuallyVisible("Accounts")
+		assertEventuallyVisible(primaryAccountName)
+		assertEventuallyVisible(secondaryAccountName)
+		assertEventuallyVisible(reserveAccountName)
+	}
+
+	@Test
 	fun transactionEditorAppliesPreferredDateFormatAndStillAllowsUpdate() {
 		loginAndOpenPrimaryAccountTransactions()
 		openFirstTransactionEditor()
