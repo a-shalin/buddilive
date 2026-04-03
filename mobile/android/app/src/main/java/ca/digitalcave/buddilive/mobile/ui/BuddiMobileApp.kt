@@ -669,6 +669,11 @@ private fun TransactionsScreen(
 			amountFormat = amountFormat,
 			preferredNewDateIso = lastTransactionDateIso,
 			isMutating = state.isMutating,
+			onPreferredNewDateIsoChange = { dateIso ->
+				if (editingTransaction == null) {
+					lastTransactionDateIso = dateIso
+				}
+			},
 			onBack = { showEditor = false },
 			onSave = { input ->
 				val existingId = editingTransaction?.id
@@ -995,6 +1000,7 @@ private fun TransactionEditorScreen(
 	amountFormat: AmountFormat,
 	preferredNewDateIso: String?,
 	isMutating: Boolean,
+	onPreferredNewDateIsoChange: (String) -> Unit,
 	onBack: () -> Unit,
 	onSave: (TransactionEditInput) -> Unit,
 	onDelete: (Long) -> Unit
@@ -1048,6 +1054,14 @@ private fun TransactionEditorScreen(
 	var showDescriptionSuggestions by remember(existing) { mutableStateOf(false) }
 	var showDeleteConfirmation by remember(existing) { mutableStateOf(false) }
 	val keyboardController = LocalSoftwareKeyboardController.current
+	val updateDateIso: (TextFieldValue) -> Unit = { dateValue ->
+		state = state.copy(dateIso = dateValue)
+		if (existing == null) {
+			parseInputDate(dateValue.text, inputDateFormatter)?.let { parsedDate ->
+				onPreferredNewDateIsoChange(parsedDate.format(isoDateFormatter))
+			}
+		}
+	}
 
 	val filteredDescriptionTemplates = remember(descriptionTemplates, state.description.text) {
 		val query = state.description.text.trim()
@@ -1147,7 +1161,7 @@ private fun TransactionEditorScreen(
 					.fillMaxWidth()
 					.testTag("transactionEditorDate"),
 				value = state.dateIso,
-				onValueChange = { state = state.copy(dateIso = it) },
+				onValueChange = updateDateIso,
 				label = { Text("Date ($dateFormat)") },
 				singleLine = true,
 				isError = isDateInvalid,
@@ -1163,9 +1177,7 @@ private fun TransactionEditorScreen(
 							DatePickerDialog(
 								context,
 								{ _, year, month, dayOfMonth ->
-									state = state.copy(
-										dateIso = toTextFieldValue(LocalDate.of(year, month + 1, dayOfMonth).format(inputDateFormatter))
-									)
+									updateDateIso(toTextFieldValue(LocalDate.of(year, month + 1, dayOfMonth).format(inputDateFormatter)))
 								},
 								pickerDate.year,
 								pickerDate.monthValue - 1,
