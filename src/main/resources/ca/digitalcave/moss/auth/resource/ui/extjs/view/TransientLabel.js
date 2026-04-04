@@ -1,16 +1,4 @@
-Ext.define("Login.view.TransientLabel", {
-	extend: "Ext.form.Label",
-	alias: "widget.transientlabel",
-	text: "\xA0",	//non breaking space to reserve space for text and not collapse empty label
-	
-	setDisappearingHtml: function(value, timeout) {
-		let label = this;
-		label.setHtml(value);
-		if (!timeout) {
-			timeout = 10000;	//Default to 10 seconds
-		}
-		Ext.defer(function() {
-			label.setHtml("\xA0");
-		}, timeout);
-	}
-});
+/*
+ * Obsolete legacy ExtJS transient label used by old login flow.
+ * Not referenced by index.html entrypoints.
+ */
