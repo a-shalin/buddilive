@@ -143,6 +143,52 @@ class StandaloneBackendE2eTest {
 	}
 
 	@Test
+	fun accountsRefreshHidesAndShowsDeletedAccountWhenShowDeletedDisabled() {
+		val apiClient = backend.login(email, password)
+		backend.updateUserFormatting(
+			client = apiClient,
+			dateFormat = PREFERRED_DATE_FORMAT,
+			decimalSeparator = PREFERRED_DECIMAL_SEPARATOR,
+			thousandSeparator = PREFERRED_THOUSAND_SEPARATOR,
+			showDeleted = false
+		)
+
+		loginToAccountsScreen()
+		assertEventuallyVisible(primaryAccountName)
+
+		backend.deleteAccount(apiClient, primaryAccountId)
+		tapRefreshButton()
+		assertEventuallyNotVisible(primaryAccountName)
+
+		backend.undeleteAccount(apiClient, primaryAccountId)
+		tapRefreshButton()
+		assertEventuallyVisible(primaryAccountName)
+	}
+
+	@Test
+	fun accountsRefreshKeepsDeletedAccountVisibleWhenShowDeletedEnabled() {
+		val apiClient = backend.login(email, password)
+		backend.updateUserFormatting(
+			client = apiClient,
+			dateFormat = PREFERRED_DATE_FORMAT,
+			decimalSeparator = PREFERRED_DECIMAL_SEPARATOR,
+			thousandSeparator = PREFERRED_THOUSAND_SEPARATOR,
+			showDeleted = true
+		)
+
+		loginToAccountsScreen()
+		assertEventuallyVisible(primaryAccountName)
+
+		backend.deleteAccount(apiClient, primaryAccountId)
+		tapRefreshButton()
+		assertEventuallyVisible(primaryAccountName)
+
+		backend.undeleteAccount(apiClient, primaryAccountId)
+		tapRefreshButton()
+		assertEventuallyVisible(primaryAccountName)
+	}
+
+	@Test
 	fun transactionEditorAppliesPreferredDateFormatAndStillAllowsUpdate() {
 		loginAndOpenPrimaryAccountTransactions()
 		openFirstTransactionEditor()
@@ -493,6 +539,20 @@ class StandaloneBackendE2eTest {
 		)
 	}
 
+	private fun tapRefreshButton() {
+		composeTestRule.onNode(hasContentDescription("Refresh"), useUnmergedTree = true).performClick()
+	}
+
+	private fun assertEventuallyNotVisible(text: String) {
+		composeTestRule.waitUntil(timeoutMillis = 20_000) {
+			composeTestRule.onAllNodes(hasText(text), useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
+		}
+		assertTrue(
+			"Expected text to be hidden: $text",
+			composeTestRule.onAllNodes(hasText(text), useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
+		)
+	}
+
 	private fun assertEventuallyVisibleSubstring(text: String) {
 		composeTestRule.waitUntil(timeoutMillis = 20_000) {
 			composeTestRule.onAllNodes(hasText(text, substring = true), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
@@ -634,7 +694,8 @@ private class BackendClient(private val baseUrl: String) {
 		locale: String = "en_US",
 		currency: String = "USD",
 		currencyAfter: Boolean = true,
-		currencySpacing: Boolean = true
+		currencySpacing: Boolean = true,
+		showDeleted: Boolean = true
 	) {
 		val payload = JSONObject()
 			.put("action", "update")
@@ -646,7 +707,22 @@ private class BackendClient(private val baseUrl: String) {
 			.put("dateFormat", dateFormat)
 			.put("decimalSeparator", decimalSeparator)
 			.put("thousandSeparator", thousandSeparator)
+			.put("showDeleted", showDeleted)
 		postJson(client, "/data/userpreferences", payload)
+	}
+
+	fun deleteAccount(client: OkHttpClient, accountId: Int) {
+		val payload = JSONObject()
+			.put("action", "delete")
+			.put("id", accountId)
+		postJson(client, "/data/accounts", payload)
+	}
+
+	fun undeleteAccount(client: OkHttpClient, accountId: Int) {
+		val payload = JSONObject()
+			.put("action", "undelete")
+			.put("id", accountId)
+		postJson(client, "/data/accounts", payload)
 	}
 
 	fun hasTransactionDescription(client: OkHttpClient, sourceId: Long, description: String): Boolean {
