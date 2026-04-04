@@ -40,7 +40,7 @@ public class SecuritySmokeIT extends BrowserBaseIT {
 		waitForLoginErrorMessage();
 
 		final Boolean hasViewportAfterOldPassword = (Boolean) executeJs(
-			"return Ext.ComponentQuery.query('buddiviewport').length > 0;");
+			"return typeof Ext !== 'undefined' && Ext.ComponentQuery.query('buddiviewport').length > 0;");
 		assertThat(hasViewportAfterOldPassword).isFalse();
 
 		submitLogin(email, newPassword);
@@ -63,7 +63,7 @@ public class SecuritySmokeIT extends BrowserBaseIT {
 
 		waitForLoginPage();
 		waitForLoginActiveItem("totpSetup");
-		clickExtButton("login button[itemId=totpDisable]");
+		clickLiteAction("totpDisable");
 
 		waitForMainApp();
 
@@ -72,12 +72,7 @@ public class SecuritySmokeIT extends BrowserBaseIT {
 		waitForMainApp();
 
 		final Boolean hasTotpTokenPrompt = (Boolean) executeJs(
-			"var login = Ext.ComponentQuery.query('login')[0];" +
-			"if (!login) return false;" +
-			"var tab = login.getActiveTab();" +
-			"if (!tab || !tab.getLayout) return false;" +
-			"var active = tab.getLayout().getActiveItem();" +
-			"return !!(active && active.getItemId && active.getItemId() === 'totpToken');");
+			"return document.querySelector(\"#loginform [data-card='totpToken']:not(.auth-hidden)\") != null;");
 		assertThat(hasTotpTokenPrompt).isFalse();
 	}
 
@@ -89,9 +84,7 @@ public class SecuritySmokeIT extends BrowserBaseIT {
 	}
 
 	private void submitLogin(final String email, final String password) {
-		setExtFieldValue("login textfield[name=identifier]", email);
-		setExtFieldValue("login textfield[name=password]", password);
-		clickExtButton("login button[itemId=authenticate]");
+		submitLiteLogin(email, password);
 	}
 
 	private void waitForMainApp() {
@@ -107,20 +100,14 @@ public class SecuritySmokeIT extends BrowserBaseIT {
 	}
 
 	private void waitForLoginPage() {
-		waitForExtJs();
-		waitForComponent("login");
+		waitForLoginPageLite();
 	}
 
 	private void waitForLoginActiveItem(final String itemId) {
 		wait.until(d -> {
 			try {
 				return (Boolean) executeJs(
-					"var login = Ext.ComponentQuery.query('login')[0];" +
-					"if (!login) return false;" +
-					"var tab = login.getActiveTab();" +
-					"if (!tab || !tab.getLayout) return false;" +
-					"var active = tab.getLayout().getActiveItem();" +
-					"return !!(active && active.getItemId && active.getItemId() === arguments[0]);",
+					"return document.querySelector(\"#loginform [data-card-container='login'] [data-card='\" + arguments[0] + \"']:not(.auth-hidden)\") != null;",
 					itemId);
 			}
 			catch (Exception e) {
@@ -133,11 +120,8 @@ public class SecuritySmokeIT extends BrowserBaseIT {
 		wait.until(d -> {
 			try {
 				return (Boolean) executeJs(
-					"var label = Ext.ComponentQuery.query(\"login transientlabel[itemId=messageLogin1]\")[0];" +
-					"if (!label || !label.getEl()) return false;" +
-					"var text = label.getEl().dom.innerText || label.getEl().dom.textContent || '';" +
-					"text = text.replace(/\\u00a0/g, ' ').trim();" +
-					"return text.length > 0;");
+					"var message = document.querySelector(\"#loginform [data-message='messageLogin1']\");" +
+						"return message != null && (message.textContent || '').trim().length > 0;");
 			}
 			catch (Exception e) {
 				return false;

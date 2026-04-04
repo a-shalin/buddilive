@@ -51,6 +51,146 @@ div#loginform {
 	width: 600px;
 }
 
+div#loginform .auth-panel {
+	background: #efefef;
+	border: 1px solid #99a0ac;
+	box-shadow: inset 0 1px 0 #fff;
+	text-align: left;
+}
+
+div#loginform .auth-tab-bar {
+	display: flex;
+	border-bottom: 1px solid #99a0ac;
+	background: linear-gradient(#f8f8f8, #dddddd);
+}
+
+div#loginform .auth-tab-button {
+	border: 0;
+	border-right: 1px solid #b3b8c1;
+	background: transparent;
+	padding: 10px 14px;
+	font-size: 1em;
+	cursor: pointer;
+}
+
+div#loginform .auth-tab-button:last-child {
+	border-right: 0;
+}
+
+div#loginform .auth-tab-button.auth-tab-active {
+	background: #ffffff;
+	font-weight: bold;
+}
+
+div#loginform .auth-tab-panel {
+	padding: 12px;
+	background: #ffffff;
+}
+
+div#loginform .auth-form {
+	margin: 0;
+}
+
+div#loginform .auth-card {
+	margin: 0;
+}
+
+div#loginform .auth-field-row {
+	margin-bottom: 10px;
+}
+
+div#loginform .auth-field-row label {
+	display: block;
+	font-weight: bold;
+	margin-bottom: 4px;
+}
+
+div#loginform .auth-field-row input[type='text'],
+div#loginform .auth-field-row input[type='password'],
+div#loginform .auth-field-row input[type='email'],
+div#loginform .auth-field-row select,
+div#loginform .auth-field-row textarea {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 6px;
+	border: 1px solid #8f96a3;
+}
+
+div#loginform .auth-field-row textarea {
+	min-height: 220px;
+	font-family: monospace;
+	resize: vertical;
+}
+
+div#loginform .auth-checkbox-field label {
+	display: inline;
+	font-weight: normal;
+}
+
+div#loginform .auth-field-help {
+	margin-top: 4px;
+	font-size: 0.95em;
+	color: #3a3a3a;
+}
+
+div#loginform .auth-help-label {
+	margin-bottom: 10px;
+	line-height: 1.4;
+}
+
+div#loginform .auth-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-top: 12px;
+}
+
+div#loginform .auth-actions-right {
+	justify-content: flex-end;
+}
+
+div#loginform .auth-actions .auth-spacer {
+	flex: 1;
+}
+
+div#loginform .auth-actions button {
+	padding: 6px 14px;
+	border: 1px solid #8f96a3;
+	background: linear-gradient(#f8f8f8, #d8d8d8);
+	cursor: pointer;
+}
+
+div#loginform .auth-actions button:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+div#loginform .auth-message {
+	display: none;
+	margin-top: 8px;
+	padding: 7px 8px;
+	background: #fff3cd;
+	border: 1px solid #dfc877;
+}
+
+div#loginform .auth-message.auth-visible {
+	display: block;
+}
+
+div#loginform .auth-totp-qr {
+	margin-bottom: 10px;
+	text-align: center;
+}
+
+div#loginform .auth-totp-qr img {
+	max-width: 100%;
+	height: auto;
+}
+
+div#loginform .auth-hidden {
+	display: none !important;
+}
+
 div.messages {
 	margin: 20px;
 	margin-top: 160px;

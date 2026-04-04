@@ -35,13 +35,10 @@ public class LoginSmokeIT extends BrowserBaseIT {
 		helper.registerUser(canonicalEmail, PASSWORD, "en_US", "USD");
 
 		driver.get(getBaseUrl() + "/index.html");
-		waitForExtJs();
-		waitForComponent("login");
+		waitForLoginPageLite();
 		assertThat(driver.getCurrentUrl()).isEqualTo(getBaseUrl() + "/");
 
-		setExtFieldValue("login textfield[name=identifier]", canonicalEmail);
-		setExtFieldValue("login textfield[name=password]", PASSWORD);
-		clickExtButton("login button[itemId=authenticate]");
+		submitLiteLogin(canonicalEmail, PASSWORD);
 
 		wait.until(d -> {
 			try {
@@ -61,15 +58,19 @@ public class LoginSmokeIT extends BrowserBaseIT {
 		helper.registerUser("login-smoke-bad@example.com", PASSWORD, "en_US", "USD");
 
 		driver.get(getBaseUrl() + "/");
-		waitForExtJs();
-		waitForComponent("login");
+		waitForLoginPageLite();
 
-		setExtFieldValue("login textfield[name=identifier]", "login-smoke-bad@example.com");
-		setExtFieldValue("login textfield[name=password]", "WrongPassword!");
-		clickExtButton("login button[itemId=authenticate]");
-
-		// Wait a moment for the AJAX response
-		Thread.sleep(1000);
+		submitLiteLogin("login-smoke-bad@example.com", "WrongPassword!");
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"var message = document.querySelector(\"#loginform [data-message='messageLogin1']\");" +
+						"return message != null && (message.textContent || '').trim().length > 0;");
+			}
+			catch (Exception e) {
+				return false;
+			}
+		});
 
 		// Should still be on login page, not the main app
 		Boolean stillOnLogin = (Boolean) executeJs(
@@ -78,71 +79,62 @@ public class LoginSmokeIT extends BrowserBaseIT {
 
 		// Login form should still be visible
 		Boolean hasLoginForm = (Boolean) executeJs(
-			"return Ext.ComponentQuery.query('login').length > 0;");
+			"return document.querySelector(\"#loginform [data-card-container='login'] [data-card='authenticate']\") != null;");
 		assertThat(hasLoginForm).isTrue();
 	}
 
 	@Test
-	void testRegisterComboboxesAreSearchable() {
+	void testRegisterLocaleAndCurrencyUseSelectsWithWhitelistedValues() {
 		driver.get(getBaseUrl() + "/");
-		waitForExtJs();
-		waitForComponent("login");
-
-		executeJs("Ext.ComponentQuery.query('login')[0].setActiveTab(1);");
-		waitForComponent("login combobox[name=locale]");
-		waitForComponent("login combobox[name=currency]");
+		waitForLoginPageLite();
+		executeJs(
+			"var registerTab = document.querySelector(\"#loginform [data-tab-target='register']\");" +
+				"if (registerTab) { registerTab.click(); }");
 
 		wait.until(d -> {
 			try {
 				return (Boolean) executeJs(
-					"var locale = Ext.ComponentQuery.query('login combobox[name=locale]')[0];" +
-					"var currency = Ext.ComponentQuery.query('login combobox[name=currency]')[0];" +
-					"return locale && currency && locale.getStore().isLoaded() && currency.getStore().isLoaded();");
-			} catch (Exception e) {
+					"var locale = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='locale']\");" +
+						"var currency = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='currency']\");" +
+						"return locale != null && currency != null;");
+			}
+			catch (Exception e) {
 				return false;
 			}
 		});
 
-		String localeConfig = (String) executeJs(
-			"var combo = Ext.ComponentQuery.query('login combobox[name=locale]')[0];" +
-			"return String(combo.editable) + '|' + String(combo.queryMode);");
-		assertThat(localeConfig)
-			.as("Locale combobox should be editable and use local query mode")
-			.isEqualTo("true|local");
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"var locale = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='locale']\");" +
+						"var currency = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='currency']\");" +
+						"return locale != null && currency != null && locale.options.length > 0 && currency.options.length > 0;");
+			}
+			catch (Exception e) {
+				return false;
+			}
+		});
 
-		String currencyConfig = (String) executeJs(
-			"var combo = Ext.ComponentQuery.query('login combobox[name=currency]')[0];" +
-			"return String(combo.editable) + '|' + String(combo.queryMode);");
-		assertThat(currencyConfig)
-			.as("Currency combobox should be editable and use local query mode")
-			.isEqualTo("true|local");
+		String fieldTags = (String) executeJs(
+			"var locale = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='locale']\");" +
+				"var currency = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='currency']\");" +
+				"return String(locale.tagName) + '|' + String(currency.tagName);");
+		assertThat(fieldTags).isEqualTo("SELECT|SELECT");
 
-		Boolean localeFiltersUnmatchedQuery = (Boolean) executeJs(
-			"var combo = Ext.ComponentQuery.query('login combobox[name=locale]')[0];" +
-			"combo.getStore().clearFilter();" +
-			"var before = combo.getStore().getCount();" +
-			"combo.setRawValue('zzzzzzzz');" +
-			"combo.doQuery(combo.getRawValue(), false, true);" +
-			"var after = combo.getStore().getCount();" +
-			"combo.getStore().clearFilter();" +
-			"combo.setRawValue('');" +
-			"return before > 0 && after === 0;");
-		assertThat(localeFiltersUnmatchedQuery)
-			.as("Locale combobox should filter out unmatched input")
-			.isTrue();
+		Boolean hasCommonOptions = (Boolean) executeJs(
+			"var locale = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='locale']\");" +
+				"var currency = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='currency']\");" +
+				"var hasLocale = Array.from(locale.options).some(function(opt) { return opt.value === 'en_US'; });" +
+				"var hasCurrency = Array.from(currency.options).some(function(opt) { return opt.value === 'USD'; });" +
+				"return hasLocale && hasCurrency;");
+		assertThat(hasCommonOptions).isTrue();
 
-		Boolean currencyFiltersUnmatchedQuery = (Boolean) executeJs(
-			"var combo = Ext.ComponentQuery.query('login combobox[name=currency]')[0];" +
-			"combo.getStore().clearFilter();" +
-			"var before = combo.getStore().getCount();" +
-			"combo.setRawValue('zzzzzzzz');" +
-			"combo.doQuery(combo.getRawValue(), false, true);" +
-			"var after = combo.getStore().getCount();" +
-			"combo.getStore().clearFilter();" +
-			"combo.setRawValue('');" +
-			"return before > 0 && after === 0;");
-		assertThat(currencyFiltersUnmatchedQuery)
-			.as("Currency combobox should filter out unmatched input")
-			.isTrue();
+		String invalidSelectionResult = (String) executeJs(
+			"var locale = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='locale']\");" +
+				"var currency = document.querySelector(\"#loginform [data-tab-panel='register']:not(.auth-hidden) select[name='currency']\");" +
+				"locale.value = 'zz_ZZ';" +
+				"currency.value = 'ZZZ';" +
+				"return String(locale.value) + '|' + String(currency.value);");
+		assertThat(invalidSelectionResult).isEqualTo("|");
 	}
 }

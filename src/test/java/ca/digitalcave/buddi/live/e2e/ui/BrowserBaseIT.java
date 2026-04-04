@@ -164,12 +164,8 @@ public abstract class BrowserBaseIT extends BaseIT {
 
 	protected void browserLogin(String email, String password) {
 		driver.get(getBaseUrl() + "/");
-		waitForExtJs();
-		waitForComponent("login");
-
-		setExtFieldValue("login textfield[name=identifier]", email);
-		setExtFieldValue("login textfield[name=password]", password);
-		clickExtButton("login button[itemId=authenticate]");
+		waitForLoginPageLite();
+		submitLiteLogin(email, password);
 
 		// Login triggers page reload; wait for main app viewport
 		wait.until(d -> {
@@ -182,5 +178,49 @@ public abstract class BrowserBaseIT extends BaseIT {
 		});
 		waitForComponent("accounttree");
 		dismissMessageBox();
+	}
+
+	protected void waitForLoginPageLite() {
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"var panel = document.querySelector('#loginform .auth-panel');" +
+						"return panel != null && !panel.classList.contains('auth-hidden');");
+			}
+			catch (Exception e) {
+				return false;
+			}
+		});
+	}
+
+	protected void submitLiteLogin(final String email, final String password) {
+		executeJs(
+			"var tab = document.querySelector(\"#loginform [data-tab-target='login']\");" +
+				"if (tab) { tab.click(); }");
+		executeJs(
+			"var identifier = document.querySelector(\"#loginform [data-card-container='login'] [data-card='authenticate']:not(.auth-hidden) input[name='identifier']\");" +
+				"var pwd = document.querySelector(\"#loginform [data-card-container='login'] [data-card='authenticate']:not(.auth-hidden) input[name='password']\");" +
+				"if (identifier) {" +
+				"  identifier.focus();" +
+				"  identifier.value = arguments[0];" +
+				"  identifier.dispatchEvent(new Event('input', {bubbles: true}));" +
+				"  identifier.dispatchEvent(new Event('change', {bubbles: true}));" +
+				"}" +
+				"if (pwd) {" +
+				"  pwd.focus();" +
+				"  pwd.value = arguments[1];" +
+				"  pwd.dispatchEvent(new Event('input', {bubbles: true}));" +
+				"  pwd.dispatchEvent(new Event('change', {bubbles: true}));" +
+				"}" +
+				"var submit = document.querySelector(\"#loginform [data-card-container='login'] [data-card='authenticate']:not(.auth-hidden) button[type='submit']\");" +
+				"if (submit) { submit.click(); }",
+			email, password);
+	}
+
+	protected void clickLiteAction(final String action) {
+		executeJs(
+			"var button = document.querySelector(\"#loginform [data-click-action='\" + arguments[0] + \"']\");" +
+				"if (button) { button.click(); }",
+			action);
 	}
 }

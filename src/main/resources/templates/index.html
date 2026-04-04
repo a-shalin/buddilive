@@ -4,12 +4,12 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<meta http-equiv="X-UA-Compatible" content="IE=9; IE=8; IE=7; IE=EDGE" />
 		<title>Buddi Live</title>
-		<link rel="stylesheet" type="text/css" href="lib/extjs/theme-gray-all-debug.css" th:href="@{/lib/extjs/theme-gray-all-debug.css(v=${assetVersionToken})}">
-		<link rel="stylesheet" type="text/css" href="lib/extjs/charts-all.css" th:href="@{/lib/extjs/charts-all.css(v=${assetVersionToken})}">
+		<link th:if="${user != null}" rel="stylesheet" type="text/css" href="lib/extjs/theme-gray-all-debug.css" th:href="@{/lib/extjs/theme-gray-all-debug.css(v=${assetVersionToken})}">
+		<link th:if="${user != null}" rel="stylesheet" type="text/css" href="lib/extjs/charts-all.css" th:href="@{/lib/extjs/charts-all.css(v=${assetVersionToken})}">
 		<link href="css/buddilive.css" rel="stylesheet" th:href="@{/css/buddilive.css(v=${assetVersionToken})}" />
 
-		<script type="text/javascript" src="lib/extjs/ext-all-debug.js" th:src="@{/lib/extjs/ext-all-debug.js(v=${assetVersionToken})}"></script>
-		<script type="text/javascript" src="lib/extjs/charts.js" th:src="@{/lib/extjs/charts.js(v=${assetVersionToken})}"></script>
+		<script th:if="${user != null}" type="text/javascript" src="lib/extjs/ext-all-debug.js" th:src="@{/lib/extjs/ext-all-debug.js(v=${assetVersionToken})}"></script>
+		<script th:if="${user != null}" type="text/javascript" src="lib/extjs/charts.js" th:src="@{/lib/extjs/charts.js(v=${assetVersionToken})}"></script>
 		<script type="text/javascript" th:inline="javascript">
 			window.__assetVersion = /*[[${assetVersionToken}]]*/ "0";
 		</script>
@@ -18,7 +18,7 @@
 			window.__buddiConfig = JSON.parse(/*[[${userConfigJson}]]*/ '{}');
 		</script>
 		<script th:if="${user != null}" type="text/javascript" src="buddilive/Application.js" th:src="@{/buddilive/Application.js(v=${assetVersionToken})}"></script>
-		<script th:if="${newUser != null}" type="text/javascript">
+		<script th:if="${user != null and newUser != null}" type="text/javascript">
 			var newUserMessage = function(){
 				if (Ext.MessageBox){
 					Ext.MessageBox.show({
@@ -38,7 +38,7 @@
 			window.__authConfig = JSON.parse(/*[[${authConfigJson}]]*/ '{}');
 			window.__authI18n = JSON.parse(/*[[${authI18nJson}]]*/ '{}');
 		</script>
-		<script th:if="${user == null}" type="text/javascript" src="authentication/app/Application.js" th:src="@{/authentication/app/Application.js(v=${assetVersionToken})}"></script>
+		<script th:if="${user == null}" type="text/javascript" src="authentication/app/Login.js" th:src="@{/authentication/app/Login.js(v=${assetVersionToken})}"></script>
 	</head>
 	<body>
 		<div th:if="${user == null}">
