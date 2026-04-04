@@ -17,7 +17,9 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import okhttp3.Cookie
@@ -33,6 +35,7 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -55,6 +58,7 @@ class StandaloneBackendE2eTest {
 	private lateinit var primaryAccountName: String
 	private lateinit var secondaryAccountName: String
 	private lateinit var reserveAccountName: String
+	private lateinit var softDeleteAccountName: String
 	private lateinit var transactionOneDescription: String
 	private lateinit var transactionTwoDescription: String
 	private lateinit var suggestionTemplateDescription: String
@@ -62,6 +66,7 @@ class StandaloneBackendE2eTest {
 	private lateinit var transactionTwoNumber: String
 	private lateinit var suggestionTemplateNumber: String
 	private var primaryAccountId: Int = 0
+	private var softDeleteAccountId: Int = 0
 
 	@Before
 	fun setUp() {
@@ -73,6 +78,7 @@ class StandaloneBackendE2eTest {
 		primaryAccountName = "Android E2E Primary $suffix"
 		secondaryAccountName = "Android E2E Secondary $suffix"
 		reserveAccountName = "Android E2E Reserve $suffix"
+		softDeleteAccountName = "Android E2E Soft Delete $suffix"
 		transactionOneDescription = "Android E2E Groceries $suffix"
 		transactionTwoDescription = "Android E2E Transfer $suffix"
 		suggestionTemplateDescription = "Android E2E Suggestion Template $suffix"
@@ -85,6 +91,7 @@ class StandaloneBackendE2eTest {
 		primaryAccountId = backend.createAccount(apiClient, primaryAccountName, "1500.00")
 		val secondaryAccountId = backend.createAccount(apiClient, secondaryAccountName, "500.00")
 		val reserveAccountId = backend.createAccount(apiClient, reserveAccountName, "700.00")
+		softDeleteAccountId = backend.createAccount(apiClient, softDeleteAccountName, "250.00")
 		backend.updateUserFormatting(
 			client = apiClient,
 			dateFormat = PREFERRED_DATE_FORMAT,
@@ -118,6 +125,24 @@ class StandaloneBackendE2eTest {
 			fromId = secondaryAccountId,
 			toId = reserveAccountId,
 			amount = SUGGESTION_TEMPLATE_AMOUNT
+		)
+		backend.createTransaction(
+			client = apiClient,
+			description = "Android E2E Soft Delete Tx 1 $suffix",
+			number = "ANDROID-E2E-SOFT-1-$suffix",
+			date = "2026-03-23",
+			fromId = secondaryAccountId,
+			toId = softDeleteAccountId,
+			amount = "10.00"
+		)
+		backend.createTransaction(
+			client = apiClient,
+			description = "Android E2E Soft Delete Tx 2 $suffix",
+			number = "ANDROID-E2E-SOFT-2-$suffix",
+			date = "2026-03-24",
+			fromId = softDeleteAccountId,
+			toId = reserveAccountId,
+			amount = "5.00"
 		)
 	}
 
@@ -177,15 +202,18 @@ class StandaloneBackendE2eTest {
 		)
 
 		loginToAccountsScreen()
-		assertEventuallyVisible(primaryAccountName)
+		assertEventuallyVisible(softDeleteAccountName)
+		assertEventuallyNoLineThrough(softDeleteAccountName)
 
-		backend.deleteAccount(apiClient, primaryAccountId)
+		backend.deleteAccount(apiClient, softDeleteAccountId)
 		tapRefreshButton()
-		assertEventuallyVisible(primaryAccountName)
+		assertEventuallyVisible(softDeleteAccountName)
+		assertEventuallyHasLineThrough(softDeleteAccountName)
 
-		backend.undeleteAccount(apiClient, primaryAccountId)
+		backend.undeleteAccount(apiClient, softDeleteAccountId)
 		tapRefreshButton()
-		assertEventuallyVisible(primaryAccountName)
+		assertEventuallyVisible(softDeleteAccountName)
+		assertEventuallyNoLineThrough(softDeleteAccountName)
 	}
 
 	@Test
@@ -551,6 +579,55 @@ class StandaloneBackendE2eTest {
 			"Expected text to be hidden: $text",
 			composeTestRule.onAllNodes(hasText(text), useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
 		)
+	}
+
+	private fun assertEventuallyHasLineThrough(text: String) {
+		composeTestRule.waitUntil(timeoutMillis = 20_000) {
+			hasLineThroughText(text)
+		}
+		assertTrue("Expected line-through text style for: $text", hasLineThroughText(text))
+	}
+
+	private fun assertEventuallyNoLineThrough(text: String) {
+		composeTestRule.waitUntil(timeoutMillis = 20_000) {
+			isTextVisible(text) && !hasLineThroughText(text)
+		}
+		assertFalse("Expected plain text style for: $text", hasLineThroughText(text))
+	}
+
+	private fun hasLineThroughText(text: String): Boolean {
+		return hasLineThroughText(text, false) || hasLineThroughText(text, true)
+	}
+
+	private fun hasLineThroughText(text: String, useUnmergedTree: Boolean): Boolean {
+		val nodes = composeTestRule
+			.onAllNodes(hasText(text), useUnmergedTree = useUnmergedTree)
+			.fetchSemanticsNodes()
+		for (node in nodes) {
+			val textLayoutAction = node.config.getOrNull(SemanticsActions.GetTextLayoutResult)
+			if (textLayoutAction != null) {
+				val textLayoutResults = mutableListOf<TextLayoutResult>()
+				if (textLayoutAction.action?.invoke(textLayoutResults) == true) {
+					for (textLayoutResult in textLayoutResults) {
+						val textDecoration = textLayoutResult.layoutInput.style.textDecoration
+						if (textDecoration != null && textDecoration.toString().contains("LineThrough")) {
+							return true
+						}
+					}
+				}
+			}
+
+			val textEntries = node.config.getOrNull(SemanticsProperties.Text) ?: continue
+			for (entry in textEntries) {
+				for (styleRange in entry.spanStyles) {
+					val decoration = styleRange.item.textDecoration
+					if (decoration != null && decoration.toString().contains("LineThrough")) {
+						return true
+					}
+				}
+			}
+		}
+		return false
 	}
 
 	private fun assertEventuallyVisibleSubstring(text: String) {
