@@ -11,10 +11,12 @@ object AppContainer {
 
 	fun repository(context: Context): BuddiRepository {
 		return repository ?: synchronized(this) {
-			repository ?: BuddiRepository(BuddiApiFactory.create(context.applicationContext)).also {
+			repository ?: BuddiRepository(
+				api = BuddiApiFactory.create(context.applicationContext),
+				descriptionsApi = BuddiApiFactory.createDescriptionsApi(context.applicationContext)
+			).also {
 				repository = it
 			}
 		}
 	}
 }
-

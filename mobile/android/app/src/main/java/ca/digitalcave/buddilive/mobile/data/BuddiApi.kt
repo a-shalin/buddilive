@@ -3,6 +3,7 @@ package ca.digitalcave.buddilive.mobile.data
 import android.content.Context
 import ca.digitalcave.buddilive.mobile.BuildConfig
 import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -49,8 +50,23 @@ interface BuddiApi {
 object BuddiApiFactory {
 
 	fun create(context: Context): BuddiApi {
+		return createWithTimeoutSeconds(context = context, timeoutSeconds = DEFAULT_TIMEOUT_SECONDS)
+	}
+
+	fun createDescriptionsApi(context: Context): BuddiApi {
+		return createWithTimeoutSeconds(
+			context = context,
+			timeoutSeconds = DEFAULT_TIMEOUT_SECONDS * DESCRIPTIONS_TIMEOUT_MULTIPLIER
+		)
+	}
+
+	private fun createWithTimeoutSeconds(context: Context, timeoutSeconds: Long): BuddiApi {
 		val client = OkHttpClient.Builder()
 			.cookieJar(PersistentCookieJar(context))
+			.connectTimeout(timeoutSeconds, TimeUnit.SECONDS)
+			.readTimeout(timeoutSeconds, TimeUnit.SECONDS)
+			.writeTimeout(timeoutSeconds, TimeUnit.SECONDS)
+			.callTimeout(timeoutSeconds, TimeUnit.SECONDS)
 			.build()
 
 		return Retrofit.Builder()
@@ -60,4 +76,7 @@ object BuddiApiFactory {
 			.build()
 			.create(BuddiApi::class.java)
 	}
+
+	private const val DEFAULT_TIMEOUT_SECONDS = 10L
+	private const val DESCRIPTIONS_TIMEOUT_MULTIPLIER = 5L
 }

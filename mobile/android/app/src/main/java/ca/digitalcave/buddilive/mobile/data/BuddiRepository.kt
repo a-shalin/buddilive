@@ -1,15 +1,40 @@
 package ca.digitalcave.buddilive.mobile.data
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import retrofit2.HttpException
 import java.io.IOException
 
-class BuddiRepository(private val api: BuddiApi) {
+class BuddiRepository(
+	private val api: BuddiApi,
+	private val descriptionsApi: BuddiApi = api
+) {
+
+	private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+	private val descriptionsLoadMutex = Mutex()
+	private val _transactionDescriptionTemplates = MutableStateFlow<List<TransactionDescriptionTemplate>>(emptyList())
+	val transactionDescriptionTemplates: StateFlow<List<TransactionDescriptionTemplate>> = _transactionDescriptionTemplates.asStateFlow()
+
+	@Volatile
+	private var descriptionsLoaded: Boolean = false
 
 	suspend fun login(identifier: String, password: String): LoginResult {
 		return runLoginApi {
 			val response = api.login(identifier, password)
 			when {
-				response.success -> LoginResult.Success
+				response.success -> {
+					resetTransactionDescriptionTemplates()
+					preloadTransactionDescriptionTemplatesAsync()
+					LoginResult.Success
+				}
 				!response.next.isNullOrBlank() -> LoginResult.NextStep(response.next)
 				else -> LoginResult.Error("Login failed.")
 			}
@@ -47,13 +72,90 @@ class BuddiRepository(private val api: BuddiApi) {
 	}
 
 	suspend fun fetchTransactionDescriptionTemplates(): Result<List<TransactionDescriptionTemplate>> {
-		return runApi {
-			val response = api.getTransactionDescriptions()
-			if (!response.success) {
-				return@runApi Result.failure(IllegalStateException("Transaction descriptions request failed."))
-			}
-			Result.success(response.toTransactionDescriptionTemplates())
+		if (descriptionsLoaded) {
+			return Result.success(_transactionDescriptionTemplates.value)
 		}
+		return loadTransactionDescriptionTemplatesIntoStore()
+	}
+
+	fun preloadTransactionDescriptionTemplatesAsync() {
+		repositoryScope.launch {
+			loadTransactionDescriptionTemplatesIntoStore()
+		}
+	}
+
+	private suspend fun loadTransactionDescriptionTemplatesIntoStore(): Result<List<TransactionDescriptionTemplate>> {
+		if (descriptionsLoaded) {
+			return Result.success(_transactionDescriptionTemplates.value)
+		}
+		return descriptionsLoadMutex.withLock {
+			if (descriptionsLoaded) {
+				return@withLock Result.success(_transactionDescriptionTemplates.value)
+			}
+			val result = runApi {
+				val response = descriptionsApi.getTransactionDescriptions()
+				if (!response.success) {
+					return@runApi Result.failure(IllegalStateException("Transaction descriptions request failed."))
+				}
+				Result.success(response.toTransactionDescriptionTemplates())
+			}
+			result.onSuccess { templates ->
+				_transactionDescriptionTemplates.update { existing ->
+					mergeDescriptionTemplates(remote = templates, local = existing)
+				}
+				descriptionsLoaded = true
+			}
+			result
+		}
+	}
+
+	private fun mergeDescriptionTemplates(
+		remote: List<TransactionDescriptionTemplate>,
+		local: List<TransactionDescriptionTemplate>
+	): List<TransactionDescriptionTemplate> {
+		if (local.isEmpty()) {
+			return remote
+		}
+		val merged = remote.toMutableList()
+		val knownDescriptions = remote.mapTo(mutableSetOf()) { it.description.trim().lowercase() }
+		for (template in local) {
+			val key = template.description.trim().lowercase()
+			if (key !in knownDescriptions) {
+				merged.add(template)
+				knownDescriptions.add(key)
+			}
+		}
+		return merged
+	}
+
+	private fun addTransactionDescriptionTemplateIfMissing(input: TransactionEditInput) {
+		val description = input.description.trim()
+		if (description.isBlank()) {
+			return
+		}
+		val amountNumber = input.amount.toBigDecimalOrNull() ?: return
+		_transactionDescriptionTemplates.update { templates ->
+			if (templates.any { it.description.equals(description, ignoreCase = true) }) {
+				return@update templates
+			}
+			templates + TransactionDescriptionTemplate(
+				description = description,
+				splits = listOf(
+					TransactionDescriptionTemplateSplit(
+						amountNumber = amountNumber,
+						fromId = input.fromId,
+						toId = input.toId,
+						fromType = null,
+						toType = null
+					)
+				)
+			)
+		}
+	}
+
+	private fun resetTransactionDescriptionTemplates() {
+		descriptionsLoaded = false
+		_transactionDescriptionTemplates.value = emptyList()
 	}
 
 	suspend fun fetchSources(direction: String): Result<List<SourceOption>> {
@@ -92,7 +194,9 @@ class BuddiRepository(private val api: BuddiApi) {
 					)
 				)
 			)
-		)
+		).onSuccess {
+			addTransactionDescriptionTemplateIfMissing(input)
+		}
 	}
 
 	suspend fun updateTransaction(transactionId: Long, input: TransactionEditInput): Result<Unit> {
@@ -112,7 +216,9 @@ class BuddiRepository(private val api: BuddiApi) {
 					)
 				)
 			)
-		)
+		).onSuccess {
+			addTransactionDescriptionTemplateIfMissing(input)
+		}
 	}
 
 	suspend fun deleteTransaction(transactionId: Long): Result<Unit> {

@@ -10,6 +10,7 @@ import ca.digitalcave.buddilive.mobile.data.TransactionEditInput
 import ca.digitalcave.buddilive.mobile.data.TransactionSummary
 import ca.digitalcave.buddilive.mobile.data.UnauthorizedException
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,9 +51,16 @@ class TransactionsViewModel(
 	val state: StateFlow<TransactionsUiState> = _state.asStateFlow()
 	private var pendingCreateScrollToTop: Boolean = false
 
+	init {
+		viewModelScope.launch {
+			repository.transactionDescriptionTemplates.collect { templates ->
+				_state.update { it.copy(descriptionTemplates = templates) }
+			}
+		}
+	}
+
 	fun loadInitial() {
 		loadTransactions(start = 0, append = false)
-		loadDescriptionTemplates()
 		loadSources()
 		loadDatePreferences()
 		loadAccountBalance()
@@ -107,7 +115,6 @@ class TransactionsViewModel(
 					pendingCreateScrollToTop = true
 				}
 				refresh()
-				loadDescriptionTemplates()
 				onDone(true)
 			},
 			onFailure = { error ->
@@ -122,26 +129,6 @@ class TransactionsViewModel(
 				onDone(false)
 			}
 		)
-	}
-
-	private fun loadDescriptionTemplates() {
-		viewModelScope.launch {
-			val result = repository.fetchTransactionDescriptionTemplates()
-			result.fold(
-				onSuccess = { templates ->
-					_state.update { it.copy(descriptionTemplates = templates) }
-				},
-				onFailure = { error ->
-					val needsLogin = error is UnauthorizedException
-					_state.update {
-						it.copy(
-							error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Unable to load descriptions.",
-							needsLogin = needsLogin
-						)
-					}
-				}
-			)
-		}
 	}
 
 	private fun loadSources() {
