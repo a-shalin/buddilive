@@ -5,6 +5,11 @@ import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
 import android.view.ViewConfiguration
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -66,6 +71,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.autofill.AutofillNode
 import androidx.compose.ui.autofill.AutofillType
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -133,6 +139,36 @@ private fun parseLocaleTag(localeTag: String): Locale {
 		return Locale.getDefault()
 	}
 	return parsedLocale
+}
+
+@Composable
+private fun RefreshActionButton(isRefreshing: Boolean, onRefresh: () -> Unit) {
+	val iconModifier = if (isRefreshing) {
+		val transition = rememberInfiniteTransition(label = "refreshIconTransition")
+		val rotation by transition.animateFloat(
+			initialValue = 0f,
+			targetValue = 360f,
+			animationSpec = infiniteRepeatable(
+				animation = tween(
+					durationMillis = 900,
+					easing = LinearEasing
+				)
+			),
+			label = "refreshIconRotation"
+		)
+		Modifier.rotate(rotation)
+	}
+	else {
+		Modifier
+	}
+
+	IconButton(onClick = onRefresh, enabled = !isRefreshing) {
+		Icon(
+			imageVector = Icons.Filled.Refresh,
+			contentDescription = "Refresh",
+			modifier = iconModifier
+		)
+	}
 }
 
 private fun parseInputDate(value: String, formatter: DateTimeFormatter): LocalDate? {
@@ -481,9 +517,10 @@ private fun AccountsScreen(
 			TopAppBar(
 				title = { Text("Accounts") },
 				actions = {
-					IconButton(onClick = viewModel::refresh) {
-						Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
-					}
+					RefreshActionButton(
+						isRefreshing = state.isLoading,
+						onRefresh = viewModel::refresh
+					)
 				}
 			)
 		}
@@ -494,10 +531,6 @@ private fun AccountsScreen(
 				.padding(paddingValues)
 				.padding(12.dp)
 		) {
-			if (state.isLoading && state.overview.accountTypes.isEmpty()) {
-				CircularProgressIndicator()
-			}
-
 			state.error?.let {
 				Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
 			}
@@ -727,9 +760,10 @@ private fun TransactionsScreen(
 							}) {
 								Icon(Icons.Filled.Add, contentDescription = "New")
 							}
-							IconButton(onClick = viewModel::refresh) {
-								Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
-							}
+							RefreshActionButton(
+								isRefreshing = state.isLoading,
+								onRefresh = viewModel::refresh
+							)
 						}
 					)
 				},
@@ -760,10 +794,6 @@ private fun TransactionsScreen(
 					.padding(paddingValues)
 					.padding(12.dp)
 			) {
-				if (state.isLoading && state.transactions.isEmpty()) {
-					CircularProgressIndicator()
-				}
-
 				state.error?.let {
 					Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
 				}
