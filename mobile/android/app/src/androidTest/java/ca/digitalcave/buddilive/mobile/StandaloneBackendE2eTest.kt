@@ -61,7 +61,9 @@ class StandaloneBackendE2eTest {
 	private lateinit var softDeleteAccountName: String
 	private lateinit var transactionOneDescription: String
 	private lateinit var transactionTwoDescription: String
+	private lateinit var suggestionTemplatePrefix: String
 	private lateinit var suggestionTemplateDescription: String
+	private lateinit var nonApplicableSuggestionTemplateDescription: String
 	private lateinit var transactionOneNumber: String
 	private lateinit var transactionTwoNumber: String
 	private lateinit var suggestionTemplateNumber: String
@@ -81,7 +83,9 @@ class StandaloneBackendE2eTest {
 		softDeleteAccountName = "Android E2E Soft Delete $suffix"
 		transactionOneDescription = "Android E2E Groceries $suffix"
 		transactionTwoDescription = "Android E2E Transfer $suffix"
-		suggestionTemplateDescription = "Android E2E Suggestion Template $suffix"
+		suggestionTemplatePrefix = "Android E2E Suggestion Template $suffix"
+		suggestionTemplateDescription = "$suggestionTemplatePrefix Applicable"
+		nonApplicableSuggestionTemplateDescription = "$suggestionTemplatePrefix Inapplicable"
 		transactionOneNumber = "ANDROID-E2E-1-$suffix"
 		transactionTwoNumber = "ANDROID-E2E-2-$suffix"
 		suggestionTemplateNumber = "ANDROID-E2E-TEMPLATE-$suffix"
@@ -121,6 +125,15 @@ class StandaloneBackendE2eTest {
 			client = apiClient,
 			description = suggestionTemplateDescription,
 			number = suggestionTemplateNumber,
+			date = "2026-03-22",
+			fromId = primaryAccountId,
+			toId = secondaryAccountId,
+			amount = SUGGESTION_TEMPLATE_AMOUNT
+		)
+		backend.createTransaction(
+			client = apiClient,
+			description = nonApplicableSuggestionTemplateDescription,
+			number = "ANDROID-E2E-TEMPLATE-INAPPLICABLE-$suffix",
 			date = "2026-03-22",
 			fromId = secondaryAccountId,
 			toId = reserveAccountId,
@@ -394,6 +407,19 @@ class StandaloneBackendE2eTest {
 			"Saved transaction memo was changed unexpectedly.",
 			backend.hasTransactionMemoByNumber(apiClient, primaryAccountId.toLong(), manualNumber, manualMemo)
 		)
+	}
+
+	@Test
+	fun descriptionSuggestionsHideTemplatesNotApplicableToSelectedAccount() {
+		loginAndOpenPrimaryAccountTransactions()
+		openNewTransactionEditor()
+
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_DESCRIPTION_TAG, useUnmergedTree = true)
+			.performTextInput(suggestionTemplatePrefix)
+
+		assertEventuallyVisible(suggestionTemplateDescription)
+		assertEventuallyNotVisible(nonApplicableSuggestionTemplateDescription)
 	}
 
 	@Test

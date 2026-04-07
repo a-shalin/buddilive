@@ -1097,14 +1097,17 @@ private fun TransactionEditorScreen(
 		}
 	}
 
-	val filteredDescriptionTemplates = remember(descriptionTemplates, state.description.text) {
+	val filteredDescriptionTemplates = remember(descriptionTemplates, state.description.text, selectedAccountIdInt) {
 		val query = state.description.text.trim()
 		if (query.isBlank()) {
 			emptyList()
 		}
 		else {
 			descriptionTemplates.filter { template ->
-				template.description.contains(query, ignoreCase = true)
+				template.splits.any { split ->
+					split.fromId == selectedAccountIdInt || split.toId == selectedAccountIdInt
+				}
+					&& template.description.contains(query, ignoreCase = true)
 					&& !template.description.equals(query, ignoreCase = true)
 			}
 		}
