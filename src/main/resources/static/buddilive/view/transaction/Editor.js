@@ -201,6 +201,17 @@ Ext.define('BuddiLive.view.transaction.Editor', {
 	
 	setSource: function(source) {
 		this.source = source;
+		let descriptionStore = this.down("combobox[itemId='description']").getStore();
+		let descriptionProxy = descriptionStore.getProxy();
+		descriptionProxy.extraParams = descriptionProxy.extraParams || {};
+		if (source == null) {
+			delete descriptionProxy.extraParams.source;
+		}
+		else {
+			descriptionProxy.extraParams.source = source;
+		}
+		descriptionStore.clearFilter();
+		descriptionStore.load();
 	},
 	
 	validate: function() {

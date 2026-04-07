@@ -437,6 +437,63 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 	}
 
 	@Test
+	void testDescriptionSuggestionsAreFilteredBySelectedAccount() throws Exception {
+		final String email = "txn-description-filter@example.com";
+		final String applicableDescription = "Description Filter Applicable";
+		final String inapplicableDescription = "Description Filter Inapplicable";
+		final String query = "Description Filter";
+
+		helper.registerUser(email, PASSWORD, "en_US", "USD");
+		final OkHttpClient apiClient = helper.login(email, PASSWORD);
+		final int chequingId = helper.createAccount(apiClient, "Chequing", "D", "Chequing", "1000.00");
+		final int savingsId = helper.createAccount(apiClient, "Savings", "D", "Savings", "2000.00");
+		final int groceriesId = helper.createCategory(apiClient, "Groceries", "E", "MONTH");
+
+		helper.createTransaction(apiClient, applicableDescription, "2024-03-20", chequingId, groceriesId, "10.00");
+		helper.createTransaction(apiClient, inapplicableDescription, "2024-03-21", savingsId, groceriesId, "20.00");
+
+		browserLogin(email, PASSWORD);
+		selectAccount("Chequing");
+
+		waitForComponent("transactioneditor");
+		wait.until(d -> {
+			try {
+				return (Boolean) executeJs(
+					"var combo = Ext.ComponentQuery.query('transactioneditor combobox[itemId=description]')[0];" +
+					"if (!combo) return false;" +
+					"var store = combo.getStore();" +
+					"return store && !store.isLoading() && store.getCount() > 0;");
+			}
+			catch (Exception e) {
+				return false;
+			}
+		});
+
+		final Boolean hasOnlyApplicable = (Boolean) executeJs(
+			"var query = arguments[0];" +
+			"var applicable = arguments[1];" +
+			"var inapplicable = arguments[2];" +
+			"var combo = Ext.ComponentQuery.query('transactioneditor combobox[itemId=description]')[0];" +
+			"var store = combo.getStore();" +
+			"store.clearFilter(true);" +
+			"store.filter({property: 'value', value: query, anyMatch: true, caseSensitive: false});" +
+			"var hasApplicable = false;" +
+			"var hasInapplicable = false;" +
+			"store.each(function(r) {" +
+			"  var value = r.get('value');" +
+			"  if (value === applicable) hasApplicable = true;" +
+			"  if (value === inapplicable) hasInapplicable = true;" +
+			"});" +
+			"store.clearFilter();" +
+			"return hasApplicable && !hasInapplicable;",
+			query, applicableDescription, inapplicableDescription);
+
+		assertThat(hasOnlyApplicable)
+			.as("Description suggestions should exclude templates not tied to selected account")
+			.isTrue();
+	}
+
+	@Test
 	void testBudgetToolbarLabelsAreTranslated() throws Exception {
 		final String email = "txn-budget-i18n@example.com";
 		helper.registerUser(email, PASSWORD, "en_US", "USD");

@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
@@ -37,11 +38,13 @@ public class DescriptionsController {
 	private JsonFactory jsonFactory;
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-	public StreamingResponseBody get(@AuthenticationPrincipal final User user) {
+	public StreamingResponseBody get(@AuthenticationPrincipal final User user,
+			@RequestParam(required = false) final Integer source) {
 		try {
 			final Map<String, Transaction> transactionsByDescription = new TreeMap<>();
 			final List<Transaction> txns = transactions.selectDescriptions(user);
 			for (Transaction transaction : txns) {
+				if (source != null && !containsSource(transaction, source)) continue;
 				final String description = CryptoUtil.decryptWrapper(transaction.getDescription(), user);
 				if (transactionsByDescription.get(description) == null) {
 					transactionsByDescription.put(description, transaction);
@@ -117,6 +120,17 @@ public class DescriptionsController {
 				return true;
 			}
 			current = current.getCause();
+		}
+		return false;
+	}
+
+	private static boolean containsSource(final Transaction transaction, final int source) {
+		final List<Split> splits = transaction.getSplits();
+		if (splits == null) return false;
+		for (Split split : splits) {
+			if (split.getFromSource() == source || split.getToSource() == source) {
+				return true;
+			}
 		}
 		return false;
 	}
