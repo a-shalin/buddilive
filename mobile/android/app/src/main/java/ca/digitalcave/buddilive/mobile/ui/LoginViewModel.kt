@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 data class LoginUiState(
 	val identifier: String = "",
 	val password: String = "",
+	val stayLoggedIn: Boolean = false,
 	val isLoading: Boolean = false,
 	val error: String? = null
 )
@@ -31,6 +32,10 @@ class LoginViewModel(private val repository: BuddiRepository) : ViewModel() {
 		_state.update { it.copy(password = value) }
 	}
 
+	fun onStayLoggedInChanged(value: Boolean) {
+		_state.update { it.copy(stayLoggedIn = value) }
+	}
+
 	fun login(onResult: (LoginResult) -> Unit) {
 		val current = _state.value
 		if (current.identifier.isBlank() || current.password.isBlank()) {
@@ -40,7 +45,11 @@ class LoginViewModel(private val repository: BuddiRepository) : ViewModel() {
 
 		viewModelScope.launch {
 			_state.update { it.copy(isLoading = true, error = null) }
-			val result = repository.login(current.identifier.trim(), current.password)
+			val result = repository.login(
+				identifier = current.identifier.trim(),
+				password = current.password,
+				stayLoggedIn = current.stayLoggedIn
+			)
 			when (result) {
 				is LoginResult.Error -> _state.update { it.copy(isLoading = false, error = result.message) }
 				else -> _state.update { it.copy(isLoading = false, error = null) }
@@ -59,4 +68,3 @@ class LoginViewModelFactory(private val repository: BuddiRepository) : ViewModel
 		throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
 	}
 }
-

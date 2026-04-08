@@ -1,6 +1,7 @@
 package ca.digitalcave.buddilive.mobile.ui
 
 import android.app.DatePickerDialog
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
@@ -30,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
@@ -40,6 +42,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenu
@@ -111,6 +114,22 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val isoDateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+private const val authPreferencesName = "buddilive_mobile_auth"
+private const val stayLoggedInPreferenceKey = "stay_logged_in"
+private const val loginIdentifierTag = "loginIdentifier"
+private const val loginPasswordTag = "loginPassword"
+
+private fun readStayLoggedInPreference(context: Context): Boolean {
+	return context.getSharedPreferences(authPreferencesName, Context.MODE_PRIVATE)
+		.getBoolean(stayLoggedInPreferenceKey, false)
+}
+
+private fun writeStayLoggedInPreference(context: Context, stayLoggedIn: Boolean) {
+	context.getSharedPreferences(authPreferencesName, Context.MODE_PRIVATE)
+		.edit()
+		.putBoolean(stayLoggedInPreferenceKey, stayLoggedIn)
+		.apply()
+}
 
 private data class AmountFormat(
 	val localeTag: String,
@@ -300,77 +319,111 @@ fun BuddiMobileApp(repository: BuddiRepository) {
 	val snackbarHostState = remember { SnackbarHostState() }
 	val coroutineScope = rememberCoroutineScope()
 
-	var isAuthenticated by rememberSaveable { mutableStateOf(false) }
+	var isAuthenticated by remember { mutableStateOf(false) }
+	var isAuthBootstrapInProgress by remember { mutableStateOf(true) }
 	var selectedAccountId by rememberSaveable { mutableStateOf<Long?>(null) }
 	var selectedAccountName by rememberSaveable { mutableStateOf("") }
 	var selectedAccountBalance by rememberSaveable { mutableStateOf("") }
 	var expandedAccountTypes by rememberSaveable { mutableStateOf(setOf<String>()) }
 
+	LaunchedEffect(repository, context) {
+		if (readStayLoggedInPreference(context)) {
+			isAuthenticated = repository.hasValidSession()
+			if (isAuthenticated) {
+				repository.preloadTransactionDescriptionTemplatesAsync()
+			}
+		}
+		else {
+			isAuthenticated = false
+		}
+		isAuthBootstrapInProgress = false
+	}
+
 	Scaffold(
 		snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
 	) { paddingValues ->
-			when {
-				!isAuthenticated -> LoginScreen(
-					modifier = Modifier.padding(paddingValues),
-					repository = repository,
-					onLoginSuccess = {
-						isAuthenticated = true
-						selectedAccountId = null
-						selectedAccountName = ""
-						selectedAccountBalance = ""
-					},
-					onNextStep = { nextStep ->
-						coroutineScope.launch {
-							snackbarHostState.showSnackbar("Additional authentication is required: $nextStep")
+		when {
+			isAuthBootstrapInProgress -> Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(paddingValues),
+				contentAlignment = Alignment.Center
+			) {
+				CircularProgressIndicator()
+			}
+
+			!isAuthenticated -> LoginScreen(
+				modifier = Modifier.padding(paddingValues),
+				repository = repository,
+				onLoginSuccess = { stayLoggedIn ->
+					writeStayLoggedInPreference(context, stayLoggedIn)
+					isAuthenticated = true
+					selectedAccountId = null
+					selectedAccountName = ""
+					selectedAccountBalance = ""
+				},
+				onNextStep = { nextStep ->
+					coroutineScope.launch {
+						snackbarHostState.showSnackbar("Additional authentication is required: $nextStep")
 					}
 					val intent = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.BASE_URL))
 					context.startActivity(intent)
 				}
 			)
 
-				selectedAccountId == null -> AccountsScreen(
-					modifier = Modifier.padding(paddingValues),
-					repository = repository,
-					expandedTypes = expandedAccountTypes,
-					onExpandedTypesChange = { expandedAccountTypes = it },
-					onAccountSelected = { account ->
-						selectedAccountId = account.id
-						selectedAccountName = account.name
-						selectedAccountBalance = account.balance
-					},
-					onNeedsLogin = {
-						isAuthenticated = false
+			selectedAccountId == null -> AccountsScreen(
+				modifier = Modifier.padding(paddingValues),
+				repository = repository,
+				expandedTypes = expandedAccountTypes,
+				onExpandedTypesChange = { expandedAccountTypes = it },
+				onAccountSelected = { account ->
+					selectedAccountId = account.id
+					selectedAccountName = account.name
+					selectedAccountBalance = account.balance
+				},
+				onLogout = {
+					writeStayLoggedInPreference(context, false)
+					isAuthenticated = false
+					selectedAccountId = null
+					selectedAccountName = ""
+					selectedAccountBalance = ""
+					coroutineScope.launch {
+						repository.logout()
 					}
+				},
+				onNeedsLogin = {
+					isAuthenticated = false
+				}
 			)
 
-				else -> TransactionsScreen(
-					modifier = Modifier.padding(paddingValues),
-					repository = repository,
-					accountId = selectedAccountId ?: return@Scaffold,
-					accountName = selectedAccountName,
-					accountBalance = selectedAccountBalance,
-					onBack = {
-						selectedAccountId = null
-						selectedAccountName = ""
-						selectedAccountBalance = ""
-					},
-					onNeedsLogin = {
-						isAuthenticated = false
-						selectedAccountId = null
-						selectedAccountName = ""
-						selectedAccountBalance = ""
-					}
-				)
-			}
+			else -> TransactionsScreen(
+				modifier = Modifier.padding(paddingValues),
+				repository = repository,
+				accountId = selectedAccountId ?: return@Scaffold,
+				accountName = selectedAccountName,
+				accountBalance = selectedAccountBalance,
+				onBack = {
+					selectedAccountId = null
+					selectedAccountName = ""
+					selectedAccountBalance = ""
+				},
+				onNeedsLogin = {
+					isAuthenticated = false
+					selectedAccountId = null
+					selectedAccountName = ""
+					selectedAccountBalance = ""
+				}
+			)
 		}
 	}
+}
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
 private fun LoginScreen(
 	modifier: Modifier,
 	repository: BuddiRepository,
-	onLoginSuccess: () -> Unit,
+	onLoginSuccess: (Boolean) -> Unit,
 	onNextStep: (String) -> Unit
 ) {
 	val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(repository))
@@ -410,6 +463,7 @@ private fun LoginScreen(
 
 		OutlinedTextField(
 			modifier = Modifier
+				.testTag(loginIdentifierTag)
 				.fillMaxWidth()
 				.onGloballyPositioned { coordinates ->
 					identifierAutofillNode.boundingBox = coordinates.boundsInWindow()
@@ -435,6 +489,7 @@ private fun LoginScreen(
 		Spacer(modifier = Modifier.height(8.dp))
 		OutlinedTextField(
 			modifier = Modifier
+				.testTag(loginPasswordTag)
 				.fillMaxWidth()
 				.onGloballyPositioned { coordinates ->
 					passwordAutofillNode.boundingBox = coordinates.boundsInWindow()
@@ -459,12 +514,25 @@ private fun LoginScreen(
 			singleLine = true
 		)
 		Spacer(modifier = Modifier.height(16.dp))
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.clickable { viewModel.onStayLoggedInChanged(!state.stayLoggedIn) },
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			Checkbox(
+				checked = state.stayLoggedIn,
+				onCheckedChange = viewModel::onStayLoggedInChanged
+			)
+			Text("Stay logged in")
+		}
+		Spacer(modifier = Modifier.height(12.dp))
 
 		Button(
 			onClick = {
 				viewModel.login { result ->
 					when (result) {
-						is LoginResult.Success -> onLoginSuccess()
+						is LoginResult.Success -> onLoginSuccess(state.stayLoggedIn)
 						is LoginResult.NextStep -> onNextStep(result.nextStep)
 						is LoginResult.Error -> Unit
 					}
@@ -496,6 +564,7 @@ private fun AccountsScreen(
 	expandedTypes: Set<String>,
 	onExpandedTypesChange: (Set<String>) -> Unit,
 	onAccountSelected: (AccountSummary) -> Unit,
+	onLogout: () -> Unit,
 	onNeedsLogin: () -> Unit
 ) {
 	val viewModel: AccountsViewModel = viewModel(factory = AccountsViewModelFactory(repository))
@@ -517,6 +586,12 @@ private fun AccountsScreen(
 			TopAppBar(
 				title = { Text("Accounts") },
 				actions = {
+					IconButton(onClick = onLogout) {
+						Icon(
+							imageVector = Icons.AutoMirrored.Filled.Logout,
+							contentDescription = "Log out"
+						)
+					}
 					RefreshActionButton(
 						isRefreshing = state.isLoading,
 						onRefresh = viewModel::refresh
@@ -1193,7 +1268,7 @@ private fun TransactionEditorScreen(
 				.verticalScroll(scrollState),
 			verticalArrangement = Arrangement.spacedBy(8.dp)
 		) {
-			DoubleTapSelectAllOutlinedTextField(
+			OutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorDate"),
@@ -1227,7 +1302,7 @@ private fun TransactionEditorScreen(
 				}
 			)
 			Box(modifier = Modifier.fillMaxWidth()) {
-				DoubleTapSelectAllOutlinedTextField(
+				OutlinedTextField(
 					modifier = Modifier
 						.fillMaxWidth()
 						.testTag("transactionEditorDescription")
@@ -1263,7 +1338,7 @@ private fun TransactionEditorScreen(
 					}
 				}
 			}
-			DoubleTapSelectAllOutlinedTextField(
+			OutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorNumber"),
@@ -1315,7 +1390,7 @@ private fun TransactionEditorScreen(
 					)
 				}
 			)
-			DoubleTapSelectAllOutlinedTextField(
+			OutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorMemo"),

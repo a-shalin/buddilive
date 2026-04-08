@@ -5,6 +5,7 @@ import ca.digitalcave.buddilive.mobile.BuildConfig
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 import retrofit2.Retrofit
+import retrofit2.Response
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.Field
@@ -20,8 +21,12 @@ interface BuddiApi {
 	@POST("authentication/login")
 	suspend fun login(
 		@Field("identifier") identifier: String,
-		@Field("password") password: String
+		@Field("password") password: String,
+		@Field("remember") remember: String? = null
 	): AuthenticationFlowResponseDto
+
+	@GET("authentication/logout")
+	suspend fun logout(): Response<Void>
 
 	@GET("data/accounts")
 	suspend fun getAccounts(): AccountsResponseDto

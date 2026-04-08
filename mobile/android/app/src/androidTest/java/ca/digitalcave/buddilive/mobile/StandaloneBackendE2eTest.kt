@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -157,6 +156,9 @@ class StandaloneBackendE2eTest {
 			toId = reserveAccountId,
 			amount = "5.00"
 		)
+
+		composeTestRule.activityRule.scenario.recreate()
+		composeTestRule.waitForIdle()
 	}
 
 	@Test
@@ -164,6 +166,33 @@ class StandaloneBackendE2eTest {
 		loginAndOpenPrimaryAccountTransactions()
 		assertEventuallyVisible(transactionOneDescription)
 		assertEventuallyVisible(transactionTwoDescription)
+	}
+
+	@Test
+	fun stayLoggedInCheckedKeepsUserSignedInAfterActivityRecreate() {
+		loginToAccountsScreen(stayLoggedIn = true)
+		assertEventuallyVisible("Accounts")
+		composeTestRule.activityRule.scenario.recreate()
+		assertEventuallyVisible("Accounts")
+	}
+
+	@Test
+	fun stayLoggedInUncheckedRequiresLoginAfterActivityRecreate() {
+		loginToAccountsScreen(stayLoggedIn = false)
+		assertEventuallyVisible("Accounts")
+		composeTestRule.activityRule.scenario.recreate()
+		waitForLoginFields()
+		assertEventuallyVisible("Sign In")
+	}
+
+	@Test
+	fun logoutFromAccountsReturnsToLoginAndDisablesAutoSignIn() {
+		loginToAccountsScreen(stayLoggedIn = true)
+		composeTestRule.onNode(hasContentDescription("Log out"), useUnmergedTree = true).performClick()
+		waitForLoginFields()
+		composeTestRule.activityRule.scenario.recreate()
+		waitForLoginFields()
+		assertEventuallyVisible("Sign In")
 	}
 
 	@Test
@@ -450,8 +479,8 @@ class StandaloneBackendE2eTest {
 
 	private fun waitForLoginFields() {
 		composeTestRule.waitUntil(timeoutMillis = 20_000) {
-			composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
-				.fetchSemanticsNodes().size >= 2
+			composeTestRule.onAllNodesWithTag(LOGIN_IDENTIFIER_TAG, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+				&& composeTestRule.onAllNodesWithTag(LOGIN_PASSWORD_TAG, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 		}
 	}
 
@@ -462,13 +491,33 @@ class StandaloneBackendE2eTest {
 		assertEventuallyVisible("Transactions")
 	}
 
-	private fun loginToAccountsScreen() {
+	private fun loginToAccountsScreen(stayLoggedIn: Boolean = false) {
 		waitForLoginFields()
 
-		val fields = composeTestRule.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
-		fields[0].performTextInput(email)
-		fields[1].performTextInput(password)
+		composeTestRule.onNodeWithTag(LOGIN_IDENTIFIER_TAG, useUnmergedTree = true).performTextReplacement(email)
+		composeTestRule.onNodeWithTag(LOGIN_PASSWORD_TAG, useUnmergedTree = true).performTextReplacement(password)
+		if (stayLoggedIn) {
+			composeTestRule.onNodeWithText("Stay logged in").performClick()
+		}
 		composeTestRule.onNodeWithText("Sign In").performClick()
+		val reachedPostLoginState = runCatching {
+			composeTestRule.waitUntil(timeoutMillis = 20_000) {
+				isTextVisible(primaryAccountName)
+					|| isTextVisible(DEFAULT_ACCOUNT_TYPE)
+					|| isTextVisible("Login failed.")
+					|| isTextVisible("Email/username and password are required.")
+			}
+			true
+		}.getOrDefault(false)
+		if (!reachedPostLoginState) {
+			assertTrue(
+				"Timed out after Sign In. loginFailed=${isTextVisible("Login failed.")}, " +
+					"credentialsRequired=${isTextVisible("Email/username and password are required.")}, " +
+					"accountTypeVisible=${isTextVisible(DEFAULT_ACCOUNT_TYPE)}, " +
+					"primaryAccountVisible=${isTextVisible(primaryAccountName)}",
+				false
+			)
+		}
 		expandAccountTypeIfCollapsed(DEFAULT_ACCOUNT_TYPE, primaryAccountName)
 
 		assertEventuallyVisible(primaryAccountName)
@@ -682,6 +731,10 @@ class StandaloneBackendE2eTest {
 			.edit()
 			.clear()
 			.commit()
+		context.getSharedPreferences("buddilive_mobile_auth", Context.MODE_PRIVATE)
+			.edit()
+			.clear()
+			.commit()
 	}
 
 	companion object {
@@ -697,14 +750,16 @@ class StandaloneBackendE2eTest {
 		private const val TRANSACTION_EDITOR_AMOUNT_TAG = "transactionEditorAmount"
 		private const val TRANSACTION_EDITOR_MEMO_TAG = "transactionEditorMemo"
 		private const val TRANSACTION_EDITOR_DELETE_TAG = "transactionEditorDelete"
-		private const val TRANSACTION_EDITOR_DELETE_CONFIRM_TAG = "transactionEditorDeleteConfirm"
-		private const val TRANSACTION_EDITOR_SAVE_TAG = "transactionEditorSave"
-		private const val TRANSACTIONS_LIST_TAG = "transactionsList"
-		private const val SUGGESTION_TEMPLATE_AMOUNT = "88.88"
-		private const val BULK_SCROLL_TRANSACTION_COUNT = 320
-		private const val DEFAULT_ACCOUNT_TYPE = "Chequing"
+			private const val TRANSACTION_EDITOR_DELETE_CONFIRM_TAG = "transactionEditorDeleteConfirm"
+			private const val TRANSACTION_EDITOR_SAVE_TAG = "transactionEditorSave"
+			private const val TRANSACTIONS_LIST_TAG = "transactionsList"
+			private const val LOGIN_IDENTIFIER_TAG = "loginIdentifier"
+			private const val LOGIN_PASSWORD_TAG = "loginPassword"
+			private const val SUGGESTION_TEMPLATE_AMOUNT = "88.88"
+			private const val BULK_SCROLL_TRANSACTION_COUNT = 320
+			private const val DEFAULT_ACCOUNT_TYPE = "Chequing"
+		}
 	}
-}
 
 private class BackendClient(private val baseUrl: String) {
 

@@ -26,9 +26,13 @@ class BuddiRepository(
 	@Volatile
 	private var descriptionsLoaded: Boolean = false
 
-	suspend fun login(identifier: String, password: String): LoginResult {
+	suspend fun login(identifier: String, password: String, stayLoggedIn: Boolean): LoginResult {
 		return runLoginApi {
-			val response = api.login(identifier, password)
+			val response = api.login(
+				identifier = identifier,
+				password = password,
+				remember = if (stayLoggedIn) "on" else null
+			)
 			when {
 				response.success -> {
 					resetTransactionDescriptionTemplates()
@@ -39,6 +43,15 @@ class BuddiRepository(
 				else -> LoginResult.Error("Login failed.")
 			}
 		}
+	}
+
+	suspend fun hasValidSession(): Boolean {
+		return fetchAccountsOverview().isSuccess
+	}
+
+	suspend fun logout() {
+		runCatching { api.logout() }
+		resetTransactionDescriptionTemplates()
 	}
 
 	suspend fun fetchAccounts(): Result<List<AccountSummary>> {
