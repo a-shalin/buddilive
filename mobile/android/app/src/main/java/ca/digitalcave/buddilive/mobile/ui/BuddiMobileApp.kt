@@ -959,6 +959,86 @@ private fun toTextFieldValue(text: String): TextFieldValue {
 	return TextFieldValue(text = text, selection = TextRange(text.length))
 }
 
+private fun isWordCharacter(character: Char): Boolean {
+	return character.isLetterOrDigit() || character == '_'
+}
+
+private fun selectWordRangeAtCursor(value: TextFieldValue): TextRange? {
+	val text = value.text
+	if (text.isEmpty()) {
+		return null
+	}
+
+	val cursor = value.selection.start.coerceIn(0, text.length)
+	var index = if (cursor == text.length) {
+		cursor - 1
+	}
+	else {
+		cursor
+	}
+
+	if (index >= 0 && !isWordCharacter(text[index]) && cursor > 0 && isWordCharacter(text[cursor - 1])) {
+		index = cursor - 1
+	}
+	if (index < 0 || !isWordCharacter(text[index])) {
+		return null
+	}
+
+	var start = index
+	while (start > 0 && isWordCharacter(text[start - 1])) {
+		start--
+	}
+	var end = index + 1
+	while (end < text.length && isWordCharacter(text[end])) {
+		end++
+	}
+	return TextRange(start, end)
+}
+
+@Composable
+private fun DoubleTapSelectWordOutlinedTextField(
+	modifier: Modifier = Modifier,
+	value: TextFieldValue,
+	onValueChange: (TextFieldValue) -> Unit,
+	label: @Composable (() -> Unit)? = null,
+	singleLine: Boolean = false,
+	isError: Boolean = false,
+	supportingText: @Composable (() -> Unit)? = null,
+	trailingIcon: @Composable (() -> Unit)? = null
+) {
+	val interactionSource = remember { MutableInteractionSource() }
+	val latestValue by rememberUpdatedState(value)
+	val latestOnValueChange by rememberUpdatedState(onValueChange)
+	val doubleTapTimeoutMillis = remember { ViewConfiguration.getDoubleTapTimeout().toLong() }
+	var lastTapTimestamp by remember { mutableStateOf(0L) }
+
+	LaunchedEffect(interactionSource) {
+		interactionSource.interactions.collect { interaction ->
+			if (interaction !is PressInteraction.Release) {
+				return@collect
+			}
+			val now = SystemClock.uptimeMillis()
+			if (now - lastTapTimestamp <= doubleTapTimeoutMillis) {
+				val selectedWordRange = selectWordRangeAtCursor(latestValue) ?: return@collect
+				latestOnValueChange(latestValue.copy(selection = selectedWordRange))
+			}
+			lastTapTimestamp = now
+		}
+	}
+
+	OutlinedTextField(
+		modifier = modifier,
+		value = value,
+		onValueChange = onValueChange,
+		label = label,
+		singleLine = singleLine,
+		isError = isError,
+		supportingText = supportingText,
+		trailingIcon = trailingIcon,
+		interactionSource = interactionSource
+	)
+}
+
 @Composable
 private fun DoubleTapSelectAllOutlinedTextField(
 	modifier: Modifier = Modifier,
@@ -1268,7 +1348,7 @@ private fun TransactionEditorScreen(
 				.verticalScroll(scrollState),
 			verticalArrangement = Arrangement.spacedBy(8.dp)
 		) {
-			OutlinedTextField(
+			DoubleTapSelectWordOutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorDate"),
@@ -1302,7 +1382,7 @@ private fun TransactionEditorScreen(
 				}
 			)
 			Box(modifier = Modifier.fillMaxWidth()) {
-				OutlinedTextField(
+				DoubleTapSelectWordOutlinedTextField(
 					modifier = Modifier
 						.fillMaxWidth()
 						.testTag("transactionEditorDescription")
@@ -1338,7 +1418,7 @@ private fun TransactionEditorScreen(
 					}
 				}
 			}
-			OutlinedTextField(
+			DoubleTapSelectWordOutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorNumber"),
@@ -1390,7 +1470,7 @@ private fun TransactionEditorScreen(
 					)
 				}
 			)
-			OutlinedTextField(
+			DoubleTapSelectWordOutlinedTextField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.testTag("transactionEditorMemo"),
