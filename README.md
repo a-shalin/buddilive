@@ -92,7 +92,7 @@ cd docker
 docker build -t buddilive .
 ```
 
-The Dockerfile runs the JAR with embedded Tomcat on port 8080. See `docker/docker-compose.yml.j2` for a full stack with Nginx and PostgreSQL.
+The Dockerfile runs the JAR with embedded Tomcat on port 8080. The production compose stack now expects a shared Traefik edge on the Docker network `edge`; `docker/docker-compose.yml.j2` contains the app + PostgreSQL services and Traefik labels.
 
 ## Test
 

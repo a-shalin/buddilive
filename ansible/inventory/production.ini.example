@@ -14,5 +14,3 @@ mail_auth=true
 mail_tls=true
 
 app_port=8080
-
-certbot_email=your-email@example.com

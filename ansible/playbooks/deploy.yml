@@ -12,6 +12,10 @@
       ansible.builtin.command: docker compose version
       changed_when: false
 
+    - name: Verify shared edge network exists
+      ansible.builtin.command: docker network inspect edge
+      changed_when: false
+
     - name: Clean app directory (keep only expected files)
       ansible.builtin.shell:
         cmd: >
@@ -19,7 +23,6 @@
           ! -name 'buddilive.jar'
           ! -name 'Dockerfile'
           ! -name 'docker-compose.yml'
-          ! -name 'nginx.conf'
           ! -name '.env'
           -exec rm -rf {} +
         chdir: "~/{{ app_name }}"
@@ -53,55 +56,10 @@
         src: "{{ playbook_dir }}/../../docker/docker-compose.yml.j2"
         dest: "~/{{ app_name }}/docker-compose.yml"
 
-    - name: Render nginx.conf
-      ansible.builtin.template:
-        src: "{{ playbook_dir }}/../../docker/nginx.conf.j2"
-        dest: "~/{{ app_name }}/nginx.conf"
-
-    - name: Check if SSL certificate exists in Docker volume
-      ansible.builtin.command:
-        cmd: docker run --rm -v {{ app_name }}_certbot-etc:/certs alpine test -f /certs/live/{{ domain_name }}/fullchain.pem
-      register: ssl_cert
-      failed_when: false
-      changed_when: false
-
-    - name: Obtain initial SSL certificate
-      when: ssl_cert.rc != 0
-      block:
-        - name: Stop existing containers to free port 80
-          ansible.builtin.command:
-            cmd: docker compose down
-            chdir: "~/{{ app_name }}"
-          failed_when: false
-
-        - name: Create certbot volumes
-          ansible.builtin.command:
-            cmd: docker compose create certbot
-            chdir: "~/{{ app_name }}"
-
-        - name: Obtain certificate via standalone
-          ansible.builtin.command:
-            cmd: >
-              docker compose run --rm
-              -p 80:80
-              certbot certonly --standalone
-              --email {{ certbot_email }}
-              --agree-tos --no-eff-email
-              -d {{ domain_name }}
-            chdir: "~/{{ app_name }}"
-
     - name: Deploy with Docker Compose
       ansible.builtin.command:
-        cmd: docker compose up --build --force-recreate -d
+        cmd: docker compose up --build --force-recreate --remove-orphans -d
         chdir: "~/{{ app_name }}"
-
-    - name: Set up certbot renewal cron job
-      ansible.builtin.cron:
-        name: "Certbot renewal for {{ domain_name }}"
-        minute: "0"
-        hour: "3"
-        day: "1,15"
-        job: "cd ~/{{ app_name }} && docker compose run --rm certbot renew --webroot -w /var/www/certbot && docker compose exec nginx nginx -s reload"
 
     - name: Install Postgres backup to S3 script
       ansible.builtin.template:
