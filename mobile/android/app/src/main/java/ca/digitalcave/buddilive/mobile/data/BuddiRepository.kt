@@ -118,7 +118,12 @@ class BuddiRepository(
 				}
 				descriptionsLoaded = true
 			}
-			result
+			if (result.isSuccess) {
+				Result.success(_transactionDescriptionTemplates.value)
+			}
+			else {
+				result
+			}
 		}
 	}
 
@@ -129,40 +134,42 @@ class BuddiRepository(
 		if (local.isEmpty()) {
 			return remote
 		}
-		val merged = remote.toMutableList()
-		val knownDescriptions = remote.mapTo(mutableSetOf()) { it.description.trim().lowercase() }
-		for (template in local) {
-			val key = template.description.trim().lowercase()
-			if (key !in knownDescriptions) {
-				merged.add(template)
-				knownDescriptions.add(key)
-			}
+		val mergedByDescription = LinkedHashMap<String, TransactionDescriptionTemplate>()
+		for (template in remote) {
+			mergedByDescription[template.description.trim().lowercase()] = template
 		}
-		return merged
+		for (template in local) {
+			mergedByDescription[template.description.trim().lowercase()] = template
+		}
+		return mergedByDescription.values.toList()
 	}
 
-	private fun addTransactionDescriptionTemplateIfMissing(input: TransactionEditInput) {
+	private fun addOrUpdateTransactionDescriptionTemplate(input: TransactionEditInput) {
 		val description = input.description.trim()
 		if (description.isBlank()) {
 			return
 		}
 		val amountNumber = input.amount.toBigDecimalOrNull() ?: return
-		_transactionDescriptionTemplates.update { templates ->
-			if (templates.any { it.description.equals(description, ignoreCase = true) }) {
-				return@update templates
-			}
-			templates + TransactionDescriptionTemplate(
-				description = description,
-				splits = listOf(
-					TransactionDescriptionTemplateSplit(
-						amountNumber = amountNumber,
-						fromId = input.fromId,
-						toId = input.toId,
-						fromType = null,
-						toType = null
-					)
+		val updatedTemplate = TransactionDescriptionTemplate(
+			description = description,
+			splits = listOf(
+				TransactionDescriptionTemplateSplit(
+					amountNumber = amountNumber,
+					fromId = input.fromId,
+					toId = input.toId,
+					fromType = null,
+					toType = null
 				)
 			)
+		)
+		_transactionDescriptionTemplates.update { templates ->
+			val existingIndex = templates.indexOfFirst { it.description.equals(description, ignoreCase = true) }
+			if (existingIndex < 0) {
+				return@update templates + updatedTemplate
+			}
+			templates.toMutableList().apply {
+				set(existingIndex, updatedTemplate)
+			}
 		}
 	}
 
@@ -208,7 +215,7 @@ class BuddiRepository(
 				)
 			)
 		).onSuccess {
-			addTransactionDescriptionTemplateIfMissing(input)
+			addOrUpdateTransactionDescriptionTemplate(input)
 		}
 	}
 
@@ -230,7 +237,7 @@ class BuddiRepository(
 				)
 			)
 		).onSuccess {
-			addTransactionDescriptionTemplateIfMissing(input)
+			addOrUpdateTransactionDescriptionTemplate(input)
 		}
 	}
 
