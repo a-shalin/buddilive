@@ -64,6 +64,7 @@ data class TransactionsResponseDto(
 
 data class TransactionDto(
 	val id: Long,
+	val uuid: String?,
 	val date: String,
 	val dateIso: String,
 	val description: String,
@@ -83,7 +84,9 @@ data class SplitDto(
 )
 
 data class SuccessResponseDto(
-	val success: Boolean
+	val success: Boolean,
+	val id: Long? = null,
+	val uuid: String? = null
 )
 
 data class UserPreferencesResponseDto(
@@ -102,6 +105,7 @@ data class UserPreferencesResponseDto(
 data class TransactionMutationRequestDto(
 	val action: String,
 	val id: Long? = null,
+	val uuid: String? = null,
 	val description: String? = null,
 	val number: String? = null,
 	val date: String? = null,
@@ -119,18 +123,26 @@ data class AccountSummary(
 	val id: Long,
 	val name: String,
 	val balance: String,
-	val deleted: Boolean
+	val deleted: Boolean,
+	val balanceNumber: BigDecimal? = null,
+	val debit: Boolean = true,
+	val hasPending: Boolean = false
 )
 
 data class AccountTypeSummary(
 	val name: String,
 	val balance: String,
-	val accounts: List<AccountSummary>
+	val accounts: List<AccountSummary>,
+	val balanceNumber: BigDecimal? = null,
+	val debit: Boolean = true,
+	val hasPending: Boolean = false
 )
 
 data class NetWorthSummary(
 	val label: String,
-	val balance: String
+	val balance: String,
+	val balanceNumber: BigDecimal? = null,
+	val hasPending: Boolean = false
 )
 
 data class AccountsOverview(
@@ -170,13 +182,41 @@ data class TransactionSplitSummary(
 	val memo: String
 )
 
-data class TransactionSummary(
-	val id: Long,
+enum class PendingTransactionStatus {
+	PENDING,
+	SYNCING,
+	FAILED
+}
+
+data class PendingTransaction(
+	val localUuid: String,
+	val status: PendingTransactionStatus,
 	val dateIso: String,
 	val description: String,
 	val number: String,
-	val split: TransactionSplitSummary?
+	val amount: String,
+	val fromId: Int,
+	val toId: Int,
+	val memo: String,
+	val createdAt: Long,
+	val modifiedAt: Long,
+	val lastError: String?,
+	val attemptCount: Int
 )
+
+data class TransactionSummary(
+	val id: Long,
+	val uuid: String?,
+	val dateIso: String,
+	val description: String,
+	val number: String,
+	val split: TransactionSplitSummary?,
+	val pendingStatus: PendingTransactionStatus? = null,
+	val pendingError: String? = null
+) {
+	val isPending: Boolean
+		get() = pendingStatus != null
+}
 
 data class TransactionsPage(
 	val items: List<TransactionSummary>,
@@ -225,6 +265,8 @@ fun AccountsResponseDto.toAccountsOverview(): AccountsOverview {
 				continue
 			}
 			val typeBalance = child.getAsJsonPrimitive("balance")?.asString ?: ""
+			val typeBalanceNumber = child.getBigDecimalOrNull("balanceNumber")
+			val typeDebit = child.getAsJsonPrimitive("debit")?.asBoolean ?: true
 			val accounts = mutableListOf<AccountSummary>()
 			val typeChildren = child.getAsJsonArray("children")
 			if (typeChildren != null) {
@@ -240,7 +282,9 @@ fun AccountsResponseDto.toAccountsOverview(): AccountsOverview {
 					AccountTypeSummary(
 						name = typeName,
 						balance = typeBalance,
-						accounts = sortedAccounts
+						accounts = sortedAccounts,
+						balanceNumber = typeBalanceNumber,
+						debit = typeDebit
 					)
 				)
 			}
@@ -249,10 +293,12 @@ fun AccountsResponseDto.toAccountsOverview(): AccountsOverview {
 
 		val netWorthLabel = child.getAsJsonPrimitive("name")?.asString?.trim().orEmpty()
 		val netWorthBalance = child.getAsJsonPrimitive("balance")?.asString ?: ""
+		val netWorthBalanceNumber = child.getBigDecimalOrNull("balanceNumber")
 		if (netWorthLabel.isNotBlank() && netWorthBalance.isNotBlank()) {
 			netWorth = NetWorthSummary(
 				label = netWorthLabel,
-				balance = netWorthBalance
+				balance = netWorthBalance,
+				balanceNumber = netWorthBalanceNumber
 			)
 		}
 	}
@@ -269,8 +315,10 @@ private fun collectAccountNodes(node: JsonObject, output: MutableList<AccountSum
 		val id = node.getAsJsonPrimitive("id")?.asLong ?: return
 		val name = node.getAsJsonPrimitive("name")?.asString ?: return
 		val balance = node.getAsJsonPrimitive("balance")?.asString ?: ""
+		val balanceNumber = node.getBigDecimalOrNull("balanceNumber")
+		val debit = node.getAsJsonPrimitive("debit")?.asBoolean ?: true
 		val deleted = node.getAsJsonPrimitive("deleted")?.asBoolean ?: false
-		output.add(AccountSummary(id, name, balance, deleted))
+		output.add(AccountSummary(id, name, balance, deleted, balanceNumber, debit))
 	}
 
 	val children = node.getAsJsonArray("children") ?: return
@@ -279,6 +327,14 @@ private fun collectAccountNodes(node: JsonObject, output: MutableList<AccountSum
 			collectAccountNodes(child.asJsonObject, output)
 		}
 	}
+}
+
+private fun JsonObject.getBigDecimalOrNull(memberName: String): BigDecimal? {
+	val element = get(memberName) ?: return null
+	if (!element.isJsonPrimitive) {
+		return null
+	}
+	return runCatching { element.asBigDecimal }.getOrNull()
 }
 
 fun SourcesResponseDto.toSourceOptions(): List<SourceOption> {
@@ -337,6 +393,7 @@ fun TransactionsResponseDto.toTransactionsPage(): TransactionsPage {
 			val split = transaction.splits.firstOrNull()
 			TransactionSummary(
 				id = transaction.id,
+				uuid = transaction.uuid,
 				dateIso = transaction.dateIso,
 				description = transaction.description,
 				number = transaction.number.orEmpty(),
@@ -380,6 +437,52 @@ fun UserPreferencesResponseDto.toUserDatePreferences(): UserDatePreferences {
 		currencySpacing = currencySpacing ?: !showCurrencySymbol,
 		fractionDigits = resolveCurrencyFractionDigits(currencyCode)
 	)
+}
+
+fun defaultUserDatePreferences(): UserDatePreferences {
+	return UserPreferencesResponseDto(
+		success = true,
+		locale = null,
+		currency = null,
+		dateFormat = null,
+		currencyAfter = null,
+		decimalSeparator = null,
+		thousandSeparator = null,
+		negativeFormat = null,
+		showCurrencySymbol = null,
+		currencySpacing = null
+	).toUserDatePreferences()
+}
+
+fun formatCurrencyAmount(amount: BigDecimal, preferences: UserDatePreferences): String {
+	val locale = toLocale(preferences.localeTag)
+	val decimalFormat = (NumberFormat.getNumberInstance(locale) as? DecimalFormat) ?: DecimalFormat()
+	val symbols = decimalFormat.decimalFormatSymbols
+	symbols.decimalSeparator = preferences.decimalSeparator
+	symbols.groupingSeparator = preferences.thousandSeparator
+	decimalFormat.decimalFormatSymbols = symbols
+	decimalFormat.maximumFractionDigits = preferences.fractionDigits
+	decimalFormat.minimumFractionDigits = preferences.fractionDigits
+	decimalFormat.isGroupingUsed = true
+
+	val isNegative = amount.signum() < 0
+	val number = decimalFormat.format(amount.abs())
+	val signedNumber = when {
+		!isNegative -> number
+		preferences.negativeFormat == "B" -> "($number)"
+		else -> "-$number"
+	}
+	val currencyToken = preferences.currencyToken.trim()
+	if (currencyToken.isBlank()) {
+		return signedNumber
+	}
+	val separator = if (preferences.currencySpacing) " " else ""
+	return if (preferences.currencyAfter) {
+		"$signedNumber$separator$currencyToken"
+	}
+	else {
+		"$currencyToken$separator$signedNumber"
+	}
 }
 
 private fun toLocale(localeTag: String?): Locale {

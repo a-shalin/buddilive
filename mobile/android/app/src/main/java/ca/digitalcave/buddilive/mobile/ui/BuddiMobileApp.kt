@@ -99,6 +99,7 @@ import ca.digitalcave.buddilive.mobile.BuildConfig
 import ca.digitalcave.buddilive.mobile.data.AccountSummary
 import ca.digitalcave.buddilive.mobile.data.BuddiRepository
 import ca.digitalcave.buddilive.mobile.data.LoginResult
+import ca.digitalcave.buddilive.mobile.data.PendingTransactionStatus
 import ca.digitalcave.buddilive.mobile.data.SourceOption
 import ca.digitalcave.buddilive.mobile.data.TransactionDescriptionTemplate
 import ca.digitalcave.buddilive.mobile.data.TransactionDescriptionTemplateSplit
@@ -331,6 +332,7 @@ fun BuddiMobileApp(repository: BuddiRepository) {
 			isAuthenticated = repository.hasValidSession()
 			if (isAuthenticated) {
 				repository.preloadTransactionDescriptionTemplatesAsync()
+				repository.syncPendingTransactionsAsync()
 			}
 		}
 		else {
@@ -643,12 +645,22 @@ private fun AccountsScreen(
 									fontWeight = FontWeight.Bold
 								)
 							}
-							Text(
-								text = accountType.balance,
-								style = MaterialTheme.typography.titleMedium,
-								fontWeight = FontWeight.Bold,
-								textAlign = TextAlign.End
-							)
+							Column(horizontalAlignment = Alignment.End) {
+								Text(
+									text = accountType.balance,
+									style = MaterialTheme.typography.titleMedium,
+									fontWeight = FontWeight.Bold,
+									textAlign = TextAlign.End
+								)
+								if (accountType.hasPending) {
+									Text(
+										text = "includes pending",
+										style = MaterialTheme.typography.bodySmall,
+										color = MaterialTheme.colorScheme.primary,
+										textAlign = TextAlign.End
+									)
+								}
+							}
 						}
 					}
 					if (isExpanded) {
@@ -672,12 +684,22 @@ private fun AccountsScreen(
 									textDecoration = deletedAccountTextDecoration,
 									modifier = Modifier.weight(1f)
 								)
-								Text(
-									text = account.balance,
-									style = MaterialTheme.typography.titleMedium,
-									textDecoration = deletedAccountTextDecoration,
-									textAlign = TextAlign.End
-								)
+								Column(horizontalAlignment = Alignment.End) {
+									Text(
+										text = account.balance,
+										style = MaterialTheme.typography.titleMedium,
+										textDecoration = deletedAccountTextDecoration,
+										textAlign = TextAlign.End
+									)
+									if (account.hasPending) {
+										Text(
+											text = "includes pending",
+											style = MaterialTheme.typography.bodySmall,
+											color = MaterialTheme.colorScheme.primary,
+											textAlign = TextAlign.End
+										)
+									}
+								}
 							}
 						}
 					}
@@ -696,12 +718,22 @@ private fun AccountsScreen(
 								fontWeight = FontWeight.Bold,
 								modifier = Modifier.weight(1f)
 							)
-							Text(
-								text = netWorth.balance,
-								style = MaterialTheme.typography.titleMedium,
-								fontWeight = FontWeight.Bold,
-								textAlign = TextAlign.End
-							)
+							Column(horizontalAlignment = Alignment.End) {
+								Text(
+									text = netWorth.balance,
+									style = MaterialTheme.typography.titleMedium,
+									fontWeight = FontWeight.Bold,
+									textAlign = TextAlign.End
+								)
+								if (netWorth.hasPending) {
+									Text(
+										text = "includes pending",
+										style = MaterialTheme.typography.bodySmall,
+										color = MaterialTheme.colorScheme.primary,
+										textAlign = TextAlign.End
+									)
+								}
+							}
 						}
 					}
 				}
@@ -854,12 +886,22 @@ private fun TransactionsScreen(
 							fontWeight = FontWeight.Bold,
 							modifier = Modifier.weight(1f)
 						)
-						Text(
-							text = state.accountBalance.ifBlank { accountBalance },
-							style = MaterialTheme.typography.titleMedium,
-							fontWeight = FontWeight.Bold,
-							textAlign = TextAlign.End
-						)
+						Column(horizontalAlignment = Alignment.End) {
+							Text(
+								text = state.accountBalance.ifBlank { accountBalance },
+								style = MaterialTheme.typography.titleMedium,
+								fontWeight = FontWeight.Bold,
+								textAlign = TextAlign.End
+							)
+							if (state.accountBalanceHasPending) {
+								Text(
+									text = "includes pending",
+									style = MaterialTheme.typography.bodySmall,
+									color = MaterialTheme.colorScheme.primary,
+									textAlign = TextAlign.End
+								)
+							}
+						}
 					}
 				}
 			) { paddingValues ->
@@ -913,6 +955,23 @@ private fun TransactionsScreen(
 											text = transaction.split?.let { "${it.fromName} -> ${it.toName}" }.orEmpty(),
 											style = MaterialTheme.typography.bodySmall,
 											textAlign = TextAlign.End
+										)
+									}
+									transaction.pendingStatus?.let { pendingStatus ->
+										val pendingText = when (pendingStatus) {
+											PendingTransactionStatus.FAILED -> transaction.pendingError ?: "Sync failed"
+											PendingTransactionStatus.SYNCING -> "Syncing"
+											PendingTransactionStatus.PENDING -> "Pending"
+										}
+										Text(
+											text = pendingText,
+											style = MaterialTheme.typography.bodySmall,
+											color = if (pendingStatus == PendingTransactionStatus.FAILED) {
+												MaterialTheme.colorScheme.error
+											}
+											else {
+												MaterialTheme.colorScheme.primary
+											}
 										)
 									}
 								}

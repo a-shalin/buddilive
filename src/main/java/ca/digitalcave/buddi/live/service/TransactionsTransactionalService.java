@@ -27,7 +27,12 @@ public class TransactionsTransactionalService {
 	}
 
 	@Transactional
-	public void insertTransaction(final User user, final Transaction transaction) throws CryptoException {
+	public Transaction insertTransaction(final User user, final Transaction transaction) throws CryptoException {
+		final Transaction existingTransaction = transactions.selectTransactionByUuid(user, transaction.getUuid());
+		if (existingTransaction != null) {
+			return existingTransaction;
+		}
+
 		ConstraintsChecker.checkInsertTransaction(transaction, user, sources, crypto);
 
 		int count = transactions.insertTransaction(user, transaction);
@@ -39,6 +44,7 @@ public class TransactionsTransactionalService {
 			if (count != 1) throw new DatabaseException(String.format("Insert failed; expected 1 row, returned %s", count));
 		}
 		DataUpdater.updateBalances(user, sources, transactions, crypto);
+		return transaction;
 	}
 
 	@Transactional

@@ -37,6 +37,7 @@ data class TransactionsUiState(
 	val currencySpacing: Boolean = true,
 	val fractionDigits: Int = 2,
 	val accountBalance: String = "",
+	val accountBalanceHasPending: Boolean = false,
 	val needsLogin: Boolean = false,
 	val isMutating: Boolean = false,
 	val scrollToTopRequestKey: Long = 0L
@@ -256,8 +257,13 @@ class TransactionsViewModel(
 			val result = repository.fetchAccounts()
 			result.fold(
 				onSuccess = { accounts ->
-					val updatedBalance = accounts.firstOrNull { it.id == accountId }?.balance.orEmpty()
-					_state.update { it.copy(accountBalance = updatedBalance) }
+					val account = accounts.firstOrNull { it.id == accountId }
+					_state.update {
+						it.copy(
+							accountBalance = account?.balance.orEmpty(),
+							accountBalanceHasPending = account?.hasPending ?: false
+						)
+					}
 				},
 				onFailure = { error ->
 					if (error is UnauthorizedException) {

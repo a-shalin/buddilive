@@ -66,6 +66,19 @@
 		WHERE user_id = #{user.id} AND uuid = #{uuid}
 	</select>
 
+	<select id="selectTransactionByUuid" resultMap="transaction" resultOrdered="true">
+		select
+			t.id t_id, t.uuid, t.user_id t_user_id, t.description, t.number, t.transaction_date, t.deleted, t.created t_created, t.modified t_modified,
+			s.id s_id, s.transaction_id, s.amount, s.user_id s_user_id, s.from_source, s.to_source, s.memo, s.created s_created, s.modified s_modified, from_balance, to_balance,
+			fs.name from_source_name, ts.name to_source_name, fs.type from_type, ts.type to_type
+		from transactions t
+		left join splits s on s.transaction_id = t.id
+		inner join sources fs on fs.id = s.from_source
+		inner join sources ts on ts.id = s.to_source
+		where t.user_id = #{user.id} and t.uuid = #{uuid}
+		order by s.id desc
+	</select>
+
 	<select id="selectDescriptions" resultMap="transaction" resultOrdered="true">
 		SELECT 
 			t.id t_id, t.description, s.id s_id, s.amount, s.from_source, s.to_source, fs.type from_type, ts.type to_type

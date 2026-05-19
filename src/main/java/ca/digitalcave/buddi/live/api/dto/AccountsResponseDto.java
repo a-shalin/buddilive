@@ -16,6 +16,7 @@ public record AccountsResponseDto(boolean success, List<AccountsNodeDto> childre
 			String nodeType,
 			String icon,
 			String balance,
+			BigDecimal balanceNumber,
 			String balanceStyle,
 			List<AccountNodeDto> children) implements AccountsNodeDto {
 	}
@@ -24,6 +25,7 @@ public record AccountsResponseDto(boolean success, List<AccountsNodeDto> childre
 			long id,
 			String name,
 			String balance,
+			BigDecimal balanceNumber,
 			String balanceStyle,
 			String type,
 			String accountType,
@@ -42,6 +44,7 @@ public record AccountsResponseDto(boolean success, List<AccountsNodeDto> childre
 			boolean leaf,
 			String icon,
 			String balance,
+			BigDecimal balanceNumber,
 			String balanceStyle) implements AccountsNodeDto {
 	}
 }

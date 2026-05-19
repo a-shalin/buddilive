@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -310,6 +311,47 @@ public class TransactionsIT extends BaseIT {
 		final Set<Long> secondPageIds = extractTransactionIds(secondPage.getJSONArray("data"));
 		firstPageIds.retainAll(secondPageIds);
 		assertThat(firstPageIds).as("Transaction IDs should not overlap across pages").isEmpty();
+	}
+
+	@Test
+	@Order(9)
+	void testCreateTransactionWithClientUuidIsIdempotent() throws Exception {
+		final String uuid = UUID.randomUUID().toString();
+		final JSONObject json = new JSONObject();
+		json.put("action", "insert");
+		json.put("uuid", uuid);
+		json.put("description", "Client UUID Transaction");
+		json.put("date", "2024-03-21");
+
+		final JSONObject split = new JSONObject();
+		split.put("amount", "33.00");
+		split.put("fromId", accountId);
+		split.put("toId", categoryId);
+
+		final JSONArray splits = new JSONArray();
+		splits.put(split);
+		json.put("splits", splits);
+
+		final JSONObject firstResponse = new JSONObject(helper.postJson(client, "/data/transactions", json));
+		final JSONObject secondResponse = new JSONObject(helper.postJson(client, "/data/transactions", json));
+
+		assertThat(firstResponse.getBoolean("success")).isTrue();
+		assertThat(firstResponse.getString("uuid")).isEqualTo(uuid);
+		assertThat(firstResponse.getLong("id")).isPositive();
+		assertThat(secondResponse.getBoolean("success")).isTrue();
+		assertThat(secondResponse.getString("uuid")).isEqualTo(uuid);
+		assertThat(secondResponse.getLong("id")).isEqualTo(firstResponse.getLong("id"));
+
+		final JSONArray data = helper.getTransactions(client, accountId).getJSONArray("data");
+		int matchingTransactions = 0;
+		for (int i = 0; i < data.length(); i++) {
+			final JSONObject transaction = data.getJSONObject(i);
+			if (uuid.equals(transaction.optString("uuid"))) {
+				matchingTransactions++;
+				assertThat(transaction.getLong("id")).isEqualTo(firstResponse.getLong("id"));
+			}
+		}
+		assertThat(matchingTransactions).isEqualTo(1);
 	}
 
 	private static int countUnhandledExceptions() {

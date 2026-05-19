@@ -15,6 +15,7 @@ import java.util.List;
 @Mapper
 public interface Transactions {
 	int selectTransactionCount(@Param("user") User user, @Param("uuid") String uuid);
+	Transaction selectTransactionByUuid(@Param("user") User user, @Param("uuid") String uuid);
 	
 	List<Transaction> selectTransactions(@Param("user") User user);
 	List<Transaction> selectTransactions(@Param("user") User user, @Param("fromDate") Date fromDate, @Param("toDate") Date toDate);

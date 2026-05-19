@@ -87,6 +87,7 @@ public class TransactionsController {
 
 							generator.writeStartObject();
 							generator.writeNumberField("id", t.getId());
+							generator.writeStringField("uuid", t.getUuid());
 							generator.writeStringField("date", FormatUtil.formatDate(t.getDate(), user));
 							generator.writeStringField("dateIso", FormatUtil.formatDateInternal(t.getDate()));
 							generator.writeStringField("description", description);
@@ -132,14 +133,17 @@ public class TransactionsController {
 	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final TransactionRequestDto request) {
 		try {
 			final Action action = request.action();
+			Transaction insertedTransaction = null;
 			switch (action) {
-				case INSERT -> transactionsTransactionalService.insertTransaction(user, Transaction.fromDto(request));
+				case INSERT -> insertedTransaction = transactionsTransactionalService.insertTransaction(user, Transaction.fromDto(request));
 				case UPDATE -> transactionsTransactionalService.updateTransaction(user, Transaction.fromDto(request));
 				case DELETE -> transactionsTransactionalService.deleteTransaction(user, request.id());
 				default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
 			}
 
-			return new SuccessResponseDto(true);
+			return insertedTransaction == null
+					? new SuccessResponseDto(true)
+					: new SuccessResponseDto(true, insertedTransaction.getId(), insertedTransaction.getUuid());
 		}
 		catch (DatabaseException e) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);

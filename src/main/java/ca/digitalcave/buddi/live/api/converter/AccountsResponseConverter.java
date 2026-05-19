@@ -67,6 +67,7 @@ public class AccountsResponseConverter {
 							account.getId(),
 							CryptoUtil.decryptWrapper(account.getName(), user),
 							FormatUtil.formatCurrency(account.isDebit() ? balance : balance.negate(), user),
+							balance,
 							FormatUtil.isRed(account, balance) ? FormatUtil.formatRed() : "",
 							account.getType(),
 							CryptoUtil.decryptWrapper(account.getAccountType(), user),
@@ -93,6 +94,7 @@ public class AccountsResponseConverter {
 						"type",
 						"img/folder-open-table.png",
 						FormatUtil.formatCurrency(total, user),
+						total,
 						balanceStyle,
 						children));
 			}
@@ -104,6 +106,7 @@ public class AccountsResponseConverter {
 				true,
 				"img/table-sum.png",
 				FormatUtil.formatCurrency(netWorth, user),
+				netWorth,
 				FormatUtil.formatBold() + (FormatUtil.isRed(netWorth) ? FormatUtil.formatRed() : "")));
 
 		return new AccountsResponseDto(true, data);
