@@ -4,8 +4,11 @@ import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -27,7 +30,10 @@ class BuddiRepository(
     private val descriptionsLoadMutex = Mutex()
     private val syncMutex = Mutex()
     private val gson = Gson()
+    private val _pendingTransactionsSynced = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private val _transactionDescriptionTemplates = MutableStateFlow<List<TransactionDescriptionTemplate>>(emptyList())
+    val pendingTransactionsSynced: SharedFlow<Unit> =
+        _pendingTransactionsSynced.asSharedFlow()
     val transactionDescriptionTemplates: StateFlow<List<TransactionDescriptionTemplate>> =
         _transactionDescriptionTemplates.asStateFlow()
 
@@ -368,6 +374,7 @@ class BuddiRepository(
             }
             if (syncedCount > 0) {
                 refreshAccountsCacheAfterSync()
+                _pendingTransactionsSynced.tryEmit(Unit)
             }
             Result.success(syncedCount)
         }

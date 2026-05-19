@@ -58,6 +58,11 @@ class TransactionsViewModel(
 				_state.update { it.copy(descriptionTemplates = templates) }
 			}
 		}
+		viewModelScope.launch {
+			repository.pendingTransactionsSynced.collect {
+				refresh()
+			}
+		}
 	}
 
 	fun loadInitial() {

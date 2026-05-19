@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import ca.digitalcave.buddilive.mobile.data.AccountsOverview
 import ca.digitalcave.buddilive.mobile.data.BuddiRepository
 import ca.digitalcave.buddilive.mobile.data.UnauthorizedException
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +27,14 @@ class AccountsViewModel(private val repository: BuddiRepository) : ViewModel() {
 
 	private val _state = MutableStateFlow(AccountsUiState())
 	val state: StateFlow<AccountsUiState> = _state.asStateFlow()
+
+	init {
+		viewModelScope.launch {
+			repository.pendingTransactionsSynced.collect {
+				refresh()
+			}
+		}
+	}
 
 	fun refresh() {
 		viewModelScope.launch {

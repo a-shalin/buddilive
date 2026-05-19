@@ -1,6 +1,10 @@
 package ca.digitalcave.buddilive.mobile.data
 
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -138,6 +142,40 @@ class BuddiRepositoryTest {
 		assertEquals(1, syncResult.getOrThrow())
 		assertTrue(store.listPendingTransactions().isEmpty())
 		assertEquals(localUuid, api.mutationRequests.single().uuid)
+	}
+
+	@Test
+	fun syncPendingTransactionsNotifiesWhenPendingRowsAreSynced() = runBlocking {
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(
+			api = FakeBuddiApi(),
+			offlineStore = store,
+			autoSyncPendingTransactions = false
+		)
+
+		repository.createTransaction(
+			TransactionEditInput(
+				dateIso = "2026-04-23",
+				description = "Coffee",
+				number = "",
+				amount = "25.75",
+				fromId = 1,
+				toId = 2,
+				memo = ""
+			)
+		)
+		val syncNotification = async(start = CoroutineStart.UNDISPATCHED) {
+			repository.pendingTransactionsSynced.first()
+		}
+
+		val syncResult = repository.syncPendingTransactions()
+
+		assertTrue(syncResult.isSuccess)
+		assertEquals(1, syncResult.getOrThrow())
+		assertTrue(store.listPendingTransactions().isEmpty())
+		withTimeout(1_000L) {
+			syncNotification.await()
+		}
 	}
 }
 
