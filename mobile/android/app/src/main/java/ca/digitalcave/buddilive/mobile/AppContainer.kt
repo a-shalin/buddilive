@@ -10,6 +10,9 @@ object AppContainer {
 	@Volatile
 	private var repository: BuddiRepository? = null
 
+	@Volatile
+	private var networkMonitor: NetworkMonitor? = null
+
 	fun repository(context: Context): BuddiRepository {
 		return repository ?: synchronized(this) {
 			repository ?: BuddiRepository(
@@ -18,6 +21,14 @@ object AppContainer {
 				offlineStore = AndroidOfflineStore(context.applicationContext)
 			).also {
 				repository = it
+			}
+		}
+	}
+
+	fun networkMonitor(context: Context): NetworkMonitor {
+		return networkMonitor ?: synchronized(this) {
+			networkMonitor ?: NetworkMonitor(context.applicationContext).also {
+				networkMonitor = it
 			}
 		}
 	}

@@ -11,6 +11,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -96,6 +97,7 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ca.digitalcave.buddilive.mobile.BuildConfig
+import ca.digitalcave.buddilive.mobile.NetworkMonitor
 import ca.digitalcave.buddilive.mobile.data.AccountSummary
 import ca.digitalcave.buddilive.mobile.data.BuddiRepository
 import ca.digitalcave.buddilive.mobile.data.LoginResult
@@ -315,10 +317,11 @@ private fun isValidGroupedAmount(value: String, decimalSeparator: Char, thousand
 }
 
 @Composable
-fun BuddiMobileApp(repository: BuddiRepository) {
+fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) {
 	val context = LocalContext.current
 	val snackbarHostState = remember { SnackbarHostState() }
 	val coroutineScope = rememberCoroutineScope()
+	val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle()
 
 	var isAuthenticated by remember { mutableStateOf(false) }
 	var isAuthBootstrapInProgress by remember { mutableStateOf(true) }
@@ -343,82 +346,115 @@ fun BuddiMobileApp(repository: BuddiRepository) {
 		isAuthBootstrapInProgress = false
 	}
 
+	LaunchedEffect(repository, isAuthenticated, isOnline) {
+		if (isAuthenticated && isOnline) {
+			repository.syncPendingTransactionsAsync()
+		}
+	}
+
 	Scaffold(
 		snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
 	) { paddingValues ->
-		when {
-			isAuthBootstrapInProgress -> Box(
-				modifier = Modifier
-					.fillMaxSize()
-					.padding(paddingValues),
-				contentAlignment = Alignment.Center
-			) {
-				CircularProgressIndicator()
+		Column(
+			modifier = Modifier
+				.fillMaxSize()
+				.padding(paddingValues)
+		) {
+			if (!isOnline) {
+				OfflineStatusBanner()
 			}
-
-			!isAuthenticated -> LoginScreen(
-				modifier = Modifier.padding(paddingValues),
-				repository = repository,
-				onLoginSuccess = { stayLoggedIn ->
-					writeStayLoggedInPreference(context, stayLoggedIn)
-					isAuthenticated = true
-					selectedAccountId = null
-					selectedAccountName = ""
-					selectedAccountBalance = ""
-				},
-				onNextStep = { nextStep ->
-					coroutineScope.launch {
-						snackbarHostState.showSnackbar("Additional authentication is required: $nextStep")
+			Box(modifier = Modifier.weight(1f, fill = true)) {
+				when {
+					isAuthBootstrapInProgress -> Box(
+						modifier = Modifier.fillMaxSize(),
+						contentAlignment = Alignment.Center
+					) {
+						CircularProgressIndicator()
 					}
-					val intent = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.BASE_URL))
-					context.startActivity(intent)
-				}
-			)
 
-			selectedAccountId == null -> AccountsScreen(
-				modifier = Modifier.padding(paddingValues),
-				repository = repository,
-				expandedTypes = expandedAccountTypes,
-				onExpandedTypesChange = { expandedAccountTypes = it },
-				onAccountSelected = { account ->
-					selectedAccountId = account.id
-					selectedAccountName = account.name
-					selectedAccountBalance = account.balance
-				},
-				onLogout = {
-					writeStayLoggedInPreference(context, false)
-					isAuthenticated = false
-					selectedAccountId = null
-					selectedAccountName = ""
-					selectedAccountBalance = ""
-					coroutineScope.launch {
-						repository.logout()
-					}
-				},
-				onNeedsLogin = {
-					isAuthenticated = false
-				}
-			)
+					!isAuthenticated -> LoginScreen(
+						modifier = Modifier,
+						repository = repository,
+						onLoginSuccess = { stayLoggedIn ->
+							writeStayLoggedInPreference(context, stayLoggedIn)
+							isAuthenticated = true
+							selectedAccountId = null
+							selectedAccountName = ""
+							selectedAccountBalance = ""
+						},
+						onNextStep = { nextStep ->
+							coroutineScope.launch {
+								snackbarHostState.showSnackbar("Additional authentication is required: $nextStep")
+							}
+							val intent = Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.BASE_URL))
+							context.startActivity(intent)
+						}
+					)
 
-			else -> TransactionsScreen(
-				modifier = Modifier.padding(paddingValues),
-				repository = repository,
-				accountId = selectedAccountId ?: return@Scaffold,
-				accountName = selectedAccountName,
-				accountBalance = selectedAccountBalance,
-				onBack = {
-					selectedAccountId = null
-					selectedAccountName = ""
-					selectedAccountBalance = ""
-				},
-				onNeedsLogin = {
-					isAuthenticated = false
-					selectedAccountId = null
-					selectedAccountName = ""
-					selectedAccountBalance = ""
+					selectedAccountId == null -> AccountsScreen(
+						modifier = Modifier,
+						repository = repository,
+						expandedTypes = expandedAccountTypes,
+						onExpandedTypesChange = { expandedAccountTypes = it },
+						onAccountSelected = { account ->
+							selectedAccountId = account.id
+							selectedAccountName = account.name
+							selectedAccountBalance = account.balance
+						},
+						onLogout = {
+							writeStayLoggedInPreference(context, false)
+							isAuthenticated = false
+							selectedAccountId = null
+							selectedAccountName = ""
+							selectedAccountBalance = ""
+							coroutineScope.launch {
+								repository.logout()
+							}
+						},
+						onNeedsLogin = {
+							isAuthenticated = false
+						}
+					)
+
+					else -> TransactionsScreen(
+						modifier = Modifier,
+						repository = repository,
+						accountId = selectedAccountId ?: return@Scaffold,
+						accountName = selectedAccountName,
+						accountBalance = selectedAccountBalance,
+						onBack = {
+							selectedAccountId = null
+							selectedAccountName = ""
+							selectedAccountBalance = ""
+						},
+						onNeedsLogin = {
+							isAuthenticated = false
+							selectedAccountId = null
+							selectedAccountName = ""
+							selectedAccountBalance = ""
+						}
+					)
 				}
-			)
+			}
 		}
+	}
+}
+
+@Composable
+private fun OfflineStatusBanner() {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.errorContainer)
+			.padding(horizontal = 16.dp, vertical = 6.dp),
+		horizontalArrangement = Arrangement.Center
+	) {
+		Text(
+			text = "Offline",
+			style = MaterialTheme.typography.labelLarge,
+			fontWeight = FontWeight.SemiBold,
+			color = MaterialTheme.colorScheme.onErrorContainer
+		)
 	}
 }
 
