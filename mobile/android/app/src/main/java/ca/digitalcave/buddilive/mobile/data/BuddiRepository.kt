@@ -50,7 +50,9 @@ class BuddiRepository(
             when {
                 response.success -> {
                     resetTransactionDescriptionTemplates()
+                    fetchUserPreferencesResponse()
                     preloadTransactionDescriptionTemplatesAsync()
+                    preloadSourcesAsync()
                     syncPendingTransactionsAsync()
                     LoginResult.Success
                 }
@@ -90,24 +92,39 @@ class BuddiRepository(
         val pendingOffset = if (start > 0) pendingTransactions.size else 0
         val serverStart = (start - pendingOffset).coerceAtLeast(0)
         val responseResult = fetchTransactionsResponse(sourceId = sourceId, start = serverStart, limit = limit)
-        return responseResult.map { response ->
-            val serverPage = response.toTransactionsPage()
-            if (serverStart > 0) {
-                serverPage.copy(total = serverPage.total + pendingTransactions.size)
-            }
-            else {
-                val pendingItems = pendingTransactions.map { pendingTransaction ->
-                    pendingTransaction.toTransactionSummary()
+        return responseResult.fold(
+            onSuccess = { response ->
+                val serverPage = response.toTransactionsPage()
+                if (serverStart > 0) {
+                    Result.success(serverPage.copy(total = serverPage.total + pendingTransactions.size))
                 }
-                val mergedItems = (pendingItems + serverPage.items)
-                    .distinctBy { transaction -> transaction.id }
-                    .sortedByDescending { transaction -> transaction.dateIso }
-                TransactionsPage(
-                    items = mergedItems,
-                    total = serverPage.total + pendingItems.size
-                )
+                else {
+                    val pendingItems = pendingTransactions.map { pendingTransaction ->
+                        pendingTransaction.toTransactionSummary()
+                    }
+                    val mergedItems = (pendingItems + serverPage.items)
+                        .distinctBy { transaction -> transaction.id }
+                        .sortedByDescending { transaction -> transaction.dateIso }
+                    Result.success(
+                        TransactionsPage(
+                            items = mergedItems,
+                            total = serverPage.total + pendingItems.size
+                        )
+                    )
+                }
+            },
+            onFailure = { error ->
+                if (start == 0 && error is OfflineUnavailableException) {
+                    val pendingItems = pendingTransactions.map { pendingTransaction ->
+                        pendingTransaction.toTransactionSummary()
+                    }.sortedByDescending { transaction -> transaction.dateIso }
+                    Result.success(TransactionsPage(items = pendingItems, total = pendingItems.size))
+                }
+                else {
+                    Result.failure(error)
+                }
             }
-        }
+        )
     }
 
     suspend fun fetchTransactionDescriptionTemplates(): Result<List<TransactionDescriptionTemplate>> {
@@ -120,6 +137,20 @@ class BuddiRepository(
     fun preloadTransactionDescriptionTemplatesAsync() {
         repositoryScope.launch {
             loadTransactionDescriptionTemplatesIntoStore()
+        }
+    }
+
+    fun preloadSourcesAsync() {
+        repositoryScope.launch {
+            for (direction in listOf(SOURCE_DIRECTION_FROM, SOURCE_DIRECTION_TO)) {
+                fetchSourcesResponse(direction)
+            }
+        }
+    }
+
+    fun preloadUserDatePreferencesAsync() {
+        repositoryScope.launch {
+            fetchUserPreferencesResponse()
         }
     }
 
@@ -205,9 +236,19 @@ class BuddiRepository(
     }
 
     suspend fun fetchUserDatePreferences(): Result<UserDatePreferences> {
-        return fetchUserPreferencesResponse().map { response ->
-            response.toUserDatePreferences()
-        }
+        return fetchUserPreferencesResponse().fold(
+            onSuccess = { response ->
+                Result.success(response.toUserDatePreferences())
+            },
+            onFailure = { error ->
+                if (error is OfflineUnavailableException) {
+                    Result.success(defaultUserDatePreferences())
+                }
+                else {
+                    Result.failure(error)
+                }
+            }
+        )
     }
 
     suspend fun createTransaction(input: TransactionEditInput): Result<Unit> {
@@ -628,7 +669,7 @@ class BuddiRepository(
         get() = pendingTransactionId(localUuid)
 
     private fun sourceName(sourceId: Int): String {
-        for (direction in listOf("from", "to")) {
+        for (direction in listOf(SOURCE_DIRECTION_FROM, SOURCE_DIRECTION_TO)) {
             val cachedValue = offlineStore?.loadCache(sourcesCacheKey(direction)) ?: continue
             val response = runCatching {
                 gson.fromJson(cachedValue, SourcesResponseDto::class.java)
@@ -705,3 +746,5 @@ class OfflineUnavailableException : RuntimeException("Open this account once whi
 private const val ACCOUNTS_CACHE_KEY = "accounts"
 private const val USER_PREFERENCES_CACHE_KEY = "user-preferences"
 private const val TRANSACTION_DESCRIPTIONS_CACHE_KEY = "transaction-descriptions"
+private const val SOURCE_DIRECTION_FROM = "from"
+private const val SOURCE_DIRECTION_TO = "to"

@@ -332,6 +332,8 @@ fun BuddiMobileApp(repository: BuddiRepository) {
 			isAuthenticated = repository.hasValidSession()
 			if (isAuthenticated) {
 				repository.preloadTransactionDescriptionTemplatesAsync()
+				repository.preloadSourcesAsync()
+				repository.preloadUserDatePreferencesAsync()
 				repository.syncPendingTransactionsAsync()
 			}
 		}

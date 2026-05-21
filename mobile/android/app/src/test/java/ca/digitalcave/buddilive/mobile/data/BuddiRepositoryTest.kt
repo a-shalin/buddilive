@@ -177,6 +177,58 @@ class BuddiRepositoryTest {
 			syncNotification.await()
 		}
 	}
+
+	@Test
+	fun offlineFetchTransactionsWithoutCachedPageReturnsEmptyPage() = runBlocking {
+		val repository = BuddiRepository(
+			api = FakeBuddiApi(transactionsException = IOException("offline")),
+			offlineStore = InMemoryOfflineStore(),
+			autoSyncPendingTransactions = false
+		)
+
+		val result = repository.fetchTransactions(sourceId = 1, start = 0, limit = 100)
+
+		assertTrue(result.isSuccess)
+		val page = result.getOrThrow()
+		assertTrue(page.items.isEmpty())
+		assertEquals(0, page.total)
+	}
+
+	@Test
+	fun loginCachesUserDatePreferencesForOfflineUse() = runBlocking {
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(
+			api = FakeBuddiApi(userPreferencesResponse = userPreferencesResponse(dateFormat = "dd.MM.yyyy")),
+			offlineStore = store,
+			autoSyncPendingTransactions = false
+		)
+
+		val loginResult = repository.login("user", "password", stayLoggedIn = true)
+
+		assertTrue(loginResult is LoginResult.Success)
+		val offlineRepository = BuddiRepository(
+			api = FakeBuddiApi(userPreferencesException = IOException("offline")),
+			offlineStore = store,
+			autoSyncPendingTransactions = false
+		)
+		val preferences = offlineRepository.fetchUserDatePreferences().getOrThrow()
+		assertEquals("dd.MM.yyyy", preferences.dateFormat)
+	}
+}
+
+private fun userPreferencesResponse(dateFormat: String): UserPreferencesResponseDto {
+	return UserPreferencesResponseDto(
+		success = true,
+		locale = "en-US",
+		currency = "USD",
+		dateFormat = dateFormat,
+		currencyAfter = false,
+		decimalSeparator = ".",
+		thousandSeparator = ",",
+		negativeFormat = "N",
+		showCurrencySymbol = false,
+		currencySpacing = true
+	)
 }
 
 private fun descriptionsResponse(description: String, amount: String): TransactionDescriptionsResponseDto {
@@ -203,6 +255,7 @@ private fun descriptionsResponse(description: String, amount: String): Transacti
 }
 
 private class FakeBuddiApi(
+	private val loginResponse: AuthenticationFlowResponseDto = AuthenticationFlowResponseDto(success = true, next = null),
 	private val descriptionsResponse: TransactionDescriptionsResponseDto = TransactionDescriptionsResponseDto(
 		success = true,
 		data = emptyList()
@@ -213,13 +266,16 @@ private class FakeBuddiApi(
 		success = true,
 		data = emptyList(),
 		total = 0
-	)
+	),
+	private val transactionsException: IOException? = null,
+	private val userPreferencesResponse: UserPreferencesResponseDto = userPreferencesResponse(dateFormat = "yyyy-MM-dd"),
+	private val userPreferencesException: IOException? = null
 ) : BuddiApi {
 
 	val mutationRequests = mutableListOf<TransactionMutationRequestDto>()
 
 	override suspend fun login(identifier: String, password: String, remember: String?): AuthenticationFlowResponseDto {
-		error("Unused in test.")
+		return loginResponse
 	}
 
 	override suspend fun logout(): Response<Void> {
@@ -236,6 +292,7 @@ private class FakeBuddiApi(
 		limit: Int,
 		search: String?
 	): TransactionsResponseDto {
+		transactionsException?.let { throw it }
 		return transactionsResponse
 	}
 
@@ -250,7 +307,8 @@ private class FakeBuddiApi(
 	}
 
 	override suspend fun getUserPreferences(): UserPreferencesResponseDto {
-		error("Unused in test.")
+		userPreferencesException?.let { throw it }
+		return userPreferencesResponse
 	}
 
 	override suspend fun getSources(direction: String): SourcesResponseDto {
