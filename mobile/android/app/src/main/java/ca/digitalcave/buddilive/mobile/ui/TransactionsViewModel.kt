@@ -50,7 +50,6 @@ class TransactionsViewModel(
 
 	private val _state = MutableStateFlow(TransactionsUiState())
 	val state: StateFlow<TransactionsUiState> = _state.asStateFlow()
-	private var pendingCreateScrollToTop: Boolean = false
 
 	init {
 		viewModelScope.launch {
@@ -89,7 +88,16 @@ class TransactionsViewModel(
 		viewModelScope.launch {
 			_state.update { it.copy(isMutating = true, error = null) }
 			val result = repository.createTransaction(input)
-			handleMutationResult(result, onDone, requestScrollToTopAfterRefresh = true)
+			result.fold(
+				onSuccess = {
+					showPendingTransactionsAfterCreate()
+					onDone(true)
+					repository.syncPendingTransactionsAsync()
+				},
+				onFailure = { error ->
+					handleMutationFailure(error, onDone)
+				}
+			)
 		}
 	}
 
@@ -97,7 +105,7 @@ class TransactionsViewModel(
 		viewModelScope.launch {
 			_state.update { it.copy(isMutating = true, error = null) }
 			val result = repository.updateTransaction(transactionId, input)
-			handleMutationResult(result, onDone, requestScrollToTopAfterRefresh = false)
+			handleMutationResult(result, onDone)
 		}
 	}
 
@@ -105,36 +113,59 @@ class TransactionsViewModel(
 		viewModelScope.launch {
 			_state.update { it.copy(isMutating = true, error = null) }
 			val result = repository.deleteTransaction(transactionId)
-			handleMutationResult(result, onDone, requestScrollToTopAfterRefresh = false)
+			handleMutationResult(result, onDone)
 		}
 	}
 
 	private fun handleMutationResult(
 		result: Result<Unit>,
-		onDone: (Boolean) -> Unit,
-		requestScrollToTopAfterRefresh: Boolean
+		onDone: (Boolean) -> Unit
 	) {
 		result.fold(
 			onSuccess = {
 				_state.update { it.copy(isMutating = false, error = null) }
-				if (requestScrollToTopAfterRefresh) {
-					pendingCreateScrollToTop = true
-				}
 				refresh()
 				onDone(true)
 			},
 			onFailure = { error ->
-				val needsLogin = error is UnauthorizedException
-				_state.update {
-					it.copy(
-						isMutating = false,
-						error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Operation failed.",
-						needsLogin = needsLogin
-					)
-				}
-				onDone(false)
+				handleMutationFailure(error, onDone)
 			}
 		)
+	}
+
+	private fun handleMutationFailure(error: Throwable, onDone: (Boolean) -> Unit) {
+		val needsLogin = error is UnauthorizedException
+		_state.update {
+			it.copy(
+				isMutating = false,
+				error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Operation failed.",
+				needsLogin = needsLogin
+			)
+		}
+		onDone(false)
+	}
+
+	private fun showPendingTransactionsAfterCreate() {
+		val pendingTransactions = repository.fetchPendingTransactions(accountId)
+		_state.update { current ->
+			val currentTransactionIds = current.transactions.mapTo(mutableSetOf()) { transaction -> transaction.id }
+			val newPendingCount = pendingTransactions.count { transaction -> !currentTransactionIds.contains(transaction.id) }
+			current.copy(
+				isMutating = false,
+				transactions = (pendingTransactions + current.transactions)
+					.distinctBy { transaction -> transaction.id }
+					.sortedByDescending { transaction -> transaction.dateIso },
+				total = current.total + newPendingCount,
+				error = null,
+				needsLogin = false,
+				scrollToTopRequestKey = if (pendingTransactions.isEmpty()) {
+					current.scrollToTopRequestKey
+				}
+				else {
+					current.scrollToTopRequestKey + 1
+				}
+			)
+		}
 	}
 
 	private fun loadSources() {
@@ -215,7 +246,6 @@ class TransactionsViewModel(
 			val result = repository.fetchTransactions(sourceId = accountId, start = start, limit = 100)
 			result.fold(
 				onSuccess = { page ->
-					val shouldRequestScrollToTop = !append && pendingCreateScrollToTop
 					_state.update { current ->
 						val mergedTransactions = if (append) {
 							(current.transactions + page.items).distinctBy { it.id }
@@ -227,23 +257,11 @@ class TransactionsViewModel(
 							isLoading = false,
 							transactions = mergedTransactions,
 							total = page.total,
-							error = null,
-							scrollToTopRequestKey = if (shouldRequestScrollToTop) {
-								current.scrollToTopRequestKey + 1
-							}
-							else {
-								current.scrollToTopRequestKey
-							}
+							error = null
 						)
-					}
-					if (shouldRequestScrollToTop) {
-						pendingCreateScrollToTop = false
 					}
 				},
 				onFailure = { error ->
-					if (!append && pendingCreateScrollToTop) {
-						pendingCreateScrollToTop = false
-					}
 					val needsLogin = error is UnauthorizedException
 					_state.update {
 						it.copy(

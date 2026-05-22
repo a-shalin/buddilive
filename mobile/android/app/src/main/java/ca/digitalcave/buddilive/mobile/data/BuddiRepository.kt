@@ -87,8 +87,10 @@ class BuddiRepository(
     }
 
     suspend fun fetchTransactions(sourceId: Long, start: Int, limit: Int): Result<TransactionsPage> {
-        syncPendingTransactionsAsync()
         val pendingTransactions = pendingTransactionsForSource(sourceId)
+        if (start == 0 && pendingTransactions.isNotEmpty()) {
+            return Result.success(localTransactionsPage(sourceId, limit, pendingTransactions))
+        }
         val pendingOffset = if (start > 0) pendingTransactions.size else 0
         val serverStart = (start - pendingOffset).coerceAtLeast(0)
         val responseResult = fetchTransactionsResponse(sourceId = sourceId, start = serverStart, limit = limit)
@@ -273,7 +275,6 @@ class BuddiRepository(
                 )
             )
             addOrUpdateTransactionDescriptionTemplate(input)
-            syncPendingTransactionsAsync()
             return Result.success(Unit)
         }
         return mutateTransaction(
@@ -525,6 +526,32 @@ class BuddiRepository(
                 pendingTransaction.fromId.toLong() == sourceId || pendingTransaction.toId.toLong() == sourceId
             }
             .orEmpty()
+    }
+
+    fun fetchPendingTransactions(sourceId: Long): List<TransactionSummary> {
+        return pendingTransactionsForSource(sourceId)
+            .map { pendingTransaction -> pendingTransaction.toTransactionSummary() }
+            .sortedByDescending { transaction -> transaction.dateIso }
+    }
+
+    private fun localTransactionsPage(
+        sourceId: Long,
+        limit: Int,
+        pendingTransactions: List<PendingTransaction>
+    ): TransactionsPage {
+        val pendingItems = pendingTransactions
+            .map { pendingTransaction -> pendingTransaction.toTransactionSummary() }
+        val cachedPage = loadCachedResponse(transactionsCacheKey(sourceId, 0, limit), TransactionsResponseDto::class.java)
+            ?.getOrNull()
+            ?.toTransactionsPage()
+        val mergedItems = (pendingItems + cachedPage?.items.orEmpty())
+            .distinctBy { transaction -> transaction.id }
+            .sortedByDescending { transaction -> transaction.dateIso }
+            .take(limit)
+        return TransactionsPage(
+            items = mergedItems,
+            total = cachedPage?.total?.plus(pendingItems.size) ?: pendingItems.size
+        )
     }
 
     private fun findPendingTransaction(transactionId: Long): PendingTransaction? {

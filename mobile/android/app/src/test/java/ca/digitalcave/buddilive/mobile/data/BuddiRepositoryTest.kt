@@ -114,6 +114,37 @@ class BuddiRepositoryTest {
 	}
 
 	@Test
+	fun fetchTransactionsWithPendingOutboxDoesNotWaitForNetworkList() = runBlocking {
+		val store = InMemoryOfflineStore()
+		val api = FakeBuddiApi(
+			transactionsResponse = TransactionsResponseDto(success = true, data = emptyList(), total = 0)
+		)
+		val repository = BuddiRepository(
+			api = api,
+			offlineStore = store,
+			autoSyncPendingTransactions = false
+		)
+
+		val createResult = repository.createTransaction(
+			TransactionEditInput(
+				dateIso = "2026-04-23",
+				description = "Coffee",
+				number = "",
+				amount = "25.75",
+				fromId = 1,
+				toId = 2,
+				memo = ""
+			)
+		)
+
+		assertTrue(createResult.isSuccess)
+		val page = repository.fetchTransactions(sourceId = 1, start = 0, limit = 100).getOrThrow()
+		assertEquals(0, api.transactionsRequestCount)
+		assertEquals(1, page.items.size)
+		assertTrue(page.items.single().isPending)
+	}
+
+	@Test
 	fun syncPendingTransactionsSendsStableUuidAndRemovesSyncedRow() = runBlocking {
 		val store = InMemoryOfflineStore()
 		val api = FakeBuddiApi()
@@ -273,6 +304,8 @@ private class FakeBuddiApi(
 ) : BuddiApi {
 
 	val mutationRequests = mutableListOf<TransactionMutationRequestDto>()
+	var transactionsRequestCount = 0
+		private set
 
 	override suspend fun login(identifier: String, password: String, remember: String?): AuthenticationFlowResponseDto {
 		return loginResponse
@@ -292,6 +325,7 @@ private class FakeBuddiApi(
 		limit: Int,
 		search: String?
 	): TransactionsResponseDto {
+		transactionsRequestCount++
 		transactionsException?.let { throw it }
 		return transactionsResponse
 	}
