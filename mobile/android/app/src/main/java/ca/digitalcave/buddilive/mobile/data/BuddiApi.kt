@@ -2,6 +2,7 @@ package ca.digitalcave.buddilive.mobile.data
 
 import android.content.Context
 import ca.digitalcave.buddilive.mobile.BuildConfig
+import okhttp3.CookieJar
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 import retrofit2.Retrofit
@@ -55,19 +56,32 @@ interface BuddiApi {
 object BuddiApiFactory {
 
 	fun create(context: Context): BuddiApi {
-		return createWithTimeoutSeconds(context = context, timeoutSeconds = DEFAULT_TIMEOUT_SECONDS)
+		return createWithTimeoutSeconds(
+			baseUrl = BuildConfig.BASE_URL,
+			cookieJar = PersistentCookieJar(context),
+			timeoutSeconds = DEFAULT_TIMEOUT_SECONDS
+		)
 	}
 
 	fun createDescriptionsApi(context: Context): BuddiApi {
 		return createWithTimeoutSeconds(
-			context = context,
-			timeoutSeconds = DEFAULT_TIMEOUT_SECONDS * DESCRIPTIONS_TIMEOUT_MULTIPLIER
+			baseUrl = BuildConfig.BASE_URL,
+			cookieJar = PersistentCookieJar(context),
+			timeoutSeconds = DESCRIPTIONS_TIMEOUT_SECONDS
 		)
 	}
 
-	private fun createWithTimeoutSeconds(context: Context, timeoutSeconds: Long): BuddiApi {
+	internal fun createForTest(baseUrl: String): BuddiApi {
+		return createWithTimeoutSeconds(
+			baseUrl = baseUrl,
+			cookieJar = CookieJar.NO_COOKIES,
+			timeoutSeconds = DEFAULT_TIMEOUT_SECONDS
+		)
+	}
+
+	private fun createWithTimeoutSeconds(baseUrl: String, cookieJar: CookieJar, timeoutSeconds: Long): BuddiApi {
 		val client = OkHttpClient.Builder()
-			.cookieJar(PersistentCookieJar(context))
+			.cookieJar(cookieJar)
 			.connectTimeout(timeoutSeconds, TimeUnit.SECONDS)
 			.readTimeout(timeoutSeconds, TimeUnit.SECONDS)
 			.writeTimeout(timeoutSeconds, TimeUnit.SECONDS)
@@ -75,13 +89,13 @@ object BuddiApiFactory {
 			.build()
 
 		return Retrofit.Builder()
-			.baseUrl(BuildConfig.BASE_URL)
+			.baseUrl(baseUrl)
 			.client(client)
 			.addConverterFactory(GsonConverterFactory.create())
 			.build()
 			.create(BuddiApi::class.java)
 	}
 
-	private const val DEFAULT_TIMEOUT_SECONDS = 10L
-	private const val DESCRIPTIONS_TIMEOUT_MULTIPLIER = 5L
+	private const val DEFAULT_TIMEOUT_SECONDS = 60L
+	private const val DESCRIPTIONS_TIMEOUT_SECONDS = 120L
 }
