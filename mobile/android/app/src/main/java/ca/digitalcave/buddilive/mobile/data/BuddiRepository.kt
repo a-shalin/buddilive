@@ -86,6 +86,17 @@ class BuddiRepository(
         }
     }
 
+    fun loadCachedAccount(accountId: Long): AccountSummary? {
+        val response = loadCachedResponse(ACCOUNTS_CACHE_KEY, AccountsResponseDto::class.java)
+            ?.getOrNull()
+            ?: return null
+        return projectAccountsOverview(response.toAccountsOverview())
+            .accountTypes
+            .asSequence()
+            .flatMap { accountType -> accountType.accounts.asSequence() }
+            .firstOrNull { account -> account.id == accountId }
+    }
+
     suspend fun fetchTransactions(sourceId: Long, start: Int, limit: Int): Result<TransactionsPage> {
         val pendingTransactions = pendingTransactionsForSource(sourceId)
         if (start == 0 && pendingTransactions.isNotEmpty()) {

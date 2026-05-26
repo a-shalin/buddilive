@@ -91,6 +91,7 @@ class TransactionsViewModel(
 			result.fold(
 				onSuccess = {
 					showPendingTransactionsAfterCreate()
+					showCachedAccountBalance()
 					onDone(true)
 					repository.syncPendingTransactionsAsync()
 				},
@@ -164,6 +165,16 @@ class TransactionsViewModel(
 				else {
 					current.scrollToTopRequestKey + 1
 				}
+			)
+		}
+	}
+
+	private fun showCachedAccountBalance() {
+		val account = repository.loadCachedAccount(accountId) ?: return
+		_state.update {
+			it.copy(
+				accountBalance = account.balance,
+				accountBalanceHasPending = account.hasPending
 			)
 		}
 	}

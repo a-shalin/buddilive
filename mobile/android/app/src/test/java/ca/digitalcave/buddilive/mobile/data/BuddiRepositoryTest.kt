@@ -1,5 +1,7 @@
 package ca.digitalcave.buddilive.mobile.data
 
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
@@ -145,6 +147,54 @@ class BuddiRepositoryTest {
 	}
 
 	@Test
+	fun loadCachedAccountProjectsPendingBalanceWithoutNetworkRefresh() = runBlocking {
+		val store = InMemoryOfflineStore()
+		val api = FakeBuddiApi(
+			accountsResponse = accountsResponse(
+				AccountSummary(
+					id = 1,
+					name = "Checking",
+					balance = "USD 100.00",
+					deleted = false,
+					balanceNumber = BigDecimal("100.00")
+				),
+				AccountSummary(
+					id = 2,
+					name = "Groceries",
+					balance = "USD 0.00",
+					deleted = false,
+					balanceNumber = BigDecimal.ZERO
+				)
+			)
+		)
+		val repository = BuddiRepository(
+			api = api,
+			offlineStore = store,
+			autoSyncPendingTransactions = false
+		)
+
+		repository.fetchUserDatePreferences().getOrThrow()
+		repository.fetchAccounts().getOrThrow()
+		val createResult = repository.createTransaction(
+			TransactionEditInput(
+				dateIso = "2026-04-23",
+				description = "Coffee",
+				number = "",
+				amount = "25.00",
+				fromId = 1,
+				toId = 2,
+				memo = ""
+			)
+		)
+
+		assertTrue(createResult.isSuccess)
+		val projectedAccount = repository.loadCachedAccount(1)
+		assertEquals(1, api.accountsRequestCount)
+		assertEquals("USD 75.00", projectedAccount?.balance)
+		assertTrue(projectedAccount?.hasPending == true)
+	}
+
+	@Test
 	fun syncPendingTransactionsSendsStableUuidAndRemovesSyncedRow() = runBlocking {
 		val store = InMemoryOfflineStore()
 		val api = FakeBuddiApi()
@@ -285,12 +335,44 @@ private fun descriptionsResponse(description: String, amount: String): Transacti
 	)
 }
 
+private fun accountsResponse(vararg accounts: AccountSummary): AccountsResponseDto {
+	val typeChildren = JsonArray()
+	for (account in accounts) {
+		typeChildren.add(
+			JsonObject().apply {
+				addProperty("nodeType", "account")
+				addProperty("id", account.id)
+				addProperty("name", account.name)
+				addProperty("balance", account.balance)
+				addProperty("balanceNumber", account.balanceNumber)
+				addProperty("debit", account.debit)
+				addProperty("deleted", account.deleted)
+			}
+		)
+	}
+	val accountType = JsonObject().apply {
+		addProperty("nodeType", "type")
+		addProperty("name", "Assets")
+		addProperty("balance", "USD 100.00")
+		addProperty("balanceNumber", BigDecimal("100.00"))
+		addProperty("debit", true)
+		add("children", typeChildren)
+	}
+	val netWorth = JsonObject().apply {
+		addProperty("name", "Net Worth")
+		addProperty("balance", "USD 100.00")
+		addProperty("balanceNumber", BigDecimal("100.00"))
+	}
+	return AccountsResponseDto(success = true, children = listOf(accountType, netWorth))
+}
+
 private class FakeBuddiApi(
 	private val loginResponse: AuthenticationFlowResponseDto = AuthenticationFlowResponseDto(success = true, next = null),
 	private val descriptionsResponse: TransactionDescriptionsResponseDto = TransactionDescriptionsResponseDto(
 		success = true,
 		data = emptyList()
 	),
+	private val accountsResponse: AccountsResponseDto? = null,
 	private val mutateResponse: SuccessResponseDto = SuccessResponseDto(success = true),
 	private val mutateException: IOException? = null,
 	private val transactionsResponse: TransactionsResponseDto = TransactionsResponseDto(
@@ -304,6 +386,8 @@ private class FakeBuddiApi(
 ) : BuddiApi {
 
 	val mutationRequests = mutableListOf<TransactionMutationRequestDto>()
+	var accountsRequestCount = 0
+		private set
 	var transactionsRequestCount = 0
 		private set
 
@@ -316,7 +400,8 @@ private class FakeBuddiApi(
 	}
 
 	override suspend fun getAccounts(): AccountsResponseDto {
-		error("Unused in test.")
+		accountsRequestCount++
+		return accountsResponse ?: error("Unused in test.")
 	}
 
 	override suspend fun getTransactions(
