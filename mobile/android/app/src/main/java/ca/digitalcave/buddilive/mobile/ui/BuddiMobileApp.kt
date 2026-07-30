@@ -1186,9 +1186,15 @@ private fun applyDescriptionTemplate(
 	val templateSplit = selectTemplateSplit(template, selectedAccountId)
 		?: return currentState.copy(description = toTextFieldValue(template.description))
 	val (fromId, toId) = resolveTemplateSourceIds(currentState, templateSplit, selectedAccountId)
+	val amount = if (currentState.amount.text.isBlank()) {
+		toTextFieldValue(formatAmountForInput(templateSplit.amountNumber, amountFormat))
+	}
+	else {
+		currentState.amount
+	}
 	return currentState.copy(
 		description = toTextFieldValue(template.description),
-		amount = toTextFieldValue(formatAmountForInput(templateSplit.amountNumber, amountFormat)),
+		amount = amount,
 		fromId = fromId,
 		toId = toId
 	)

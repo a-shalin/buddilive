@@ -67,6 +67,7 @@ class StandaloneBackendE2eTest {
 	private lateinit var transactionTwoNumber: String
 	private lateinit var suggestionTemplateNumber: String
 	private var primaryAccountId: Int = 0
+	private var secondaryAccountId: Int = 0
 	private var softDeleteAccountId: Int = 0
 
 	@Before
@@ -92,7 +93,7 @@ class StandaloneBackendE2eTest {
 		backend.registerUser(email, password)
 		val apiClient = backend.login(email, password)
 		primaryAccountId = backend.createAccount(apiClient, primaryAccountName, "1500.00")
-		val secondaryAccountId = backend.createAccount(apiClient, secondaryAccountName, "500.00")
+		secondaryAccountId = backend.createAccount(apiClient, secondaryAccountName, "500.00")
 		val reserveAccountId = backend.createAccount(apiClient, reserveAccountName, "700.00")
 		softDeleteAccountId = backend.createAccount(apiClient, softDeleteAccountName, "250.00")
 		backend.updateUserFormatting(
@@ -439,6 +440,63 @@ class StandaloneBackendE2eTest {
 	}
 
 	@Test
+	fun descriptionSuggestionAutofillKeepsExistingAmountWhenEditing() {
+		val apiClient = backend.login(email, password)
+		val editedTransactionAmount = "17.35"
+		val editedTransactionAmountInput = "17,35"
+		val editedTransactionNumber = "ANDROID-E2E-AMOUNT-PRESERVE-${System.currentTimeMillis()}"
+		backend.createTransaction(
+			client = apiClient,
+			description = "Android E2E Wrong Description ${System.currentTimeMillis()}",
+			number = editedTransactionNumber,
+			date = "2026-03-25",
+			fromId = primaryAccountId,
+			toId = secondaryAccountId,
+			amount = editedTransactionAmount
+		)
+
+		loginAndOpenPrimaryAccountTransactions()
+		openFirstTransactionEditor()
+
+		assertEquals(editedTransactionNumber, currentEditorNumber())
+		assertEquals(editedTransactionAmountInput, currentEditorAmount())
+
+		val lookupSubstring = suggestionTemplateDescription.substring(0, minOf(20, suggestionTemplateDescription.length))
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_DESCRIPTION_TAG, useUnmergedTree = true)
+			.performTextReplacement(lookupSubstring)
+
+		assertEventuallyVisible(suggestionTemplateDescription)
+		composeTestRule.onNodeWithText(suggestionTemplateDescription).performClick()
+
+		assertEquals(
+			"Description suggestion should not overwrite existing Amount.",
+			editedTransactionAmountInput,
+			currentEditorAmount()
+		)
+
+		composeTestRule
+			.onNodeWithTag(TRANSACTION_EDITOR_SAVE_TAG, useUnmergedTree = true)
+			.assertIsEnabled()
+			.performClick()
+
+		assertEventuallyVisible("Transactions")
+		assertTrue(
+			"Updated transaction Number '$editedTransactionNumber' did not keep its original amount.",
+			backend.hasTransactionAmountByNumber(apiClient, primaryAccountId.toLong(), editedTransactionNumber, editedTransactionAmount)
+		)
+		assertTrue(
+			"Updated transaction Number '$editedTransactionNumber' did not get the selected description.",
+			backend.hasTransactionDescriptionByNumber(
+				client = apiClient,
+				sourceId = primaryAccountId.toLong(),
+				number = editedTransactionNumber,
+				description = suggestionTemplateDescription
+			)
+		)
+	}
+
+	@Test
 	fun descriptionSuggestionsHideTemplatesNotApplicableToSelectedAccount() {
 		loginAndOpenPrimaryAccountTransactions()
 		openNewTransactionEditor()
@@ -750,16 +808,16 @@ class StandaloneBackendE2eTest {
 		private const val TRANSACTION_EDITOR_AMOUNT_TAG = "transactionEditorAmount"
 		private const val TRANSACTION_EDITOR_MEMO_TAG = "transactionEditorMemo"
 		private const val TRANSACTION_EDITOR_DELETE_TAG = "transactionEditorDelete"
-			private const val TRANSACTION_EDITOR_DELETE_CONFIRM_TAG = "transactionEditorDeleteConfirm"
-			private const val TRANSACTION_EDITOR_SAVE_TAG = "transactionEditorSave"
-			private const val TRANSACTIONS_LIST_TAG = "transactionsList"
-			private const val LOGIN_IDENTIFIER_TAG = "loginIdentifier"
-			private const val LOGIN_PASSWORD_TAG = "loginPassword"
-			private const val SUGGESTION_TEMPLATE_AMOUNT = "88.88"
-			private const val BULK_SCROLL_TRANSACTION_COUNT = 320
-			private const val DEFAULT_ACCOUNT_TYPE = "Chequing"
-		}
+		private const val TRANSACTION_EDITOR_DELETE_CONFIRM_TAG = "transactionEditorDeleteConfirm"
+		private const val TRANSACTION_EDITOR_SAVE_TAG = "transactionEditorSave"
+		private const val TRANSACTIONS_LIST_TAG = "transactionsList"
+		private const val LOGIN_IDENTIFIER_TAG = "loginIdentifier"
+		private const val LOGIN_PASSWORD_TAG = "loginPassword"
+		private const val SUGGESTION_TEMPLATE_AMOUNT = "88.88"
+		private const val BULK_SCROLL_TRANSACTION_COUNT = 320
+		private const val DEFAULT_ACCOUNT_TYPE = "Chequing"
 	}
+}
 
 private class BackendClient(private val baseUrl: String) {
 
@@ -931,6 +989,18 @@ private class BackendClient(private val baseUrl: String) {
 				if (split.optString("memo") == memo) {
 					return true
 				}
+			}
+		}
+		return false
+	}
+
+	fun hasTransactionDescriptionByNumber(client: OkHttpClient, sourceId: Long, number: String, description: String): Boolean {
+		val response = getJson(client, "/data/transactions?source=$sourceId&start=0&limit=200")
+		val data = response.optJSONArray("data") ?: return false
+		for (index in 0 until data.length()) {
+			val transaction = data.optJSONObject(index) ?: continue
+			if (transaction.optString("number") == number && transaction.optString("description") == description) {
+				return true
 			}
 		}
 		return false
