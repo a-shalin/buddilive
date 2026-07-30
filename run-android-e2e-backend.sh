@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run BuddiLive backend for Android E2E with a fresh Derby DB on port 8080.
+# Run BuddiLive backend for Android E2E with a fresh Derby DB on port 8081.
 
 set -e
 cd "$(dirname "$0")"

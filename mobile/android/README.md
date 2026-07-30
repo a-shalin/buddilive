@@ -7,7 +7,7 @@ Native Android client for a simplified BuddiLive workflow:
 
 ## Base URL policy
 
-- Debug/standalone build: `http://10.0.2.2:8080/`
+- Debug/local backend: `http://10.0.2.2:8081/`
 - Debug build cleartext policy: allowed only for `10.0.2.2`, `localhost`, and `127.0.0.1`
 - Release build: `https://<domain_name>/` where `domain_name` is read from `ansible/inventory/production.ini`
 
@@ -22,6 +22,14 @@ cd mobile/android
 ```
 
 ## Android E2E (emulator + backend)
+
+Start or stop the default emulator:
+
+```bash
+cd /home/ashalin/git/buddilive
+./scripts/start-android-emulator.sh
+./scripts/stop-android-emulator.sh
+```
 
 Run backend + Android test in one command:
 

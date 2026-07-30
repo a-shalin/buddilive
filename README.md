@@ -37,7 +37,7 @@ Select a profile with `-P<profile>`, e.g. `mvn package -Pstandalone -DskipTests`
 ./run-standalone.sh
 ```
 
-This builds and starts the server on `http://localhost:8080`. Registration is direct (no email activation required).
+This builds and starts the server on `http://localhost:8081`. Registration is direct (no email activation required).
 
 **Option 2** -- from the JAR file directly:
 
@@ -60,7 +60,7 @@ Run backend + Android instrumentation E2E in one command:
 ./run-android-e2e-tests.sh
 ```
 
-This script starts backend, waits for `http://localhost:8080`, runs Android E2E, and stops backend automatically.
+This script starts backend, waits for `http://localhost:8081`, runs Android E2E, and stops backend automatically.
 
 ### Server (PostgreSQL)
 

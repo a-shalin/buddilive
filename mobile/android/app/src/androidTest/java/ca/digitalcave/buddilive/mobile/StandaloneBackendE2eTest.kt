@@ -50,7 +50,7 @@ class StandaloneBackendE2eTest {
 	@get:Rule
 	val composeTestRule = createAndroidComposeRule<MainActivity>()
 
-	private val backend = BackendClient("http://10.0.2.2:8080")
+	private val backend = BackendClient("http://10.0.2.2:8081")
 
 	private lateinit var email: String
 	private lateinit var password: String
