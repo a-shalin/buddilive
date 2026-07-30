@@ -4,9 +4,11 @@ import ca.digitalcave.moss.auth.password.PasswordChecker;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.Algorithm;
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.util.Properties;
 
@@ -14,8 +16,14 @@ import java.util.Properties;
 public class AppConfig {
 
 	@Bean
-	public JsonFactory jsonFactory() {
+	@Primary
+	public JsonFactory buddiJsonFactory() {
 		return new JsonFactory();
+	}
+
+	@Bean
+	public ObjectMapper objectMapper(final JsonFactory buddiJsonFactory) {
+		return new ObjectMapper(buddiJsonFactory);
 	}
 
 	@Bean

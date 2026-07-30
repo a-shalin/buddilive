@@ -15,9 +15,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +27,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -45,9 +45,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
@@ -61,7 +62,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,25 +71,21 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.autofill.AutofillNode
-import androidx.compose.ui.autofill.AutofillType
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.autofill.contentType
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalAutofill
-import androidx.compose.ui.platform.LocalAutofillTree
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -107,11 +103,11 @@ import ca.digitalcave.buddilive.mobile.data.TransactionDescriptionTemplate
 import ca.digitalcave.buddilive.mobile.data.TransactionDescriptionTemplateSplit
 import ca.digitalcave.buddilive.mobile.data.TransactionEditInput
 import ca.digitalcave.buddilive.mobile.data.TransactionSummary
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.text.NumberFormat
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -459,7 +455,6 @@ private fun OfflineStatusBanner() {
 }
 
 @Composable
-@OptIn(ExperimentalComposeUiApi::class)
 private fun LoginScreen(
 	modifier: Modifier,
 	repository: BuddiRepository,
@@ -468,29 +463,6 @@ private fun LoginScreen(
 ) {
 	val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(repository))
 	val state by viewModel.state.collectAsStateWithLifecycle()
-	val autofill = LocalAutofill.current
-	val autofillTree = LocalAutofillTree.current
-	val identifierAutofillNode = remember {
-		AutofillNode(
-			autofillTypes = listOf(AutofillType.Username, AutofillType.EmailAddress),
-			onFill = viewModel::onIdentifierChanged
-		)
-	}
-	val passwordAutofillNode = remember {
-		AutofillNode(
-			autofillTypes = listOf(AutofillType.Password),
-			onFill = viewModel::onPasswordChanged
-		)
-	}
-
-	DisposableEffect(identifierAutofillNode, autofillTree) {
-		autofillTree += identifierAutofillNode
-		onDispose {}
-	}
-	DisposableEffect(passwordAutofillNode, autofillTree) {
-		autofillTree += passwordAutofillNode
-		onDispose {}
-	}
 
 	Column(
 		modifier = modifier
@@ -505,17 +477,7 @@ private fun LoginScreen(
 			modifier = Modifier
 				.testTag(loginIdentifierTag)
 				.fillMaxWidth()
-				.onGloballyPositioned { coordinates ->
-					identifierAutofillNode.boundingBox = coordinates.boundsInWindow()
-				}
-				.onFocusChanged { focusState ->
-					if (focusState.isFocused) {
-						autofill?.requestAutofillForNode(identifierAutofillNode)
-					}
-					else {
-						autofill?.cancelAutofillForNode(identifierAutofillNode)
-					}
-				},
+				.contentType(ContentType.Username + ContentType.EmailAddress),
 			value = state.identifier,
 			onValueChange = viewModel::onIdentifierChanged,
 			label = { Text("Email / Username") },
@@ -531,17 +493,7 @@ private fun LoginScreen(
 			modifier = Modifier
 				.testTag(loginPasswordTag)
 				.fillMaxWidth()
-				.onGloballyPositioned { coordinates ->
-					passwordAutofillNode.boundingBox = coordinates.boundsInWindow()
-				}
-				.onFocusChanged { focusState ->
-					if (focusState.isFocused) {
-						autofill?.requestAutofillForNode(passwordAutofillNode)
-					}
-					else {
-						autofill?.cancelAutofillForNode(passwordAutofillNode)
-					}
-				},
+				.contentType(ContentType.Password),
 			value = state.password,
 			onValueChange = viewModel::onPasswordChanged,
 			label = { Text("Password") },
@@ -1623,7 +1575,7 @@ private fun SourceSelector(
 	) {
 		OutlinedTextField(
 			modifier = Modifier
-				.menuAnchor()
+				.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
 				.fillMaxWidth(),
 			value = selected?.label?.trimStart().orEmpty(),
 			onValueChange = {},

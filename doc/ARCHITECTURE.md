@@ -7,7 +7,7 @@ BuddiLive is a web-based personal finance application for budgeting, account tra
 | Layer | Technology |
 |-------|-----------|
 | Frontend | ExtJS 6.2.0 (Classic Gray theme, served from `static/`) |
-| Backend Framework | Spring Boot 3.4.3 (Spring MVC, embedded Tomcat) |
+| Backend Framework | Spring Boot 4.1.0 (Spring MVC, embedded Tomcat 11) |
 | Templating | FreeMarker 2.3.34 |
 | ORM | MyBatis 3.5.19 via mybatis-spring-boot-starter (XML-based mappers) |
 | Database | PostgreSQL (production) / Derby (standalone/test) |
@@ -15,9 +15,9 @@ BuddiLive is a web-based personal finance application for budgeting, account tra
 | DB Migrations | Liquibase 4.29.2 (Spring Boot auto-configuration) |
 | Auth | Spring Security + custom cookie filter (SHA-512 hashing, AES-256 encryption) |
 | 2FA | TOTP with backup codes (ZXing for QR generation) |
-| Build | Maven (Java 17 target, Spring Boot Maven plugin) |
+| Build | Maven (Java 21 target, Spring Boot Maven plugin) |
 | Deployment | Docker + Nginx + Ansible |
-| Java Target | 17 |
+| Java Target | 21 |
 
 ### Custom Libraries (moss framework)
 

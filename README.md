@@ -4,7 +4,7 @@ A web-based personal finance application for budgeting, account tracking, and fi
 
 ## Prerequisites
 
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - PostgreSQL (for server deployment) or Derby (embedded, for standalone)
 

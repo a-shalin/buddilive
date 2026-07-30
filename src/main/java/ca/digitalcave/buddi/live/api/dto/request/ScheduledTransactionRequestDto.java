@@ -1,10 +1,9 @@
 package ca.digitalcave.buddi.live.api.dto.request;
 
-import java.util.List;
-
+import ca.digitalcave.buddi.live.controller.Action;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import ca.digitalcave.buddi.live.controller.Action;
+import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ScheduledTransactionRequestDto(
@@ -12,9 +11,9 @@ public record ScheduledTransactionRequestDto(
 		Long id,
 		String uuid,
 		String name,
-		int scheduleDay,
-		int scheduleWeek,
-		int scheduleMonth,
+		Integer scheduleDay,
+		Integer scheduleWeek,
+		Integer scheduleMonth,
 		String repeat,
 		String start,
 		String end,

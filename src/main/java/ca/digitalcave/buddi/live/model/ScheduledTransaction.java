@@ -48,9 +48,9 @@ public class ScheduledTransaction {
 		st.setId(dto.id());
 		st.setUuid(dto.uuid() != null ? dto.uuid() : UUID.randomUUID().toString());
 		st.setScheduleName(dto.name());
-		st.setScheduleDay(dto.scheduleDay());
-		st.setScheduleWeek(dto.scheduleWeek());
-		st.setScheduleMonth(dto.scheduleMonth());
+		st.setScheduleDay(defaultInt(dto.scheduleDay()));
+		st.setScheduleWeek(defaultInt(dto.scheduleWeek()));
+		st.setScheduleMonth(defaultInt(dto.scheduleMonth()));
 		st.setFrequencyType(dto.repeat());
 		st.setStartDate(FormatUtil.parseDateInternal(dto.start()));
 		st.setEndDate(FormatUtil.parseDateInternal(dto.end()));
@@ -66,6 +66,10 @@ public class ScheduledTransaction {
 			}
 		}
 		return st;
+	}
+
+	private static int defaultInt(final Integer value) {
+		return value == null ? 0 : value;
 	}
 
 	public Long getId() {
