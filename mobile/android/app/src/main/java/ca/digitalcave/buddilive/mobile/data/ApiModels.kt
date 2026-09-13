@@ -201,7 +201,32 @@ data class PendingTransaction(
 	val createdAt: Long,
 	val modifiedAt: Long,
 	val lastError: String?,
-	val attemptCount: Int
+	val attemptCount: Int,
+	val sync: PendingSyncState = PendingSyncState()
+)
+
+data class PendingSyncState(
+	val submitted: TransactionEditInput? = null,
+	val serverId: Long? = null,
+	val serverInput: TransactionEditInput? = null,
+	val balanceInput: TransactionEditInput? = null,
+	val deleted: Boolean = false,
+	val acknowledged: Boolean = false
+)
+
+data class SyncState(
+	val isSyncing: Boolean = false,
+	val needsLogin: Boolean = false,
+	val isPrepared: Boolean = false,
+	val error: String? = null
+)
+
+data class CachedAccountData(
+	val page: TransactionsPage?,
+	val account: AccountSummary?,
+	val fromSources: List<SourceOption>,
+	val toSources: List<SourceOption>,
+	val preferences: UserDatePreferences
 )
 
 data class TransactionSummary(

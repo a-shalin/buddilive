@@ -62,6 +62,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -180,7 +184,7 @@ private fun RefreshActionButton(isRefreshing: Boolean, onRefresh: () -> Unit) {
 		Modifier
 	}
 
-	IconButton(onClick = onRefresh, enabled = !isRefreshing) {
+	IconButton(onClick = onRefresh) {
 		Icon(
 			imageVector = Icons.Filled.Refresh,
 			contentDescription = "Refresh",
@@ -318,6 +322,12 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 	val snackbarHostState = remember { SnackbarHostState() }
 	val coroutineScope = rememberCoroutineScope()
 	val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle()
+	val syncState by repository.syncState.collectAsStateWithLifecycle()
+	val lifecycleOwner = LocalLifecycleOwner.current
+	var showSignIn by remember { mutableStateOf(false) }
+	var legacyPendingCount by remember { mutableStateOf(0) }
+	var showLegacyRestore by remember { mutableStateOf(false) }
+	val cacheVersion by repository.cacheVersion.collectAsStateWithLifecycle()
 
 	var isAuthenticated by remember { mutableStateOf(false) }
 	var isAuthBootstrapInProgress by remember { mutableStateOf(true) }
@@ -327,25 +337,48 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 	var expandedAccountTypes by rememberSaveable { mutableStateOf(setOf<String>()) }
 
 	LaunchedEffect(repository, context) {
-		if (readStayLoggedInPreference(context)) {
-			isAuthenticated = repository.hasValidSession()
-			if (isAuthenticated) {
-				repository.preloadTransactionDescriptionTemplatesAsync()
-				repository.preloadSourcesAsync()
-				repository.preloadUserDatePreferencesAsync()
-				repository.syncPendingTransactionsAsync()
-			}
-		}
-		else {
-			isAuthenticated = false
-		}
+		isAuthenticated = readStayLoggedInPreference(context) && repository.restoreLocalSession()
 		isAuthBootstrapInProgress = false
 	}
 
-	LaunchedEffect(repository, isAuthenticated, isOnline) {
-		if (isAuthenticated && isOnline) {
-			repository.syncPendingTransactionsAsync()
+	DisposableEffect(repository, lifecycleOwner, isAuthenticated) {
+		fun updateForeground() {
+			repository.setForeground(isAuthenticated && lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
 		}
+		val observer = LifecycleEventObserver { _, _ -> updateForeground() }
+		lifecycleOwner.lifecycle.addObserver(observer)
+		updateForeground()
+		onDispose {
+			lifecycleOwner.lifecycle.removeObserver(observer)
+			repository.setForeground(false)
+		}
+	}
+
+	LaunchedEffect(repository, isAuthenticated, isOnline) {
+		if (isAuthenticated && isOnline) repository.requestSync()
+	}
+
+	LaunchedEffect(isAuthenticated, cacheVersion) {
+		legacyPendingCount = if (isAuthenticated) repository.legacyPendingCount() else 0
+	}
+
+	if (showLegacyRestore) {
+		AlertDialog(
+			onDismissRequest = { showLegacyRestore = false },
+			title = { Text("Restore saved transactions?") },
+			text = { Text("This device has $legacyPendingCount transactions saved before account identification was available. Restore them only if they belong to the account you have signed into.") },
+			confirmButton = {
+				TextButton(onClick = {
+					showLegacyRestore = false
+					coroutineScope.launch {
+						repository.restoreLegacyTransactions().onFailure {
+							snackbarHostState.showSnackbar(it.message ?: "Unable to restore saved transactions.")
+						}
+					}
+				}) { Text("Restore") }
+			},
+			dismissButton = { TextButton(onClick = { showLegacyRestore = false }) { Text("Cancel") } }
+		)
 	}
 
 	Scaffold(
@@ -356,8 +389,23 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 				.fillMaxSize()
 				.padding(paddingValues)
 		) {
-			if (!isOnline) {
-				OfflineStatusBanner()
+			if (isAuthenticated) {
+				if (syncState.needsLogin) {
+					Row(verticalAlignment = Alignment.CenterVertically) {
+						Text("Sign in to sync", modifier = Modifier.padding(horizontal = 16.dp))
+						TextButton(onClick = { showSignIn = true }) { Text("Sign in") }
+					}
+				} else if (!isOnline || syncState.error != null) {
+					OfflineStatusBanner()
+				} else if (!syncState.isPrepared) {
+					Text("Downloading data for offline use…", modifier = Modifier.padding(12.dp))
+				}
+			}
+			if (legacyPendingCount > 0 && !syncState.needsLogin) {
+				TextButton(onClick = { showLegacyRestore = true }) { Text("Restore $legacyPendingCount saved transactions") }
+			}
+			if (showSignIn) {
+				TextButton(onClick = { showSignIn = false }) { Text("Continue offline") }
 			}
 			Box(modifier = Modifier.weight(1f, fill = true)) {
 				when {
@@ -368,12 +416,13 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 						CircularProgressIndicator()
 					}
 
-					!isAuthenticated -> LoginScreen(
+					!isAuthenticated || showSignIn -> LoginScreen(
 						modifier = Modifier,
 						repository = repository,
 						onLoginSuccess = { stayLoggedIn ->
 							writeStayLoggedInPreference(context, stayLoggedIn)
 							isAuthenticated = true
+							showSignIn = false
 							selectedAccountId = null
 							selectedAccountName = ""
 							selectedAccountBalance = ""
@@ -559,12 +608,10 @@ private fun AccountsScreen(
 	onLogout: () -> Unit,
 	onNeedsLogin: () -> Unit
 ) {
-	val viewModel: AccountsViewModel = viewModel(factory = AccountsViewModelFactory(repository))
+	val sessionVersion by repository.sessionVersion.collectAsStateWithLifecycle()
+	val syncState by repository.syncState.collectAsStateWithLifecycle()
+	val viewModel: AccountsViewModel = viewModel(key = "accounts-$sessionVersion", factory = AccountsViewModelFactory(repository))
 	val state by viewModel.state.collectAsStateWithLifecycle()
-
-	LaunchedEffect(Unit) {
-		viewModel.refresh()
-	}
 
 	LaunchedEffect(state.needsLogin) {
 		if (state.needsLogin) {
@@ -585,7 +632,7 @@ private fun AccountsScreen(
 						)
 					}
 					RefreshActionButton(
-						isRefreshing = state.isLoading,
+						isRefreshing = syncState.isSyncing,
 						onRefresh = viewModel::refresh
 					)
 				}
@@ -743,8 +790,10 @@ private fun TransactionsScreen(
 	onBack: () -> Unit,
 	onNeedsLogin: () -> Unit
 ) {
+	val sessionVersion by repository.sessionVersion.collectAsStateWithLifecycle()
+	val syncState by repository.syncState.collectAsStateWithLifecycle()
 	val viewModel: TransactionsViewModel = viewModel(
-		key = "transactions-$accountId",
+		key = "transactions-$sessionVersion-$accountId",
 		factory = TransactionsViewModelFactory(repository, accountId)
 	)
 	val state by viewModel.state.collectAsStateWithLifecycle()
@@ -858,7 +907,7 @@ private fun TransactionsScreen(
 								Icon(Icons.Filled.Add, contentDescription = "New")
 							}
 							RefreshActionButton(
-								isRefreshing = state.isLoading,
+								isRefreshing = syncState.isSyncing,
 								onRefresh = viewModel::refresh
 							)
 						}

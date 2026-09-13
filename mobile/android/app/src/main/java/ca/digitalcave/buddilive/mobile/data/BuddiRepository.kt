@@ -1,6 +1,12 @@
 package ca.digitalcave.buddilive.mobile.data
 
 import com.google.gson.Gson
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,13 +24,31 @@ import retrofit2.HttpException
 import java.math.BigDecimal
 import java.io.IOException
 import java.util.UUID
+import java.security.MessageDigest
 
 class BuddiRepository(
     private val api: BuddiApi,
     private val descriptionsApi: BuddiApi = api,
-    private val offlineStore: OfflineStore? = null,
-    private val autoSyncPendingTransactions: Boolean = true
+    offlineStore: OfflineStore? = null,
+    private val autoSyncPendingTransactions: Boolean = true,
+    private val backendIdentity: String = "",
+    private val clearSession: () -> Unit = { }
 ) {
+
+    private val activeOwnerCacheKey = "active-owner:$backendIdentity"
+    private val rootStore = offlineStore
+    private var offlineStore = offlineStore
+    private val dataLock = Any()
+    private val authenticationMutex = Mutex()
+    private val syncRequests = Channel<Unit>(Channel.CONFLATED)
+    private var foregroundJob: Job? = null
+    private var foreground = false
+    private val _cacheVersion = MutableStateFlow(0L)
+    val cacheVersion: StateFlow<Long> = _cacheVersion.asStateFlow()
+    private val _syncState = MutableStateFlow(SyncState())
+    val syncState: StateFlow<SyncState> = _syncState.asStateFlow()
+    private val _sessionVersion = MutableStateFlow(0L)
+    val sessionVersion: StateFlow<Long> = _sessionVersion.asStateFlow()
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val descriptionsLoadMutex = Mutex()
@@ -40,36 +64,197 @@ class BuddiRepository(
     @Volatile
     private var descriptionsLoaded: Boolean = false
 
-    suspend fun login(identifier: String, password: String, stayLoggedIn: Boolean): LoginResult {
-        return runLoginApi {
-            val response = api.login(
-                identifier = identifier,
-                password = password,
-                remember = if (stayLoggedIn) "on" else null
-            )
+    suspend fun login(identifier: String, password: String, stayLoggedIn: Boolean): LoginResult = authenticationMutex.withLock {
+        foregroundJob?.cancelAndJoin()
+        runLoginApi {
+            val response = api.login(identifier, password, if (stayLoggedIn) "on" else null)
             when {
                 response.success -> {
-                    resetTransactionDescriptionTemplates()
-                    fetchUserPreferencesResponse()
-                    preloadTransactionDescriptionTemplatesAsync()
-                    preloadSourcesAsync()
-                    syncPendingTransactionsAsync()
+                    withContext(Dispatchers.IO) {
+                        synchronized(dataLock) {
+                            val owner = MessageDigest.getInstance("SHA-256")
+                                .digest("$backendIdentity\n${identifier.trim()}".toByteArray())
+                                .joinToString("") { "%02x".format(it) }
+                            offlineStore = rootStore?.forOwner(owner)
+                            rootStore?.saveCache(activeOwnerCacheKey, owner)
+                            rootStore?.saveCache(SESSION_INITIALIZED_KEY, "true")
+                            resetTransactionDescriptionTemplates()
+                            _syncState.value = SyncState(isPrepared = offlineStore?.loadCache(READY_KEY) == "true")
+                            _sessionVersion.update { it + 1 }
+                            notifyCacheChanged()
+                        }
+                    }
+                    setForeground(foreground)
+                    requestSync()
                     LoginResult.Success
                 }
-
                 !response.next.isNullOrBlank() -> LoginResult.NextStep(response.next)
                 else -> LoginResult.Error("Login failed.")
             }
         }
     }
 
-    suspend fun hasValidSession(): Boolean {
-        return fetchAccountsOverview().isSuccess
+    suspend fun restoreLocalSession(): Boolean = withContext(Dispatchers.IO) {
+        synchronized(dataLock) {
+            val savedOwner = rootStore?.loadCache(activeOwnerCacheKey)
+            if (savedOwner == null && rootStore?.loadCache(SESSION_INITIALIZED_KEY) == null &&
+                rootStore?.loadCache(ACCOUNTS_CACHE_KEY) != null) {
+                offlineStore = rootStore
+                _syncState.value = SyncState(needsLogin = true)
+                notifyCacheChanged()
+                return@synchronized true
+            }
+            val owner = savedOwner?.takeIf { it.isNotBlank() } ?: return@synchronized false
+            offlineStore = rootStore.forOwner(owner)
+            _syncState.value = SyncState(isPrepared = offlineStore?.loadCache(READY_KEY) == "true")
+            notifyCacheChanged()
+            true
+        }
     }
 
-    suspend fun logout() {
-        runCatching { api.logout() }
-        resetTransactionDescriptionTemplates()
+    suspend fun hasValidSession(): Boolean = readCachedAccountsOverview() != null
+
+    suspend fun logout() = authenticationMutex.withLock {
+        setForeground(false)
+        foregroundJob?.cancelAndJoin()
+        withContext(Dispatchers.IO) {
+            synchronized(dataLock) {
+                rootStore?.saveCache(activeOwnerCacheKey, "")
+                rootStore?.saveCache(SESSION_INITIALIZED_KEY, "true")
+                offlineStore = null
+                resetTransactionDescriptionTemplates()
+                _syncState.value = SyncState()
+                _sessionVersion.update { it + 1 }
+                notifyCacheChanged()
+            }
+        }
+        try {
+            withTimeoutOrNull(2_000L) {
+                runApi {
+                    api.logout()
+                    Result.success(Unit)
+                }
+            }
+        } finally {
+            clearSession()
+        }
+    }
+
+    fun setForeground(value: Boolean) {
+        foreground = value
+        if (!value) {
+            foregroundJob?.cancel()
+            return
+        }
+        if (!autoSyncPendingTransactions || foregroundJob?.isActive == true) {
+            return
+        }
+        foregroundJob = repositoryScope.launch {
+            var retryMillis = 15_000L
+            do {
+                while (syncRequests.tryReceive().isSuccess) { }
+                val result = synchronize()
+                val delayMillis = if (result.isSuccess) 60_000L else retryMillis
+                retryMillis = if (result.isSuccess) 15_000L else (retryMillis * 2).coerceAtMost(60_000L)
+                withTimeoutOrNull(delayMillis) { syncRequests.receive() }
+            } while (foreground)
+        }
+    }
+
+    fun requestSync() {
+        if (foreground && !_syncState.value.needsLogin) {
+            syncRequests.trySend(Unit)
+        }
+    }
+
+    fun refreshAsync() {
+        if (_syncState.value.needsLogin) {
+            return
+        }
+        repositoryScope.launch {
+            synchronize()
+        }
+    }
+
+    suspend fun readCachedAccountsOverview(): AccountsOverview? = withContext(Dispatchers.IO) {
+        synchronized(dataLock) {
+            loadCachedResponse(ACCOUNTS_CACHE_KEY, AccountsResponseDto::class.java)?.getOrNull()
+                ?.let { projectAccountsOverview(it.toAccountsOverview()) }
+        }
+    }
+
+    suspend fun readCachedAccountData(accountId: Long): CachedAccountData = withContext(Dispatchers.IO) {
+        synchronized(dataLock) {
+            loadCachedResponse(TRANSACTION_DESCRIPTIONS_CACHE_KEY, TransactionDescriptionsResponseDto::class.java)
+                ?.getOrNull()?.let { response ->
+                    _transactionDescriptionTemplates.update { mergeDescriptionTemplates(response.toTransactionDescriptionTemplates(), it) }
+                }
+            val pending = pendingTransactionsForSource(accountId)
+            val hasPage = offlineStore?.loadCache(transactionsCacheKey(accountId, 0, RECENT_LIMIT)) != null
+            CachedAccountData(
+                page = if (hasPage || pending.isNotEmpty()) localTransactionsPage(accountId, RECENT_LIMIT, pending) else null,
+                account = loadCachedAccount(accountId),
+                fromSources = loadCachedResponse(sourcesCacheKey(SOURCE_DIRECTION_FROM), SourcesResponseDto::class.java)
+                    ?.getOrNull()?.toSourceOptions().orEmpty(),
+                toSources = loadCachedResponse(sourcesCacheKey(SOURCE_DIRECTION_TO), SourcesResponseDto::class.java)
+                    ?.getOrNull()?.toSourceOptions().orEmpty(),
+                preferences = loadCachedUserDatePreferences()
+            )
+        }
+    }
+
+    suspend fun legacyPendingCount(): Int = withContext(Dispatchers.IO) {
+        synchronized(dataLock) {
+            val claimedOwner = rootStore?.loadCache(LEGACY_OWNER_KEY)
+            val owner = rootStore?.loadCache(activeOwnerCacheKey)
+            if (owner.isNullOrBlank() || offlineStore === rootStore ||
+                offlineStore?.loadCache(LEGACY_IMPORTED_KEY) == "true" ||
+                claimedOwner != null && claimedOwner != owner) 0
+            else rootStore.listPendingTransactions().size
+        }
+    }
+
+    suspend fun restoreLegacyTransactions(): Result<Unit> = withContext(Dispatchers.IO) {
+        syncMutex.withLock {
+            runCatching {
+                synchronized(dataLock) {
+                    val root = requireNotNull(rootStore)
+                    val store = requireNotNull(offlineStore)
+                    val owner = requireNotNull(root.loadCache(activeOwnerCacheKey)).also { require(it.isNotBlank()) }
+                    check(root.loadCache(LEGACY_OWNER_KEY).let { it == null || it == owner })
+                    if (store.loadCache(LEGACY_IMPORTED_KEY) == "true") return@synchronized
+                    val sources = listOf(SOURCE_DIRECTION_FROM, SOURCE_DIRECTION_TO).flatMap { direction ->
+                        loadCachedResponse(sourcesCacheKey(direction), SourcesResponseDto::class.java)
+                            ?.getOrNull()?.toSourceOptions().orEmpty()
+                    }.mapNotNull { it.id }.toSet()
+                    val pending = root.listPendingTransactions()
+                    check(pending.all { it.fromId in sources && it.toId in sources }) {
+                        "Download this account's categories first, and check that these transactions belong to this account."
+                    }
+                    root.saveCache(LEGACY_OWNER_KEY, owner)
+                    store.transaction {
+                        val existing = store.listPendingTransactions().mapTo(mutableSetOf()) { it.localUuid }
+                        val accountIds = root.loadCache(ACCOUNTS_CACHE_KEY)?.let {
+                            gson.fromJson(it, AccountsResponseDto::class.java).toAccountSummaries().map { account -> account.id }
+                        }.orEmpty()
+                        val keys = listOf(ACCOUNTS_CACHE_KEY, USER_PREFERENCES_CACHE_KEY, TRANSACTION_DESCRIPTIONS_CACHE_KEY,
+                            sourcesCacheKey(SOURCE_DIRECTION_FROM), sourcesCacheKey(SOURCE_DIRECTION_TO)) +
+                            accountIds.map { transactionsCacheKey(it, 0, RECENT_LIMIT) }
+                        for (key in keys) root.loadCache(key)?.let { store.saveCache(key, it) }
+                        for (transaction in pending) {
+                            if (transaction.localUuid !in existing) store.upsertPendingTransaction(transaction)
+                        }
+                        store.saveCache(LEGACY_IMPORTED_KEY, "true")
+                    }
+                    notifyCacheChanged()
+                    requestSync()
+                }
+            }
+        }
+    }
+
+    private fun notifyCacheChanged() {
+        _cacheVersion.update { it + 1 }
     }
 
     suspend fun fetchAccounts(): Result<List<AccountSummary>> {
@@ -145,26 +330,6 @@ class BuddiRepository(
             return Result.success(_transactionDescriptionTemplates.value)
         }
         return loadTransactionDescriptionTemplatesIntoStore()
-    }
-
-    fun preloadTransactionDescriptionTemplatesAsync() {
-        repositoryScope.launch {
-            loadTransactionDescriptionTemplatesIntoStore()
-        }
-    }
-
-    fun preloadSourcesAsync() {
-        repositoryScope.launch {
-            for (direction in listOf(SOURCE_DIRECTION_FROM, SOURCE_DIRECTION_TO)) {
-                fetchSourcesResponse(direction)
-            }
-        }
-    }
-
-    fun preloadUserDatePreferencesAsync() {
-        repositoryScope.launch {
-            fetchUserPreferencesResponse()
-        }
     }
 
     private suspend fun loadTransactionDescriptionTemplatesIntoStore(): Result<List<TransactionDescriptionTemplate>> {
@@ -264,31 +429,35 @@ class BuddiRepository(
         )
     }
 
-    suspend fun createTransaction(input: TransactionEditInput): Result<Unit> {
+    suspend fun createTransaction(input: TransactionEditInput): Result<Unit> = withContext(Dispatchers.IO) {
         val store = offlineStore
         if (store != null) {
             val now = System.currentTimeMillis()
-            store.upsertPendingTransaction(
-                PendingTransaction(
-                    localUuid = UUID.randomUUID().toString(),
-                    status = PendingTransactionStatus.PENDING,
-                    dateIso = input.dateIso,
-                    description = input.description,
-                    number = input.number,
-                    amount = input.amount,
-                    fromId = input.fromId,
-                    toId = input.toId,
-                    memo = input.memo,
-                    createdAt = now,
-                    modifiedAt = now,
-                    lastError = null,
-                    attemptCount = 0
-                )
-            )
-            addOrUpdateTransactionDescriptionTemplate(input)
-            return Result.success(Unit)
+            return@withContext runCatching {
+                synchronized(dataLock) {
+                    store.upsertPendingTransaction(
+                        PendingTransaction(
+                            localUuid = UUID.randomUUID().toString(),
+                            status = PendingTransactionStatus.PENDING,
+                            dateIso = input.dateIso,
+                            description = input.description,
+                            number = input.number,
+                            amount = input.amount,
+                            fromId = input.fromId,
+                            toId = input.toId,
+                            memo = input.memo,
+                            createdAt = now,
+                            modifiedAt = now,
+                            lastError = null,
+                            attemptCount = 0
+                        )
+                    )
+                    notifyCacheChanged()
+                    addOrUpdateTransactionDescriptionTemplate(input)
+                }
+            }
         }
-        return mutateTransaction(
+        return@withContext mutateTransaction(
             TransactionMutationRequestDto(
                 action = "insert",
                 date = input.dateIso,
@@ -308,11 +477,11 @@ class BuddiRepository(
         }
     }
 
-    suspend fun updateTransaction(transactionId: Long, input: TransactionEditInput): Result<Unit> {
-        val pendingTransaction = findPendingTransaction(transactionId)
-        if (pendingTransaction != null) {
-            offlineStore?.upsertPendingTransaction(
-                pendingTransaction.copy(
+    suspend fun updateTransaction(transactionId: Long, input: TransactionEditInput): Result<Unit> = withContext(Dispatchers.IO) {
+        val updated = runCatching {
+            synchronized(dataLock) {
+                val pending = findPendingTransaction(transactionId) ?: return@synchronized false
+                offlineStore?.upsertPendingTransaction(pending.copy(
                     status = PendingTransactionStatus.PENDING,
                     dateIso = input.dateIso,
                     description = input.description,
@@ -322,164 +491,257 @@ class BuddiRepository(
                     toId = input.toId,
                     memo = input.memo,
                     modifiedAt = System.currentTimeMillis(),
-                    lastError = null
-                )
-            )
-            addOrUpdateTransactionDescriptionTemplate(input)
-            syncPendingTransactionsAsync()
-            return Result.success(Unit)
+                    lastError = null,
+                    sync = pending.sync.copy(acknowledged = false)
+                ))
+                addOrUpdateTransactionDescriptionTemplate(input)
+                notifyCacheChanged()
+                true
+            }
+        }.getOrElse { return@withContext Result.failure(it) }
+        if (updated) {
+            requestSync()
+            return@withContext Result.success(Unit)
         }
-        return mutateTransaction(
-            TransactionMutationRequestDto(
-                action = "update",
-                id = transactionId,
-                date = input.dateIso,
-                description = input.description,
-                number = input.number,
-                splits = listOf(
-                    SplitMutationRequestDto(
-                        amount = input.amount,
-                        fromId = input.fromId,
-                        toId = input.toId,
-                        memo = input.memo
-                    )
-                )
-            )
-        ).onSuccess {
-            addOrUpdateTransactionDescriptionTemplate(input)
-        }
+        val serverId = resolveTransactionId(transactionId)
+            ?: return@withContext Result.failure(IllegalStateException("This transaction is no longer available. Refresh and reopen it."))
+        mutateTransaction(TransactionMutationRequestDto(
+            action = "update", id = serverId, date = input.dateIso,
+            description = input.description, number = input.number,
+            splits = listOf(SplitMutationRequestDto(input.amount, input.fromId, input.toId, input.memo))
+        )).onSuccess { addOrUpdateTransactionDescriptionTemplate(input) }
     }
 
-    suspend fun deleteTransaction(transactionId: Long): Result<Unit> {
-        val pendingTransaction = findPendingTransaction(transactionId)
-        if (pendingTransaction != null) {
-            offlineStore?.deletePendingTransaction(pendingTransaction.localUuid)
-            syncPendingTransactionsAsync()
-            return Result.success(Unit)
+    suspend fun deleteTransaction(transactionId: Long): Result<Unit> = withContext(Dispatchers.IO) {
+        val deleted = runCatching {
+            synchronized(dataLock) {
+                val pending = findPendingTransaction(transactionId) ?: return@synchronized false
+                if (pending.sync.submitted == null && pending.sync.serverId == null) {
+                    offlineStore?.deletePendingTransaction(pending.localUuid)
+                } else {
+                    offlineStore?.upsertPendingTransaction(pending.copy(
+                        status = PendingTransactionStatus.PENDING,
+                        sync = pending.sync.copy(deleted = true, acknowledged = false)
+                    ))
+                }
+                notifyCacheChanged()
+                true
+            }
+        }.getOrElse { return@withContext Result.failure(it) }
+        if (deleted) {
+            requestSync()
+            return@withContext Result.success(Unit)
         }
-        return mutateTransaction(
-            TransactionMutationRequestDto(
-                action = "delete",
-                id = transactionId
-            )
-        )
+        val serverId = resolveTransactionId(transactionId)
+            ?: return@withContext Result.failure(IllegalStateException("This transaction is no longer available. Refresh and reopen it."))
+        mutateTransaction(TransactionMutationRequestDto(action = "delete", id = serverId))
+    }
+
+    private fun resolveTransactionId(transactionId: Long): Long? = synchronized(dataLock) {
+        if (transactionId >= 0) transactionId else offlineStore?.loadCache(transactionIdCacheKey(transactionId))?.toLongOrNull()
     }
 
     private suspend fun mutateTransaction(request: TransactionMutationRequestDto): Result<Unit> {
-        return runApi {
-            val response = api.mutateTransaction(request)
-            if (!response.success) {
-                return@runApi Result.failure(IllegalStateException("Transaction mutation failed."))
-            }
-            Result.success(Unit)
-        }
-    }
-
-    fun syncPendingTransactionsAsync() {
-        if (offlineStore == null || !autoSyncPendingTransactions) {
-            return
-        }
-        repositoryScope.launch {
-            syncPendingTransactions()
-        }
-    }
-
-    suspend fun syncPendingTransactions(): Result<Int> {
-        val store = offlineStore ?: return Result.success(0)
         return syncMutex.withLock {
-            var syncedCount = 0
-            for (pendingTransaction in store.listPendingTransactions()) {
-                if (pendingTransaction.status == PendingTransactionStatus.FAILED) {
-                    continue
+            runApi {
+                val response = api.mutateTransaction(request)
+                if (!response.success) {
+                    return@runApi Result.failure(IllegalStateException("Transaction mutation failed."))
                 }
-                val syncingTransaction = pendingTransaction.copy(
-                    status = PendingTransactionStatus.SYNCING,
-                    attemptCount = pendingTransaction.attemptCount + 1,
-                    modifiedAt = System.currentTimeMillis()
-                )
-                store.upsertPendingTransaction(syncingTransaction)
-                try {
-                    val response = api.mutateTransaction(syncingTransaction.toMutationRequest())
-                    if (response.success) {
-                        store.deletePendingTransaction(syncingTransaction.localUuid)
-                        syncedCount++
-                    }
-                    else {
-                        store.upsertPendingTransaction(syncingTransaction.failed("Transaction mutation failed."))
-                    }
-                } catch (exception: HttpException) {
-                    if (exception.code() == 401 || exception.code() == 403) {
-                        store.upsertPendingTransaction(syncingTransaction.pending(exception.message()))
-                        return@withLock Result.failure(UnauthorizedException())
-                    }
-                    if (exception.code() in 400..499) {
-                        store.upsertPendingTransaction(syncingTransaction.failed("Transaction rejected: HTTP ${exception.code()}."))
-                        continue
-                    }
-                    store.upsertPendingTransaction(syncingTransaction.pending(exception.message()))
-                    return@withLock Result.failure(exception)
-                } catch (exception: IOException) {
-                    store.upsertPendingTransaction(syncingTransaction.pending(exception.message))
-                    return@withLock Result.failure(exception)
-                } catch (exception: Exception) {
-                    store.upsertPendingTransaction(syncingTransaction.failed(exception.message ?: "Transaction sync failed."))
-                }
+                requestSync()
+                Result.success(Unit)
             }
-            if (syncedCount > 0) {
-                refreshAccountsCacheAfterSync()
-                _pendingTransactionsSynced.tryEmit(Unit)
-            }
-            Result.success(syncedCount)
         }
     }
 
-    private suspend fun fetchAccountsResponse(): Result<AccountsResponseDto> {
+    fun syncPendingTransactionsAsync() = requestSync()
+
+    suspend fun syncPendingTransactions(): Result<Int> = synchronize()
+
+    suspend fun synchronize(): Result<Int> = withContext(Dispatchers.IO) {
+        syncMutex.withLock {
+            if (_syncState.value.needsLogin || offlineStore == null) {
+                return@withLock Result.failure(UnauthorizedException())
+            }
+            _syncState.update { it.copy(isSyncing = true, error = null) }
+            var uploaded = 0
+            try {
+                val uploadResult = uploadPendingTransactions()
+                uploaded = uploadResult.getOrDefault(0)
+                // A timed-out insert may already exist remotely. Keep the old balance baseline until its UUID is acknowledged.
+                uploadResult.getOrThrow()
+                fetchUserPreferencesResponse(forceNetwork = true).getOrThrow()
+                val accounts = fetchAccountsResponse(forceNetwork = true).getOrThrow().toAccountSummaries()
+                fetchSourcesResponse(SOURCE_DIRECTION_FROM, forceNetwork = true).getOrThrow()
+                fetchSourcesResponse(SOURCE_DIRECTION_TO, forceNetwork = true).getOrThrow()
+                for (account in accounts) {
+                    fetchTransactionsResponse(account.id, 0, RECENT_LIMIT, forceNetwork = true).getOrThrow()
+                }
+                val descriptions = fetchTransactionDescriptionResponse(forceNetwork = true).getOrThrow()
+                _transactionDescriptionTemplates.update { mergeDescriptionTemplates(descriptions.toTransactionDescriptionTemplates(), it) }
+                descriptionsLoaded = true
+                synchronized(dataLock) {
+                    offlineStore?.transaction {
+                        for (pending in offlineStore?.listPendingTransactions().orEmpty()) {
+                            if (pending.sync.acknowledged) {
+                                pending.sync.serverId?.let { serverId ->
+                                    offlineStore?.saveCache(transactionIdCacheKey(pending.id), serverId.toString())
+                                }
+                                offlineStore?.deletePendingTransaction(pending.localUuid)
+                            }
+                        }
+                        offlineStore?.saveCache(READY_KEY, "true")
+                    }
+                    notifyCacheChanged()
+                }
+                if (uploaded > 0) _pendingTransactionsSynced.tryEmit(Unit)
+                _syncState.update { it.copy(isPrepared = true, error = null) }
+                Result.success(uploaded)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _syncState.update { it.copy(
+                    needsLogin = exception is UnauthorizedException,
+                    error = if (exception is UnauthorizedException) "Sign in to sync" else "Unable to sync. Changes are saved on this device."
+                ) }
+                if (uploaded > 0) _pendingTransactionsSynced.tryEmit(Unit)
+                Result.failure(exception)
+            } finally {
+                _syncState.update { it.copy(isSyncing = false) }
+            }
+        }
+    }
+
+    private suspend fun uploadPendingTransactions(): Result<Int> {
+        val store = offlineStore ?: return Result.success(0)
+        var syncedCount = 0
+        val uuids = synchronized(dataLock) { store.listPendingTransactions().map { it.localUuid } }
+        for (uuid in uuids) {
+            val sending = synchronized(dataLock) {
+                val current = store.listPendingTransactions().firstOrNull { it.localUuid == uuid }
+                    ?: return@synchronized null
+                if (current.status == PendingTransactionStatus.FAILED || current.sync.acknowledged) {
+                    return@synchronized null
+                }
+                current.copy(
+                    status = PendingTransactionStatus.SYNCING,
+                    attemptCount = current.attemptCount + 1,
+                    sync = current.sync.copy(submitted = current.sync.submitted ?: current.toEditInput())
+                ).also {
+                    store.upsertPendingTransaction(it)
+                    notifyCacheChanged()
+                }
+            } ?: continue
+            // Replay the exact submitted insert after a lost response before sending subsequent edits.
+            val deleting = sending.sync.deleted && sending.sync.serverId != null
+            val request = if (deleting) {
+                TransactionMutationRequestDto(action = "delete", id = sending.sync.serverId)
+            } else {
+                val input = requireNotNull(sending.sync.submitted)
+                TransactionMutationRequestDto(
+                    action = if (sending.sync.serverId == null) "insert" else "update",
+                    id = sending.sync.serverId, uuid = sending.localUuid,
+                    date = input.dateIso, description = input.description, number = input.number,
+                    splits = listOf(SplitMutationRequestDto(input.amount, input.fromId, input.toId, input.memo))
+                )
+            }
+            val result = runApi {
+                val response = api.mutateTransaction(request)
+                if (!response.success) Result.failure(IllegalArgumentException("Transaction rejected."))
+                else Result.success(response)
+            }
+            synchronized(dataLock) {
+                val current = store.listPendingTransactions().first { it.localUuid == uuid }
+                result.fold(onSuccess = { response ->
+                    val serverInput = if (deleting) null else sending.sync.submitted
+                    val serverId = response.id ?: sending.sync.serverId
+                    if (!deleting && serverId == null) {
+                        throw IllegalStateException("Transaction response did not include its ID.")
+                    }
+                    val acknowledged = if (deleting) current.sync.deleted
+                        else !current.sync.deleted && current.toEditInput() == serverInput
+                    store.upsertPendingTransaction(current.copy(
+                        status = PendingTransactionStatus.PENDING, lastError = null,
+                        sync = current.sync.copy(
+                            serverId = serverId, serverInput = serverInput, submitted = null,
+                            acknowledged = acknowledged
+                        )
+                    ))
+                    if (!acknowledged) requestSync()
+                    syncedCount++
+                }, onFailure = { error ->
+                    val rejected = error is IllegalArgumentException || error is HttpException && error.code() in 400..499
+                    store.upsertPendingTransaction(current.copy(
+                        status = if (rejected) PendingTransactionStatus.FAILED else PendingTransactionStatus.PENDING,
+                        lastError = error.message,
+                        sync = if (rejected) current.sync.copy(submitted = null) else current.sync
+                    ))
+                })
+                notifyCacheChanged()
+            }
+            val error = result.exceptionOrNull()
+            if (error != null && !(error is IllegalArgumentException || error is HttpException && error.code() in 400..499)) {
+                return Result.failure(error)
+            }
+        }
+        return Result.success(syncedCount)
+    }
+
+    private fun PendingTransaction.toEditInput(): TransactionEditInput =
+        TransactionEditInput(dateIso, description, number, amount, fromId, toId, memo)
+
+    private suspend fun fetchAccountsResponse(forceNetwork: Boolean = false): Result<AccountsResponseDto> {
         return fetchCachedResponse(
             cacheKey = ACCOUNTS_CACHE_KEY,
             responseClass = AccountsResponseDto::class.java,
             failureMessage = "Accounts request failed.",
             request = { api.getAccounts() },
-            isSuccess = { response -> response.success }
+            isSuccess = { response -> response.success },
+            forceNetwork = forceNetwork
         )
     }
 
-    private suspend fun fetchTransactionsResponse(sourceId: Long, start: Int, limit: Int): Result<TransactionsResponseDto> {
+    private suspend fun fetchTransactionsResponse(sourceId: Long, start: Int, limit: Int, forceNetwork: Boolean = false): Result<TransactionsResponseDto> {
         return fetchCachedResponse(
             cacheKey = transactionsCacheKey(sourceId, start, limit),
             responseClass = TransactionsResponseDto::class.java,
             failureMessage = "Transactions request failed.",
             request = { api.getTransactions(sourceId = sourceId, start = start, limit = limit) },
-            isSuccess = { response -> response.success }
+            isSuccess = { response -> response.success },
+            forceNetwork = forceNetwork
         )
     }
 
-    private suspend fun fetchSourcesResponse(direction: String): Result<SourcesResponseDto> {
+    private suspend fun fetchSourcesResponse(direction: String, forceNetwork: Boolean = false): Result<SourcesResponseDto> {
         return fetchCachedResponse(
             cacheKey = sourcesCacheKey(direction),
             responseClass = SourcesResponseDto::class.java,
             failureMessage = "Sources request failed.",
             request = { api.getSources(direction) },
-            isSuccess = { response -> response.success }
+            isSuccess = { response -> response.success },
+            forceNetwork = forceNetwork
         )
     }
 
-    private suspend fun fetchUserPreferencesResponse(): Result<UserPreferencesResponseDto> {
+    private suspend fun fetchUserPreferencesResponse(forceNetwork: Boolean = false): Result<UserPreferencesResponseDto> {
         return fetchCachedResponse(
             cacheKey = USER_PREFERENCES_CACHE_KEY,
             responseClass = UserPreferencesResponseDto::class.java,
             failureMessage = "User preferences request failed.",
             request = { api.getUserPreferences() },
-            isSuccess = { response -> response.success }
+            isSuccess = { response -> response.success },
+            forceNetwork = forceNetwork
         )
     }
 
-    private suspend fun fetchTransactionDescriptionResponse(): Result<TransactionDescriptionsResponseDto> {
+    private suspend fun fetchTransactionDescriptionResponse(forceNetwork: Boolean = false): Result<TransactionDescriptionsResponseDto> {
         return fetchCachedResponse(
             cacheKey = TRANSACTION_DESCRIPTIONS_CACHE_KEY,
             responseClass = TransactionDescriptionsResponseDto::class.java,
             failureMessage = "Transaction descriptions request failed.",
             request = { descriptionsApi.getTransactionDescriptions() },
-            isSuccess = { response -> response.success }
+            isSuccess = { response -> response.success },
+            forceNetwork = forceNetwork
         )
     }
 
@@ -488,27 +750,51 @@ class BuddiRepository(
         responseClass: Class<T>,
         failureMessage: String,
         request: suspend () -> T,
-        isSuccess: (T) -> Boolean
-    ): Result<T> {
-        return try {
+        isSuccess: (T) -> Boolean,
+        forceNetwork: Boolean = false
+    ): Result<T> = withContext(Dispatchers.IO) {
+        val store = offlineStore
+        if (!forceNetwork) {
+            val cached = synchronized(dataLock) { loadCachedResponse(cacheKey, responseClass) }
+            if (cached?.isSuccess == true) return@withContext cached
+        }
+        try {
             val response = request()
             if (!isSuccess(response)) {
                 Result.failure(IllegalStateException(failureMessage))
             }
             else {
-                offlineStore?.saveCache(cacheKey, gson.toJson(response))
+                synchronized(dataLock) {
+                    if (store !== offlineStore) throw CancellationException("Account changed")
+                    store?.transaction {
+                        val json = gson.toJson(response)
+                        if (cacheKey.startsWith("transactions:") && cacheKey.endsWith(":0:$RECENT_LIMIT") &&
+                            store.loadCache(cacheKey) != json) {
+                            store.deleteCachePrefix(cacheKey.substringBeforeLast(':').substringBeforeLast(':') + ":")
+                        }
+                        store.saveCache(cacheKey, json)
+                        if (cacheKey == ACCOUNTS_CACHE_KEY && forceNetwork) {
+                            for (pending in store.listPendingTransactions()) {
+                                store.upsertPendingTransaction(pending.copy(sync = pending.sync.copy(balanceInput = pending.sync.serverInput)))
+                            }
+                        }
+                    }
+                    notifyCacheChanged()
+                }
                 Result.success(response)
             }
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: HttpException) {
             if (exception.code() == 401 || exception.code() == 403) {
+                _syncState.update { it.copy(needsLogin = true, error = "Sign in to sync") }
                 Result.failure(UnauthorizedException())
             }
             else {
                 Result.failure(exception)
             }
         } catch (exception: IOException) {
-            loadCachedResponse(cacheKey, responseClass)
-                ?: Result.failure(OfflineUnavailableException())
+            Result.failure(exception)
         } catch (exception: Exception) {
             Result.failure(exception)
         }
@@ -521,20 +807,11 @@ class BuddiRepository(
         }
     }
 
-    private suspend fun refreshAccountsCacheAfterSync() {
-        runCatching {
-            val response = api.getAccounts()
-            if (response.success) {
-                offlineStore?.saveCache(ACCOUNTS_CACHE_KEY, gson.toJson(response))
-            }
-        }
-    }
-
     private fun pendingTransactionsForSource(sourceId: Long): List<PendingTransaction> {
         return offlineStore
             ?.listPendingTransactions()
             ?.filter { pendingTransaction ->
-                pendingTransaction.fromId.toLong() == sourceId || pendingTransaction.toId.toLong() == sourceId
+                !pendingTransaction.sync.deleted && (pendingTransaction.fromId.toLong() == sourceId || pendingTransaction.toId.toLong() == sourceId)
             }
             .orEmpty()
     }
@@ -555,13 +832,15 @@ class BuddiRepository(
         val cachedPage = loadCachedResponse(transactionsCacheKey(sourceId, 0, limit), TransactionsResponseDto::class.java)
             ?.getOrNull()
             ?.toTransactionsPage()
-        val mergedItems = (pendingItems + cachedPage?.items.orEmpty())
+        val allPending = offlineStore?.listPendingTransactions().orEmpty()
+        val hiddenUuids = allPending.mapTo(mutableSetOf()) { it.localUuid }
+        val cachedItems = cachedPage?.items.orEmpty().filter { it.uuid !in hiddenUuids }
+        val mergedItems = (pendingItems + cachedItems)
             .distinctBy { transaction -> transaction.id }
             .sortedByDescending { transaction -> transaction.dateIso }
-            .take(limit)
         return TransactionsPage(
             items = mergedItems,
-            total = cachedPage?.total?.plus(pendingItems.size) ?: pendingItems.size
+            total = (cachedPage?.total ?: 0) + pendingItems.size - cachedPage?.items.orEmpty().count { it.uuid in hiddenUuids }
         )
     }
 
@@ -624,16 +903,14 @@ class BuddiRepository(
         preferences: UserDatePreferences
     ): AccountSummary {
         val balanceNumber = account.balanceNumber ?: return account
-        val delta = pendingTransactions.fold(BigDecimal.ZERO) { total, pendingTransaction ->
-            val amount = pendingTransaction.amount.toBigDecimalOrNull() ?: return@fold total
-            var updatedTotal = total
-            if (pendingTransaction.fromId.toLong() == account.id) {
-                updatedTotal -= amount
-            }
-            if (pendingTransaction.toId.toLong() == account.id) {
-                updatedTotal += amount
-            }
-            updatedTotal
+        fun contribution(input: TransactionEditInput?): BigDecimal {
+            if (input == null) return BigDecimal.ZERO
+            val amount = input.amount.toBigDecimalOrNull() ?: return BigDecimal.ZERO
+            return (if (input.toId.toLong() == account.id) amount else BigDecimal.ZERO) -
+                (if (input.fromId.toLong() == account.id) amount else BigDecimal.ZERO)
+        }
+        val delta = pendingTransactions.fold(BigDecimal.ZERO) { total, pending ->
+            total + contribution(if (pending.sync.deleted) null else pending.toEditInput()) - contribution(pending.sync.balanceInput)
         }
         if (delta.compareTo(BigDecimal.ZERO) == 0) {
             return account
@@ -669,40 +946,6 @@ class BuddiRepository(
         )
     }
 
-    private fun PendingTransaction.toMutationRequest(): TransactionMutationRequestDto {
-        return TransactionMutationRequestDto(
-            action = "insert",
-            uuid = localUuid,
-            date = dateIso,
-            description = description,
-            number = number,
-            splits = listOf(
-                SplitMutationRequestDto(
-                    amount = amount,
-                    fromId = fromId,
-                    toId = toId,
-                    memo = memo
-                )
-            )
-        )
-    }
-
-    private fun PendingTransaction.pending(lastError: String?): PendingTransaction {
-        return copy(
-            status = PendingTransactionStatus.PENDING,
-            modifiedAt = System.currentTimeMillis(),
-            lastError = lastError
-        )
-    }
-
-    private fun PendingTransaction.failed(lastError: String): PendingTransaction {
-        return copy(
-            status = PendingTransactionStatus.FAILED,
-            modifiedAt = System.currentTimeMillis(),
-            lastError = lastError
-        )
-    }
-
     private val PendingTransaction.id: Long
         get() = pendingTransactionId(localUuid)
 
@@ -730,8 +973,11 @@ class BuddiRepository(
     private suspend fun <T> runApi(block: suspend () -> Result<T>): Result<T> {
         return try {
             block()
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: HttpException) {
             if (exception.code() == 401 || exception.code() == 403) {
+                _syncState.update { it.copy(needsLogin = true, error = "Sign in to sync") }
                 Result.failure(UnauthorizedException())
             } else {
                 Result.failure(exception)
@@ -746,6 +992,8 @@ class BuddiRepository(
     private suspend fun runLoginApi(block: suspend () -> LoginResult): LoginResult {
         return try {
             block()
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: HttpException) {
             if (exception.code() == 401 || exception.code() == 403) {
                 LoginResult.Error("Authentication is required.")
@@ -763,6 +1011,8 @@ class BuddiRepository(
 private fun transactionsCacheKey(sourceId: Long, start: Int, limit: Int): String {
     return "transactions:$sourceId:$start:$limit"
 }
+
+private fun transactionIdCacheKey(localId: Long): String = "transaction-id:$localId"
 
 private fun sourcesCacheKey(direction: String): String {
     return "sources:$direction"
@@ -786,3 +1036,10 @@ private const val USER_PREFERENCES_CACHE_KEY = "user-preferences"
 private const val TRANSACTION_DESCRIPTIONS_CACHE_KEY = "transaction-descriptions"
 private const val SOURCE_DIRECTION_FROM = "from"
 private const val SOURCE_DIRECTION_TO = "to"
+
+private const val RECENT_LIMIT = 100
+private const val SESSION_INITIALIZED_KEY = "session-initialized"
+private const val READY_KEY = "offline-ready"
+
+private const val LEGACY_OWNER_KEY = "legacy-owner"
+private const val LEGACY_IMPORTED_KEY = "legacy-imported"

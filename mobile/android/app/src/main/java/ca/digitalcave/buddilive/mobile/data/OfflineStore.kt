@@ -5,21 +5,47 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.google.gson.Gson
 
 interface OfflineStore {
 	fun saveCache(key: String, value: String)
 	fun loadCache(key: String): String?
+	fun deleteCachePrefix(prefix: String)
 	fun upsertPendingTransaction(pendingTransaction: PendingTransaction)
 	fun listPendingTransactions(): List<PendingTransaction>
 	fun deletePendingTransaction(localUuid: String)
+
+	fun forOwner(owner: String): OfflineStore = this
+
+	fun <T> transaction(block: () -> T): T = block()
 }
 
-class AndroidOfflineStore(context: Context) : SQLiteOpenHelper(
+class AndroidOfflineStore(private val context: Context, databaseName: String = DATABASE_NAME) : SQLiteOpenHelper(
 	context,
-	DATABASE_NAME,
+	databaseName,
 	null,
 	DATABASE_VERSION
 ), OfflineStore {
+
+	private val gson = Gson()
+
+	override fun forOwner(owner: String): OfflineStore {
+		require(owner.matches(Regex("[a-f0-9]{64}")))
+		return AndroidOfflineStore(context, "buddilive_$owner.db")
+	}
+
+	override fun <T> transaction(block: () -> T): T {
+		val db = writableDatabase
+		db.beginTransaction()
+		return try {
+			val result = block()
+			db.setTransactionSuccessful()
+			result
+		}
+		finally {
+			db.endTransaction()
+		}
+	}
 
 	override fun onCreate(db: SQLiteDatabase) {
 		db.execSQL(
@@ -46,16 +72,17 @@ class AndroidOfflineStore(context: Context) : SQLiteOpenHelper(
 				created_at integer not null,
 				modified_at integer not null,
 				last_error text,
-				attempt_count integer not null
+				attempt_count integer not null,
+				sync_state text
 			)
 			""".trimIndent()
 		)
 	}
 
 	override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-		db.execSQL("drop table if exists pending_transactions")
-		db.execSQL("drop table if exists offline_cache")
-		onCreate(db)
+		if (oldVersion < 2) {
+			db.execSQL("alter table pending_transactions add column sync_state text")
+		}
 	}
 
 	override fun saveCache(key: String, value: String) {
@@ -64,7 +91,9 @@ class AndroidOfflineStore(context: Context) : SQLiteOpenHelper(
 			put(CACHE_VALUE, value)
 			put(UPDATED_AT, System.currentTimeMillis())
 		}
-		writableDatabase.insertWithOnConflict(OFFLINE_CACHE_TABLE, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+		check(writableDatabase.insertWithOnConflict(OFFLINE_CACHE_TABLE, null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1L) {
+			"Unable to save offline data."
+		}
 	}
 
 	override fun loadCache(key: String): String? {
@@ -79,6 +108,10 @@ class AndroidOfflineStore(context: Context) : SQLiteOpenHelper(
 		).use { cursor ->
 			if (cursor.moveToFirst()) cursor.getString(0) else null
 		}
+	}
+
+	override fun deleteCachePrefix(prefix: String) {
+		writableDatabase.delete(OFFLINE_CACHE_TABLE, "$CACHE_KEY like ?", arrayOf("$prefix%"))
 	}
 
 	override fun upsertPendingTransaction(pendingTransaction: PendingTransaction) {
@@ -96,8 +129,11 @@ class AndroidOfflineStore(context: Context) : SQLiteOpenHelper(
 			put(MODIFIED_AT, pendingTransaction.modifiedAt)
 			put(LAST_ERROR, pendingTransaction.lastError)
 			put(ATTEMPT_COUNT, pendingTransaction.attemptCount)
+			put(SYNC_STATE, gson.toJson(pendingTransaction.sync))
 		}
-		writableDatabase.insertWithOnConflict(PENDING_TRANSACTIONS_TABLE, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+		check(writableDatabase.insertWithOnConflict(PENDING_TRANSACTIONS_TABLE, null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1L) {
+			"Unable to save this transaction on the device."
+		}
 	}
 
 	override fun listPendingTransactions(): List<PendingTransaction> {
@@ -139,7 +175,9 @@ class AndroidOfflineStore(context: Context) : SQLiteOpenHelper(
 			createdAt = getLong(getColumnIndexOrThrow(CREATED_AT)),
 			modifiedAt = getLong(getColumnIndexOrThrow(MODIFIED_AT)),
 			lastError = getStringOrNull(getColumnIndexOrThrow(LAST_ERROR)),
-			attemptCount = getInt(getColumnIndexOrThrow(ATTEMPT_COUNT))
+			attemptCount = getInt(getColumnIndexOrThrow(ATTEMPT_COUNT)),
+			sync = getStringOrNull(getColumnIndexOrThrow(SYNC_STATE))
+				?.let { gson.fromJson(it, PendingSyncState::class.java) } ?: PendingSyncState()
 		)
 	}
 
@@ -149,7 +187,7 @@ class AndroidOfflineStore(context: Context) : SQLiteOpenHelper(
 
 	private companion object {
 		const val DATABASE_NAME = "buddilive_offline.db"
-		const val DATABASE_VERSION = 1
+		const val DATABASE_VERSION = 2
 		const val OFFLINE_CACHE_TABLE = "offline_cache"
 		const val PENDING_TRANSACTIONS_TABLE = "pending_transactions"
 		const val CACHE_KEY = "cache_key"
@@ -168,5 +206,6 @@ class AndroidOfflineStore(context: Context) : SQLiteOpenHelper(
 		const val MODIFIED_AT = "modified_at"
 		const val LAST_ERROR = "last_error"
 		const val ATTEMPT_COUNT = "attempt_count"
+		const val SYNC_STATE = "sync_state"
 	}
 }

@@ -30,6 +30,10 @@ class PersistentCookieJar(context: Context) : CookieJar {
 		}
 	}
 
+	fun clear() {
+		synchronized(this) { sharedPreferences.edit().clear().commit() }
+	}
+
 	private fun loadAllCookies(url: HttpUrl): List<Cookie> {
 		val persisted = sharedPreferences.getStringSet(KEY_COOKIES, emptySet()) ?: emptySet()
 		return persisted.mapNotNull { Cookie.parse(url, it) }

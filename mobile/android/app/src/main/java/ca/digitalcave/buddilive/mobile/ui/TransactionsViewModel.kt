@@ -9,13 +9,14 @@ import ca.digitalcave.buddilive.mobile.data.TransactionDescriptionTemplate
 import ca.digitalcave.buddilive.mobile.data.TransactionEditInput
 import ca.digitalcave.buddilive.mobile.data.TransactionSummary
 import ca.digitalcave.buddilive.mobile.data.UnauthorizedException
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
@@ -51,6 +52,9 @@ class TransactionsViewModel(
 	private val _state = MutableStateFlow(TransactionsUiState())
 	val state: StateFlow<TransactionsUiState> = _state.asStateFlow()
 
+	private var extraTransactions = emptyList<TransactionSummary>()
+	private var cachedFirstPage: List<TransactionSummary>? = null
+
 	init {
 		viewModelScope.launch {
 			repository.transactionDescriptionTemplates.collect { templates ->
@@ -58,260 +62,99 @@ class TransactionsViewModel(
 			}
 		}
 		viewModelScope.launch {
-			repository.pendingTransactionsSynced.collect {
-				refresh()
-			}
+			repository.cacheVersion.collect { showLocalData() }
 		}
 	}
 
 	fun loadInitial() {
-		loadTransactions(start = 0, append = false)
-		loadSources()
-		loadDatePreferences()
-		loadAccountBalance()
+		viewModelScope.launch { showLocalData() }
 	}
 
 	fun refresh() {
-		loadTransactions(start = 0, append = false)
-		loadAccountBalance()
+		repository.refreshAsync()
 	}
 
 	fun loadMore() {
 		val current = _state.value
-		if (current.isLoading || current.transactions.size >= current.total) {
-			return
+		if (current.isLoading || current.transactions.size >= current.total) return
+		viewModelScope.launch {
+			_state.update { it.copy(isLoading = true, error = null) }
+			val result = withContext(Dispatchers.IO) {
+				repository.fetchTransactions(accountId, current.transactions.size, 100)
+			}
+			result.fold(onSuccess = { page ->
+				extraTransactions = (extraTransactions + page.items).distinctBy { it.id }
+				showLocalData()
+			}, onFailure = { error ->
+				_state.update { it.copy(error = if (error is UnauthorizedException) "Sign in to load older transactions." else "Older transactions are unavailable offline.") }
+			})
+			_state.update { it.copy(isLoading = false) }
 		}
-		loadTransactions(start = current.transactions.size, append = true)
 	}
 
 	fun createTransaction(input: TransactionEditInput, onDone: (Boolean) -> Unit) {
-		viewModelScope.launch {
-			_state.update { it.copy(isMutating = true, error = null) }
-			val result = repository.createTransaction(input)
-			result.fold(
-				onSuccess = {
-					showPendingTransactionsAfterCreate()
-					showCachedAccountBalance()
-					onDone(true)
-					repository.syncPendingTransactionsAsync()
-				},
-				onFailure = { error ->
-					handleMutationFailure(error, onDone)
-				}
-			)
-		}
+		mutate(onDone, scrollToTop = true) { repository.createTransaction(input) }
 	}
 
 	fun updateTransaction(transactionId: Long, input: TransactionEditInput, onDone: (Boolean) -> Unit) {
-		viewModelScope.launch {
-			_state.update { it.copy(isMutating = true, error = null) }
-			val result = repository.updateTransaction(transactionId, input)
-			handleMutationResult(result, onDone)
-		}
+		mutate(onDone) { repository.updateTransaction(transactionId, input) }
 	}
 
 	fun deleteTransaction(transactionId: Long, onDone: (Boolean) -> Unit) {
+		mutate(onDone) { repository.deleteTransaction(transactionId) }
+	}
+
+	private fun mutate(onDone: (Boolean) -> Unit, scrollToTop: Boolean = false, operation: suspend () -> Result<Unit>) {
 		viewModelScope.launch {
 			_state.update { it.copy(isMutating = true, error = null) }
-			val result = repository.deleteTransaction(transactionId)
-			handleMutationResult(result, onDone)
-		}
-	}
-
-	private fun handleMutationResult(
-		result: Result<Unit>,
-		onDone: (Boolean) -> Unit
-	) {
-		result.fold(
-			onSuccess = {
-				_state.update { it.copy(isMutating = false, error = null) }
-				refresh()
+			val result = operation()
+			if (result.isSuccess) {
+				showLocalData()
+				_state.update { it.copy(
+					isMutating = false,
+					scrollToTopRequestKey = it.scrollToTopRequestKey + if (scrollToTop) 1 else 0
+				) }
 				onDone(true)
-			},
-			onFailure = { error ->
-				handleMutationFailure(error, onDone)
+				repository.requestSync()
+			} else {
+				val error = result.exceptionOrNull()
+				_state.update { it.copy(
+					isMutating = false,
+					error = if (error is UnauthorizedException) "Sign in to change synced transactions." else error?.message ?: "Operation failed."
+				) }
+				onDone(false)
 			}
-		)
-	}
-
-	private fun handleMutationFailure(error: Throwable, onDone: (Boolean) -> Unit) {
-		val needsLogin = error is UnauthorizedException
-		_state.update {
-			it.copy(
-				isMutating = false,
-				error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Operation failed.",
-				needsLogin = needsLogin
-			)
-		}
-		onDone(false)
-	}
-
-	private fun showPendingTransactionsAfterCreate() {
-		val pendingTransactions = repository.fetchPendingTransactions(accountId)
-		_state.update { current ->
-			val currentTransactionIds = current.transactions.mapTo(mutableSetOf()) { transaction -> transaction.id }
-			val newPendingCount = pendingTransactions.count { transaction -> !currentTransactionIds.contains(transaction.id) }
-			current.copy(
-				isMutating = false,
-				transactions = (pendingTransactions + current.transactions)
-					.distinctBy { transaction -> transaction.id }
-					.sortedByDescending { transaction -> transaction.dateIso },
-				total = current.total + newPendingCount,
-				error = null,
-				needsLogin = false,
-				scrollToTopRequestKey = if (pendingTransactions.isEmpty()) {
-					current.scrollToTopRequestKey
-				}
-				else {
-					current.scrollToTopRequestKey + 1
-				}
-			)
 		}
 	}
 
-	private fun showCachedAccountBalance() {
-		val account = repository.loadCachedAccount(accountId) ?: return
-		_state.update {
-			it.copy(
-				accountBalance = account.balance,
-				accountBalanceHasPending = account.hasPending
-			)
+	private suspend fun showLocalData() {
+		val data = repository.readCachedAccountData(accountId)
+		val page = data.page
+		if (cachedFirstPage != page?.items) {
+			extraTransactions = emptyList()
+			cachedFirstPage = page?.items
 		}
+		val preferences = data.preferences
+		_state.update { current -> current.copy(
+			transactions = (page?.items.orEmpty() + extraTransactions).distinctBy { it.uuid ?: it.id.toString() },
+			total = page?.total ?: 0,
+			fromSources = data.fromSources,
+			toSources = data.toSources,
+			dateFormat = preferences.dateFormat,
+			localeTag = preferences.localeTag,
+			decimalSeparator = preferences.decimalSeparator,
+			thousandSeparator = preferences.thousandSeparator,
+			currencyToken = preferences.currencyToken,
+			currencyAfter = preferences.currencyAfter,
+			negativeFormat = preferences.negativeFormat,
+			currencySpacing = preferences.currencySpacing,
+			fractionDigits = preferences.fractionDigits,
+			accountBalance = data.account?.balance.orEmpty(),
+			accountBalanceHasPending = data.account?.hasPending ?: false,
+			error = if (page == null) "Recent transactions have not been downloaded yet." else null
+		) }
 	}
 
-	private fun loadSources() {
-		viewModelScope.launch {
-			val fromDeferred = async { repository.fetchSources("from") }
-			val toDeferred = async { repository.fetchSources("to") }
-
-			val fromResult = fromDeferred.await()
-			val toResult = toDeferred.await()
-
-			fromResult.fold(
-				onSuccess = { sources ->
-					_state.update { it.copy(fromSources = sources) }
-				},
-				onFailure = { error ->
-					val needsLogin = error is UnauthorizedException
-					_state.update {
-						it.copy(
-							error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Unable to load sources.",
-							needsLogin = needsLogin
-						)
-					}
-				}
-			)
-
-			toResult.fold(
-				onSuccess = { sources ->
-					_state.update { it.copy(toSources = sources) }
-				},
-				onFailure = { error ->
-					val needsLogin = error is UnauthorizedException
-					_state.update {
-						it.copy(
-							error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Unable to load sources.",
-							needsLogin = needsLogin
-						)
-					}
-				}
-			)
-		}
-	}
-
-	private fun loadDatePreferences() {
-		viewModelScope.launch {
-			val result = repository.fetchUserDatePreferences()
-			result.fold(
-				onSuccess = { preferences ->
-					_state.update {
-						it.copy(
-							dateFormat = preferences.dateFormat,
-							localeTag = preferences.localeTag,
-							decimalSeparator = preferences.decimalSeparator,
-							thousandSeparator = preferences.thousandSeparator,
-							currencyToken = preferences.currencyToken,
-							currencyAfter = preferences.currencyAfter,
-							negativeFormat = preferences.negativeFormat,
-							currencySpacing = preferences.currencySpacing,
-							fractionDigits = preferences.fractionDigits
-						)
-					}
-				},
-				onFailure = { error ->
-					val needsLogin = error is UnauthorizedException
-					_state.update {
-						it.copy(
-							error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Unable to load preferences.",
-							needsLogin = needsLogin
-						)
-					}
-				}
-			)
-		}
-	}
-
-	private fun loadTransactions(start: Int, append: Boolean) {
-		viewModelScope.launch {
-			_state.update { it.copy(isLoading = true, error = null, needsLogin = false) }
-			val result = repository.fetchTransactions(sourceId = accountId, start = start, limit = 100)
-			result.fold(
-				onSuccess = { page ->
-					_state.update { current ->
-						val mergedTransactions = if (append) {
-							(current.transactions + page.items).distinctBy { it.id }
-						}
-						else {
-							page.items.distinctBy { it.id }
-						}
-						current.copy(
-							isLoading = false,
-							transactions = mergedTransactions,
-							total = page.total,
-							error = null
-						)
-					}
-				},
-				onFailure = { error ->
-					val needsLogin = error is UnauthorizedException
-					_state.update {
-						it.copy(
-							isLoading = false,
-							error = if (needsLogin) "Session expired. Please sign in again." else error.message ?: "Unable to load transactions.",
-							needsLogin = needsLogin
-						)
-					}
-				}
-			)
-		}
-	}
-
-	private fun loadAccountBalance() {
-		viewModelScope.launch {
-			val result = repository.fetchAccounts()
-			result.fold(
-				onSuccess = { accounts ->
-					val account = accounts.firstOrNull { it.id == accountId }
-					_state.update {
-						it.copy(
-							accountBalance = account?.balance.orEmpty(),
-							accountBalanceHasPending = account?.hasPending ?: false
-						)
-					}
-				},
-				onFailure = { error ->
-					if (error is UnauthorizedException) {
-						_state.update {
-							it.copy(
-								error = "Session expired. Please sign in again.",
-								needsLogin = true
-							)
-						}
-					}
-				}
-			)
-		}
-	}
 }
 
 class TransactionsViewModelFactory(

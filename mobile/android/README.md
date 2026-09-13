@@ -5,6 +5,31 @@ Native Android client for a simplified BuddiLive workflow:
 - accounts + balances screen
 - account transactions screen with create/update/delete
 
+## Offline use
+
+After signing in, the app downloads accounts and balances, transaction category selectors,
+formatting preferences, description suggestions, and the latest 100 transactions for every
+account. The download status disappears when preparation finishes. Enable **Stay logged in**
+to reopen directly from local data, including when the session has expired.
+
+Refresh spins while synchronization runs; cached screens and new transaction entry remain
+usable. New transactions, including edits and deletion before synchronization completes,
+are saved on the device. Changes to previously synchronized transactions require the backend.
+Sync runs while the app is visible, on reconnect/resume and manual refresh, with retries after
+15, 30, then 60 seconds following transient failures. An expired session pauses sync and offers
+**Sign in to sync**, while local data and entry remain available.
+
+Caches and pending transactions are isolated by backend and login. Existing caches are retained
+on upgrade. If older pending transactions have no recorded owner, sign in to their original
+account and use **Restore saved transactions** to confirm ownership before uploading them.
+
+Focused offline verification:
+
+```bash
+./gradlew :app:testDebugUnitTest --tests '*BuddiRepositoryTest'
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=ca.digitalcave.buddilive.mobile.OfflineStartupTest
+```
+
 ## Base URL policy
 
 - Debug/local backend: `http://10.0.2.2:8081/`

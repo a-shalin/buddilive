@@ -4,6 +4,7 @@ import android.content.Context
 import ca.digitalcave.buddilive.mobile.data.AndroidOfflineStore
 import ca.digitalcave.buddilive.mobile.data.BuddiApiFactory
 import ca.digitalcave.buddilive.mobile.data.BuddiRepository
+import ca.digitalcave.buddilive.mobile.data.PersistentCookieJar
 
 object AppContainer {
 
@@ -18,7 +19,9 @@ object AppContainer {
 			repository ?: BuddiRepository(
 				api = BuddiApiFactory.create(context.applicationContext),
 				descriptionsApi = BuddiApiFactory.createDescriptionsApi(context.applicationContext),
-				offlineStore = AndroidOfflineStore(context.applicationContext)
+				offlineStore = AndroidOfflineStore(context.applicationContext),
+				backendIdentity = BuildConfig.BASE_URL,
+				clearSession = { PersistentCookieJar(context.applicationContext).clear() }
 			).also {
 				repository = it
 			}
