@@ -8,6 +8,7 @@
 /src/main/webapp/WEB-INF/classes/
 /src/main/resources/static/mobile/buddilive-android.apk
 /.env
+/buddilive-secrets-*.zip
 /ansible/inventory/production.ini
 /buddilive-data/
 /.idea/
