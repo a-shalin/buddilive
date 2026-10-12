@@ -1,6 +1,5 @@
 package ca.digitalcave.buddilive.mobile.ui
 
-import android.app.DatePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -13,6 +12,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
@@ -20,10 +20,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -38,29 +42,35 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
@@ -93,6 +103,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -113,6 +124,8 @@ import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -388,6 +401,7 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 			modifier = Modifier
 				.fillMaxSize()
 				.padding(paddingValues)
+				.consumeWindowInsets(paddingValues)
 		) {
 			if (isAuthenticated) {
 				if (syncState.needsLogin) {
@@ -516,11 +530,31 @@ private fun LoginScreen(
 	Column(
 		modifier = modifier
 			.fillMaxSize()
-			.padding(24.dp),
+			.padding(horizontal = 28.dp),
 		verticalArrangement = Arrangement.Center
 	) {
-		Text(text = "BuddiLive Mobile", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-		Spacer(modifier = Modifier.height(16.dp))
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Text(
+				text = "Buddi",
+				color = MaterialTheme.colorScheme.primary,
+				fontSize = 36.sp,
+				fontWeight = FontWeight.Bold,
+				letterSpacing = (-1).sp
+			)
+			Text(
+				text = "Live",
+				color = MaterialTheme.colorScheme.onSurface,
+				fontSize = 36.sp,
+				fontWeight = FontWeight.Bold,
+				letterSpacing = (-1).sp
+			)
+		}
+		Text(
+			text = "Your finances, simplified.",
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant
+		)
+		Spacer(modifier = Modifier.height(28.dp))
 
 		OutlinedTextField(
 			modifier = Modifier
@@ -537,7 +571,7 @@ private fun LoginScreen(
 			),
 			singleLine = true
 		)
-		Spacer(modifier = Modifier.height(8.dp))
+		Spacer(modifier = Modifier.height(12.dp))
 		OutlinedTextField(
 			modifier = Modifier
 				.testTag(loginPasswordTag)
@@ -554,7 +588,7 @@ private fun LoginScreen(
 			),
 			singleLine = true
 		)
-		Spacer(modifier = Modifier.height(16.dp))
+		Spacer(modifier = Modifier.height(12.dp))
 		Row(
 			modifier = Modifier
 				.fillMaxWidth()
@@ -567,7 +601,7 @@ private fun LoginScreen(
 			)
 			Text("Stay logged in")
 		}
-		Spacer(modifier = Modifier.height(12.dp))
+		Spacer(modifier = Modifier.height(16.dp))
 
 		Button(
 			onClick = {
@@ -580,7 +614,10 @@ private fun LoginScreen(
 				}
 			},
 			enabled = !state.isLoading,
-			modifier = Modifier.fillMaxWidth()
+			shape = RoundedCornerShape(8.dp),
+			modifier = Modifier
+				.fillMaxWidth()
+				.height(52.dp)
 		) {
 			if (state.isLoading) {
 				CircularProgressIndicator(modifier = Modifier.height(20.dp), strokeWidth = 2.dp)
@@ -621,7 +658,7 @@ private fun AccountsScreen(
 
 	Scaffold(
 		modifier = modifier.fillMaxSize(),
-		topBar = {
+			topBar = {
 			TopAppBar(
 				title = { Text("Accounts") },
 				actions = {
@@ -635,7 +672,11 @@ private fun AccountsScreen(
 						isRefreshing = syncState.isSyncing,
 						onRefresh = viewModel::refresh
 					)
-				}
+				},
+				colors = TopAppBarDefaults.topAppBarColors(
+					containerColor = MaterialTheme.colorScheme.background,
+					scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+				)
 			)
 		}
 	) { paddingValues ->
@@ -649,55 +690,66 @@ private fun AccountsScreen(
 				Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
 			}
 
-			LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+			LazyColumn {
 				for (accountType in state.overview.accountTypes) {
 					val typeName = accountType.name
 					val isExpanded = expandedTypes.contains(typeName)
 					item(key = "type-$typeName") {
-						Row(
-							modifier = Modifier
-								.fillMaxWidth()
-								.clickable {
-									onExpandedTypesChange(if (isExpanded) {
-										expandedTypes - typeName
-									}
-									else {
-										expandedTypes + typeName
-									})
-								}
-								.padding(12.dp),
-							verticalAlignment = Alignment.CenterVertically
-						) {
+						Column {
 							Row(
-								modifier = Modifier.weight(1f),
+								modifier = Modifier
+									.fillMaxWidth()
+									.clickable {
+										onExpandedTypesChange(if (isExpanded) {
+											expandedTypes - typeName
+										}
+										else {
+											expandedTypes + typeName
+										})
+									}
+									.padding(horizontal = 12.dp, vertical = 14.dp),
 								verticalAlignment = Alignment.CenterVertically
 							) {
-								Icon(
-									imageVector = if (isExpanded) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight,
-									contentDescription = null
-								)
-								Text(
-									text = accountType.name,
-									style = MaterialTheme.typography.titleMedium,
-									fontWeight = FontWeight.Bold
-								)
-							}
-							Column(horizontalAlignment = Alignment.End) {
-								Text(
-									text = accountType.balance,
-									style = MaterialTheme.typography.titleMedium,
-									fontWeight = FontWeight.Bold,
-									textAlign = TextAlign.End
-								)
-								if (accountType.hasPending) {
+								Row(
+									modifier = Modifier.weight(1f),
+									verticalAlignment = Alignment.CenterVertically
+								) {
+									Icon(
+										imageVector = if (isExpanded) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight,
+										contentDescription = null,
+										modifier = Modifier
+											.padding(end = 8.dp)
+											.size(18.dp),
+										tint = MaterialTheme.colorScheme.onSurfaceVariant
+									)
 									Text(
-										text = "includes pending",
-										style = MaterialTheme.typography.bodySmall,
-										color = MaterialTheme.colorScheme.primary,
-										textAlign = TextAlign.End
+										text = accountType.name,
+										style = MaterialTheme.typography.titleMedium
 									)
 								}
+								Column(horizontalAlignment = Alignment.End) {
+									Text(
+										text = accountType.balance,
+										style = MaterialTheme.typography.titleMedium,
+										color = if ((accountType.balanceNumber?.signum() ?: 0) < 0) {
+											MaterialTheme.colorScheme.error
+										}
+										else {
+											MaterialTheme.colorScheme.onSurface
+										},
+										textAlign = TextAlign.End
+									)
+									if (accountType.hasPending) {
+										Text(
+											text = "includes pending",
+											style = MaterialTheme.typography.bodySmall,
+											color = MaterialTheme.colorScheme.primary,
+											textAlign = TextAlign.End
+										)
+									}
+								}
 							}
+							HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 						}
 					}
 					if (isExpanded) {
@@ -708,33 +760,46 @@ private fun AccountsScreen(
 							else {
 								TextDecoration.None
 							}
-							Row(
+							Surface(
 								modifier = Modifier
 									.fillMaxWidth()
-									.clickable { onAccountSelected(account) }
-									.padding(start = 36.dp, top = 12.dp, end = 12.dp, bottom = 12.dp),
-								horizontalArrangement = Arrangement.SpaceBetween
+									.padding(horizontal = 4.dp, vertical = 4.dp),
+								shape = RoundedCornerShape(10.dp),
+								color = MaterialTheme.colorScheme.surfaceContainerLow,
+								onClick = { onAccountSelected(account) }
 							) {
-								Text(
-									text = account.name,
-									style = MaterialTheme.typography.titleMedium,
-									textDecoration = deletedAccountTextDecoration,
-									modifier = Modifier.weight(1f)
-								)
-								Column(horizontalAlignment = Alignment.End) {
+								Row(
+									modifier = Modifier.padding(start = 40.dp, top = 13.dp, end = 12.dp, bottom = 13.dp),
+									horizontalArrangement = Arrangement.SpaceBetween,
+									verticalAlignment = Alignment.CenterVertically
+								) {
 									Text(
-										text = account.balance,
+										text = account.name,
 										style = MaterialTheme.typography.titleMedium,
 										textDecoration = deletedAccountTextDecoration,
-										textAlign = TextAlign.End
+										modifier = Modifier.weight(1f)
 									)
-									if (account.hasPending) {
+									Column(horizontalAlignment = Alignment.End) {
 										Text(
-											text = "includes pending",
-											style = MaterialTheme.typography.bodySmall,
-											color = MaterialTheme.colorScheme.primary,
+											text = account.balance,
+											style = MaterialTheme.typography.titleMedium,
+											textDecoration = deletedAccountTextDecoration,
+											color = if ((account.balanceNumber?.signum() ?: 0) < 0) {
+												MaterialTheme.colorScheme.error
+											}
+											else {
+												MaterialTheme.colorScheme.onSurface
+											},
 											textAlign = TextAlign.End
 										)
+										if (account.hasPending) {
+											Text(
+												text = "includes pending",
+												style = MaterialTheme.typography.bodySmall,
+												color = MaterialTheme.colorScheme.primary,
+												textAlign = TextAlign.End
+											)
+										}
 									}
 								}
 							}
@@ -743,32 +808,37 @@ private fun AccountsScreen(
 				}
 				state.overview.netWorth?.let { netWorth ->
 					item(key = "net-worth") {
-						Row(
+						Surface(
 							modifier = Modifier
 								.fillMaxWidth()
-								.padding(12.dp),
-							horizontalArrangement = Arrangement.SpaceBetween
+								.padding(top = 14.dp, start = 4.dp, end = 4.dp),
+							shape = RoundedCornerShape(10.dp),
+							color = MaterialTheme.colorScheme.surfaceContainerLow
 						) {
-							Text(
-								text = netWorth.label,
-								style = MaterialTheme.typography.titleMedium,
-								fontWeight = FontWeight.Bold,
-								modifier = Modifier.weight(1f)
-							)
-							Column(horizontalAlignment = Alignment.End) {
+							Row(
+								modifier = Modifier.padding(horizontal = 16.dp, vertical = 15.dp),
+								horizontalArrangement = Arrangement.SpaceBetween,
+								verticalAlignment = Alignment.CenterVertically
+							) {
 								Text(
-									text = netWorth.balance,
+									text = netWorth.label,
 									style = MaterialTheme.typography.titleMedium,
-									fontWeight = FontWeight.Bold,
-									textAlign = TextAlign.End
+									modifier = Modifier.weight(1f)
 								)
-								if (netWorth.hasPending) {
+								Column(horizontalAlignment = Alignment.End) {
 									Text(
-										text = "includes pending",
-										style = MaterialTheme.typography.bodySmall,
-										color = MaterialTheme.colorScheme.primary,
+										text = netWorth.balance,
+										style = MaterialTheme.typography.titleMedium,
 										textAlign = TextAlign.End
 									)
+									if (netWorth.hasPending) {
+										Text(
+											text = "includes pending",
+											style = MaterialTheme.typography.bodySmall,
+											color = MaterialTheme.colorScheme.primary,
+											textAlign = TextAlign.End
+										)
+									}
 								}
 							}
 						}
@@ -910,35 +980,47 @@ private fun TransactionsScreen(
 								isRefreshing = syncState.isSyncing,
 								onRefresh = viewModel::refresh
 							)
-						}
+						},
+						colors = TopAppBarDefaults.topAppBarColors(
+							containerColor = MaterialTheme.colorScheme.background,
+							scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+						)
 					)
 				},
 				bottomBar = {
-					Row(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(start = 24.dp, top = 8.dp, end = 72.dp, bottom = 8.dp)
-					) {
-						Text(
-							text = "$accountName:",
-							style = MaterialTheme.typography.titleMedium,
-							fontWeight = FontWeight.Bold,
-							modifier = Modifier.weight(1f)
-						)
-						Column(horizontalAlignment = Alignment.End) {
-							Text(
-								text = state.accountBalance.ifBlank { accountBalance },
-								style = MaterialTheme.typography.titleMedium,
-								fontWeight = FontWeight.Bold,
-								textAlign = TextAlign.End
-							)
-							if (state.accountBalanceHasPending) {
+					Surface(color = MaterialTheme.colorScheme.background) {
+						Surface(
+							modifier = Modifier
+								.fillMaxWidth()
+								.padding(horizontal = 12.dp, vertical = 8.dp),
+							shape = RoundedCornerShape(10.dp),
+							color = MaterialTheme.colorScheme.surfaceContainerLow
+						) {
+							Row(
+								modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+								verticalAlignment = Alignment.CenterVertically
+							) {
 								Text(
-									text = "includes pending",
-									style = MaterialTheme.typography.bodySmall,
-									color = MaterialTheme.colorScheme.primary,
-									textAlign = TextAlign.End
+									text = "$accountName:",
+									style = MaterialTheme.typography.titleMedium,
+									modifier = Modifier.weight(1f)
 								)
+								Column(horizontalAlignment = Alignment.End) {
+									Text(
+										text = state.accountBalance.ifBlank { accountBalance },
+										style = MaterialTheme.typography.titleMedium,
+										color = MaterialTheme.colorScheme.primary,
+										textAlign = TextAlign.End
+									)
+									if (state.accountBalanceHasPending) {
+										Text(
+											text = "includes pending",
+											style = MaterialTheme.typography.bodySmall,
+											color = MaterialTheme.colorScheme.primary,
+											textAlign = TextAlign.End
+										)
+									}
+								}
 							}
 						}
 					}
@@ -947,24 +1029,51 @@ private fun TransactionsScreen(
 				Column(
 					modifier = Modifier
 						.fillMaxSize()
-					.padding(paddingValues)
-					.padding(12.dp)
-			) {
-				state.error?.let {
-					Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
-				}
+						.padding(paddingValues)
+						.padding(horizontal = 12.dp)
+				) {
+					state.error?.let {
+						Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 12.dp))
+					}
+
+					Row(
+						modifier = Modifier
+							.fillMaxWidth()
+							.background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(8.dp))
+							.padding(horizontal = 12.dp, vertical = 8.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Text(
+							text = accountName.uppercase(),
+							style = MaterialTheme.typography.labelSmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+							modifier = Modifier.weight(1f)
+						)
+						Text(
+							text = state.accountBalance.ifBlank { accountBalance },
+							style = MaterialTheme.typography.labelLarge,
+							color = MaterialTheme.colorScheme.primary,
+							textAlign = TextAlign.End
+						)
+					}
 
 					LazyColumn(
 						modifier = Modifier
 							.weight(1f, fill = true)
 							.testTag("transactionsList"),
-						state = transactionsListState,
-						verticalArrangement = Arrangement.spacedBy(8.dp)
+						state = transactionsListState
 					) {
 						items(state.transactions, key = { it.id }) { transaction ->
+							val split = transaction.split
+							val isInflow = split?.toId?.toLong() == accountId
+							val isOutflow = split?.fromId?.toLong() == accountId
 							Row(
 								modifier = Modifier
 									.fillMaxWidth()
+									.clickable {
+										editingTransaction = transaction
+										showEditor = true
+									}
 									.padding(start = 12.dp, top = 12.dp, end = 0.dp, bottom = 12.dp),
 								verticalAlignment = Alignment.CenterVertically
 							) {
@@ -977,10 +1086,15 @@ private fun TransactionsScreen(
 											text = transaction.description,
 											style = MaterialTheme.typography.titleMedium,
 											modifier = Modifier.weight(1f)
-										)
-										Text(
-											text = transaction.split?.amountLabel.orEmpty(),
+									)
+									Text(
+										text = split?.amountLabel.orEmpty(),
 											style = MaterialTheme.typography.titleMedium,
+											color = when {
+												isInflow -> MaterialTheme.colorScheme.primary
+												isOutflow -> MaterialTheme.colorScheme.error
+												else -> MaterialTheme.colorScheme.onSurface
+											},
 											textAlign = TextAlign.End
 										)
 									}
@@ -988,11 +1102,13 @@ private fun TransactionsScreen(
 										Text(
 											text = transaction.dateIso,
 											style = MaterialTheme.typography.bodySmall,
+											color = MaterialTheme.colorScheme.onSurfaceVariant,
 											modifier = Modifier.weight(1f)
 										)
 										Text(
-											text = transaction.split?.let { "${it.fromName} -> ${it.toName}" }.orEmpty(),
+											text = split?.let { "${it.fromName} → ${it.toName}" }.orEmpty(),
 											style = MaterialTheme.typography.bodySmall,
+											color = MaterialTheme.colorScheme.onSurfaceVariant,
 											textAlign = TextAlign.End
 										)
 									}
@@ -1014,32 +1130,36 @@ private fun TransactionsScreen(
 										)
 									}
 								}
-								Box(
-									modifier = Modifier.padding(start = 12.dp),
-									contentAlignment = Alignment.Center
-								) {
-									IconButton(onClick = {
+								IconButton(
+									modifier = Modifier.size(40.dp),
+									onClick = {
 										editingTransaction = transaction
 										showEditor = true
-									}) {
-										Icon(Icons.Filled.Edit, contentDescription = "Edit")
 									}
+								) {
+									Icon(
+										imageVector = Icons.Filled.ChevronRight,
+										contentDescription = "Edit",
+										modifier = Modifier.size(18.dp),
+										tint = MaterialTheme.colorScheme.onSurfaceVariant
+									)
 								}
 							}
+							HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 						}
 					}
 
-				if (state.transactions.size < state.total) {
-					Button(
-						onClick = viewModel::loadMore,
-						modifier = Modifier.fillMaxWidth(),
-						enabled = !state.isLoading
-					) {
-						Text("Load More")
+					if (state.transactions.size < state.total) {
+						Button(
+							onClick = viewModel::loadMore,
+							modifier = Modifier.fillMaxWidth(),
+							enabled = !state.isLoading
+						) {
+							Text("Load More")
+						}
 					}
 				}
 			}
-		}
 	}
 }
 
@@ -1298,7 +1418,6 @@ private fun TransactionEditorScreen(
 	onSave: (TransactionEditInput) -> Unit,
 	onDelete: (Long) -> Unit
 ) {
-	val context = LocalContext.current
 	val inputDateFormatter = remember(dateFormat, amountFormat.localeTag) {
 		createInputDateFormatter(dateFormat, amountFormat.localeTag)
 	}
@@ -1345,6 +1464,7 @@ private fun TransactionEditorScreen(
 	}
 	var descriptionFieldFocused by remember(existing) { mutableStateOf(false) }
 	var showDescriptionSuggestions by remember(existing) { mutableStateOf(false) }
+	var showDatePicker by remember(existing) { mutableStateOf(false) }
 	var showDeleteConfirmation by remember(existing) { mutableStateOf(false) }
 	val keyboardController = LocalSoftwareKeyboardController.current
 	val updateDateIso: (TextFieldValue) -> Unit = { dateValue ->
@@ -1440,7 +1560,11 @@ private fun TransactionEditorScreen(
 					) {
 						Icon(Icons.Filled.Check, contentDescription = "Save")
 					}
-				}
+				},
+				colors = TopAppBarDefaults.topAppBarColors(
+					containerColor = MaterialTheme.colorScheme.background,
+					scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+				)
 			)
 		}
 	) { paddingValues ->
@@ -1448,9 +1572,9 @@ private fun TransactionEditorScreen(
 			modifier = Modifier
 				.fillMaxSize()
 				.padding(paddingValues)
-				.padding(12.dp)
+				.padding(horizontal = 12.dp, vertical = 8.dp)
 				.verticalScroll(scrollState),
-			verticalArrangement = Arrangement.spacedBy(8.dp)
+			verticalArrangement = Arrangement.spacedBy(10.dp)
 		) {
 			DoubleTapSelectWordOutlinedTextField(
 				modifier = Modifier
@@ -1468,18 +1592,7 @@ private fun TransactionEditorScreen(
 				},
 				trailingIcon = {
 					IconButton(
-						onClick = {
-							val pickerDate = selectedDate ?: LocalDate.now()
-							DatePickerDialog(
-								context,
-								{ _, year, month, dayOfMonth ->
-									updateDateIso(toTextFieldValue(LocalDate.of(year, month + 1, dayOfMonth).format(inputDateFormatter)))
-								},
-								pickerDate.year,
-								pickerDate.monthValue - 1,
-								pickerDate.dayOfMonth
-							).show()
-						}
+						onClick = { showDatePicker = true }
 					) {
 						Icon(Icons.Filled.DateRange, contentDescription = "Pick date")
 					}
@@ -1501,6 +1614,9 @@ private fun TransactionEditorScreen(
 					singleLine = true
 				)
 				DropdownMenu(
+					modifier = Modifier
+						.fillMaxWidth()
+						.background(MaterialTheme.colorScheme.surfaceContainerLowest),
 					expanded = descriptionFieldFocused && showDescriptionSuggestions && filteredDescriptionTemplates.isNotEmpty(),
 					onDismissRequest = { showDescriptionSuggestions = false },
 					properties = PopupProperties(focusable = false)
@@ -1519,6 +1635,9 @@ private fun TransactionEditorScreen(
 								keyboardController?.hide()
 							}
 						)
+						if (template != filteredDescriptionTemplates.last()) {
+							HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+						}
 					}
 				}
 			}
@@ -1586,24 +1705,68 @@ private fun TransactionEditorScreen(
 		}
 	}
 
+	if (showDatePicker) {
+		val pickerDate = selectedDate ?: LocalDate.now()
+		val pickerState = rememberDatePickerState(
+			initialSelectedDateMillis = pickerDate
+				.atStartOfDay(ZoneOffset.UTC)
+				.toInstant()
+				.toEpochMilli()
+		)
+		DatePickerDialog(
+			onDismissRequest = { showDatePicker = false },
+			confirmButton = {
+				TextButton(onClick = {
+					pickerState.selectedDateMillis?.let { selectedDateMillis ->
+						val date = Instant.ofEpochMilli(selectedDateMillis)
+							.atZone(ZoneOffset.UTC)
+							.toLocalDate()
+						updateDateIso(toTextFieldValue(date.format(inputDateFormatter)))
+					}
+					showDatePicker = false
+				}) {
+					Text("Set")
+				}
+			},
+			dismissButton = {
+				TextButton(onClick = { showDatePicker = false }) {
+					Text("Cancel")
+				}
+			}
+		) {
+			DatePicker(state = pickerState)
+		}
+	}
+
 	if (showDeleteConfirmation && existing != null) {
 		AlertDialog(
 			onDismissRequest = { showDeleteConfirmation = false },
+			icon = {
+				Icon(
+					imageVector = Icons.Filled.Delete,
+					contentDescription = null,
+					tint = MaterialTheme.colorScheme.error
+				)
+			},
 			title = { Text("Delete Transaction?") },
 			text = { Text("This action cannot be undone.") },
 			confirmButton = {
-				TextButton(
+				Button(
 					modifier = Modifier.testTag("transactionEditorDeleteConfirm"),
+					colors = ButtonDefaults.buttonColors(
+						containerColor = MaterialTheme.colorScheme.error,
+						contentColor = MaterialTheme.colorScheme.onError
+					),
 					onClick = {
 						showDeleteConfirmation = false
 						onDelete(existing.id)
 					}
 				) {
-					Text("Delete", color = MaterialTheme.colorScheme.error)
+					Text("Delete")
 				}
 			},
 			dismissButton = {
-				TextButton(onClick = { showDeleteConfirmation = false }) {
+				OutlinedButton(onClick = { showDeleteConfirmation = false }) {
 					Text("Cancel")
 				}
 			}
@@ -1622,49 +1785,112 @@ private fun SourceSelector(
 ) {
 	var expanded by remember { mutableStateOf(false) }
 	val selected = options.firstOrNull { it.id == selectedId && it.selectable }
+	val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-	ExposedDropdownMenuBox(
-		modifier = modifier.fillMaxWidth(),
-		expanded = expanded,
-		onExpandedChange = { expanded = !expanded }
+	Box(
+		modifier = modifier.fillMaxWidth()
 	) {
 		OutlinedTextField(
-			modifier = Modifier
-				.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-				.fillMaxWidth(),
-			value = selected?.label?.trimStart().orEmpty(),
+			modifier = Modifier.fillMaxWidth(),
+			value = selected?.label?.trimStart() ?: "Select account",
 			onValueChange = {},
 			readOnly = true,
 			label = { Text(label) },
-			trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
-		)
-		DropdownMenu(
-			expanded = expanded,
-			onDismissRequest = { expanded = false }
-		) {
-			for (option in options) {
-				val sourceId = option.id
-				DropdownMenuItem(
-					enabled = option.selectable,
-					text = {
-						Text(
-							text = option.label,
-							color = if (option.selectable) {
-								MaterialTheme.colorScheme.onSurface
-							}
-							else {
-								MaterialTheme.colorScheme.onSurfaceVariant
-							}
-						)
-					},
-					onClick = {
-						if (sourceId == null) {
-							return@DropdownMenuItem
-						}
-						onSelect(sourceId)
-						expanded = false
-					}
+			textStyle = MaterialTheme.typography.bodyLarge.copy(
+				color = if (selected == null) {
+					MaterialTheme.colorScheme.onSurfaceVariant
+				} else {
+					MaterialTheme.colorScheme.onSurface
+				}
+			),
+			trailingIcon = {
+				Icon(
+					imageVector = Icons.Filled.ExpandMore,
+					contentDescription = null,
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
 				)
+			}
+		)
+		Box(
+			modifier = Modifier
+				.matchParentSize()
+				.clickable { expanded = true }
+		)
+	}
+
+	if (expanded) {
+		ModalBottomSheet(
+			onDismissRequest = { expanded = false },
+			sheetState = sheetState,
+			containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+		) {
+			Column(
+				modifier = Modifier
+					.fillMaxWidth()
+					.navigationBarsPadding()
+			) {
+				Text(
+					text = "Select source",
+					style = MaterialTheme.typography.titleLarge,
+					modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+				)
+				LazyColumn(
+					modifier = Modifier
+						.fillMaxWidth()
+						.heightIn(max = 520.dp)
+				) {
+					items(options) { option ->
+						val sourceId = option.id
+						val optionLabel = option.label
+							.replace('\u00a0', ' ')
+							.trim()
+							.trim('-')
+							.trim()
+						if (!option.selectable) {
+							Text(
+								text = optionLabel.uppercase(),
+								style = MaterialTheme.typography.labelSmall,
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+								modifier = Modifier.padding(start = 24.dp, top = 18.dp, end = 24.dp, bottom = 8.dp)
+							)
+						}
+						else if (sourceId != null) {
+							Surface(
+								modifier = Modifier.fillMaxWidth(),
+								color = if (sourceId == selectedId) {
+									MaterialTheme.colorScheme.primaryContainer
+								}
+								else {
+									MaterialTheme.colorScheme.surfaceContainerLowest
+								},
+								onClick = {
+									onSelect(sourceId)
+									expanded = false
+								}
+							) {
+								Row(
+									modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+									verticalAlignment = Alignment.CenterVertically
+								) {
+									Text(
+										text = optionLabel,
+										style = MaterialTheme.typography.bodyLarge,
+										modifier = Modifier.weight(1f)
+									)
+								}
+							}
+							HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+						}
+					}
+				}
+				TextButton(
+					onClick = { expanded = false },
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(8.dp)
+				) {
+					Text("Cancel")
+				}
 			}
 		}
 	}

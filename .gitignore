@@ -11,4 +11,5 @@
 /buddilive-secrets-*.zip
 /ansible/inventory/production.ini
 /buddilive-data/
+/artifacts/
 /.idea/
