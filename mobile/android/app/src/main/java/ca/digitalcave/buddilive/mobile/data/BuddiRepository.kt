@@ -883,7 +883,7 @@ class BuddiRepository(
                 val netWorthBalanceNumber = projectedAccountTypes.flatMap { accountType -> accountType.accounts }
                     .fold(BigDecimal.ZERO) { total, account ->
                         val accountBalance = account.balanceNumber ?: return@fold total
-                        total + if (account.debit) accountBalance else accountBalance.negate()
+                        total + accountBalance
                     }
                 overview.netWorth.copy(
                     balance = formatCurrencyAmount(netWorthBalanceNumber, preferences),

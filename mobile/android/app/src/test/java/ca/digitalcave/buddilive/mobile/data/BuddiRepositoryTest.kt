@@ -2,6 +2,7 @@ package ca.digitalcave.buddilive.mobile.data
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -442,6 +443,58 @@ class BuddiRepositoryTest {
 		assertEquals(1, api.accountsRequestCount)
 		assertEquals("USD 75.00", projectedAccount?.balance)
 		assertTrue(projectedAccount?.hasPending == true)
+	}
+
+	@Test
+	fun offlineNetWorthUsesSignedCreditBalancesWithPendingTransactions() = runBlocking {
+		val children = JsonParser.parseString(
+			"""
+			[
+			  {"nodeType":"type","name":"Cash","debit":true,"balance":"USD 425,115.83","balanceNumber":425115.83,
+			   "children":[{"nodeType":"account","id":1,"name":"Cash","debit":true,"balance":"USD 425,115.83","balanceNumber":425115.83}]},
+			  {"nodeType":"type","name":"Investment","debit":true,"balance":"USD 16,842.84","balanceNumber":16842.84,
+			   "children":[{"nodeType":"account","id":2,"name":"Investment","debit":true,"balance":"USD 16,842.84","balanceNumber":16842.84}]},
+			  {"nodeType":"type","name":"Savings","debit":true,"balance":"USD 487,281.36","balanceNumber":487281.36,
+			   "children":[{"nodeType":"account","id":3,"name":"Savings","debit":true,"balance":"USD 487,281.36","balanceNumber":487281.36}]},
+			  {"nodeType":"type","name":"Liability","debit":false,"balance":"USD 11,000.00","balanceNumber":11000.00,
+			   "children":[{"nodeType":"account","id":4,"name":"Liability","debit":false,"balance":"USD 11,000.00","balanceNumber":-11000.00}]},
+			  {"nodeType":"type","name":"Loan","debit":false,"balance":"USD -140,300.00","balanceNumber":-140300.00,
+			   "children":[{"nodeType":"account","id":5,"name":"Loan","debit":false,"balance":"USD -140,300.00","balanceNumber":140300.00}]},
+			  {"name":"Net Worth","balance":"USD 1,058,540.03","balanceNumber":1058540.03}
+			]
+			""".trimIndent()
+		).asJsonArray.map { it.asJsonObject }
+		val api = FakeBuddiApi(accountsResponse = AccountsResponseDto(success = true, children = children))
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.fetchUserDatePreferences().getOrThrow()
+		assertEquals(BigDecimal("1058540.03"), repository.fetchAccountsOverview().getOrThrow().netWorth?.balanceNumber)
+
+		repository.createTransaction(testInput().copy(toId = 99)).getOrThrow()
+		val overview = repository.readCachedAccountsOverview()!!
+		assertEquals(BigDecimal("425090.83"), overview.accountTypes.first().balanceNumber)
+		assertEquals(BigDecimal("1058515.03"), overview.netWorth?.balanceNumber)
+		assertEquals("USD 1,058,515.03", overview.netWorth?.balance)
+		assertTrue(overview.netWorth?.hasPending == true)
+
+		repository.createTransaction(testInput().copy(toId = 4, amount = "100.00")).getOrThrow()
+		val afterRepayment = repository.readCachedAccountsOverview()!!
+		assertEquals(BigDecimal("1058515.03"), afterRepayment.netWorth?.balanceNumber)
+		val liability = afterRepayment.accountTypes.single { it.name == "Liability" }
+		assertEquals(BigDecimal("10900.00"), liability.balanceNumber)
+		assertEquals("USD 10,900.00", liability.balance)
+		assertEquals(BigDecimal("-10900.00"), liability.accounts.single().balanceNumber)
+		assertTrue(liability.hasPending)
+
+		repository.createTransaction(testInput().copy(fromId = 5, toId = 99, amount = "30.00")).getOrThrow()
+		val afterCreditExpense = repository.readCachedAccountsOverview()!!
+		assertEquals(BigDecimal("1058485.03"), afterCreditExpense.netWorth?.balanceNumber)
+		val loan = afterCreditExpense.accountTypes.single { it.name == "Loan" }
+		assertEquals(BigDecimal("-140270.00"), loan.balanceNumber)
+		assertEquals("USD -140,270.00", loan.balance)
+		assertEquals(BigDecimal("140270.00"), loan.accounts.single().balanceNumber)
+		assertTrue(loan.hasPending)
+		assertEquals(1, api.accountsRequestCount)
+		assertTrue(api.mutationRequests.isEmpty())
 	}
 
 	@Test
