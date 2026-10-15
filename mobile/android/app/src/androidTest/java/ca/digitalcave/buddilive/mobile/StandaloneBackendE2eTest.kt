@@ -275,6 +275,7 @@ class StandaloneBackendE2eTest {
 			.assertIsEnabled()
 			.performClick()
 
+		assertEventuallyVisible("Transactions")
 		assertEventuallyVisible(updatedDescription)
 		val apiClient = backend.login(email, password)
 		assertTrue(
