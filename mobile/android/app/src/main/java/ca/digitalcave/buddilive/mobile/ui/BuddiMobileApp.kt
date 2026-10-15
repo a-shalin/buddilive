@@ -5,6 +5,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
 import android.view.ViewConfiguration
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -40,6 +43,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandMore
@@ -102,6 +106,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
@@ -134,6 +139,7 @@ private const val authPreferencesName = "buddilive_mobile_auth"
 private const val stayLoggedInPreferenceKey = "stay_logged_in"
 private const val loginIdentifierTag = "loginIdentifier"
 private const val loginPasswordTag = "loginPassword"
+private const val offlineStatusText = "Offline"
 
 private fun readStayLoggedInPreference(context: Context): Boolean {
 	return context.getSharedPreferences(authPreferencesName, Context.MODE_PRIVATE)
@@ -336,6 +342,7 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 	val coroutineScope = rememberCoroutineScope()
 	val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle()
 	val syncState by repository.syncState.collectAsStateWithLifecycle()
+	val showOfflineStatus = !syncState.needsLogin && (!isOnline || syncState.error != null)
 	val lifecycleOwner = LocalLifecycleOwner.current
 	var showSignIn by remember { mutableStateOf(false) }
 	var legacyPendingCount by remember { mutableStateOf(0) }
@@ -409,9 +416,7 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 						Text("Sign in to sync", modifier = Modifier.padding(horizontal = 16.dp))
 						TextButton(onClick = { showSignIn = true }) { Text("Sign in") }
 					}
-				} else if (!isOnline || syncState.error != null) {
-					OfflineStatusBanner()
-				} else if (!syncState.isPrepared) {
+				} else if (!showOfflineStatus && !syncState.isPrepared) {
 					Text("Downloading data for offline use…", modifier = Modifier.padding(12.dp))
 				}
 			}
@@ -453,6 +458,7 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 					selectedAccountId == null -> AccountsScreen(
 						modifier = Modifier,
 						repository = repository,
+						showOfflineStatus = showOfflineStatus,
 						expandedTypes = expandedAccountTypes,
 						onExpandedTypesChange = { expandedAccountTypes = it },
 						onAccountSelected = { account ->
@@ -478,6 +484,7 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 					else -> TransactionsScreen(
 						modifier = Modifier,
 						repository = repository,
+						showOfflineStatus = showOfflineStatus,
 						accountId = selectedAccountId ?: return@Scaffold,
 						accountName = selectedAccountName,
 						accountBalance = selectedAccountBalance,
@@ -500,19 +507,51 @@ fun BuddiMobileApp(repository: BuddiRepository, networkMonitor: NetworkMonitor) 
 }
 
 @Composable
-private fun OfflineStatusBanner() {
+private fun ToolbarTitle(title: String, showOfflineStatus: Boolean) {
+	var showOfflineDetails by remember { mutableStateOf(false) }
+
+	LaunchedEffect(showOfflineStatus) {
+		if (!showOfflineStatus) {
+			showOfflineDetails = false
+		}
+	}
+
 	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.errorContainer)
-			.padding(horizontal = 16.dp, vertical = 6.dp),
-		horizontalArrangement = Arrangement.Center
+		horizontalArrangement = Arrangement.spacedBy(12.dp),
+		verticalAlignment = Alignment.CenterVertically
 	) {
 		Text(
-			text = "Offline",
-			style = MaterialTheme.typography.labelLarge,
-			fontWeight = FontWeight.SemiBold,
-			color = MaterialTheme.colorScheme.onErrorContainer
+			text = title,
+			modifier = Modifier.weight(1f, fill = false),
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis
+		)
+		AnimatedVisibility(visible = showOfflineStatus, enter = fadeIn(), exit = fadeOut()) {
+			Surface(
+				onClick = { showOfflineDetails = true },
+				shape = RoundedCornerShape(8.dp),
+				color = MaterialTheme.colorScheme.secondaryContainer,
+				contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+			) {
+				Row(
+					modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+					horizontalArrangement = Arrangement.spacedBy(6.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Icon(Icons.Filled.CloudOff, contentDescription = null, modifier = Modifier.size(16.dp))
+					Text(offlineStatusText, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+				}
+			}
+		}
+	}
+	if (showOfflineDetails) {
+		AlertDialog(
+			onDismissRequest = { showOfflineDetails = false },
+			title = { Text(offlineStatusText) },
+			text = { Text("You're using saved data. New transactions are saved on this device and will sync when the connection is restored.") },
+			confirmButton = {
+				TextButton(onClick = { showOfflineDetails = false }) { Text("Close") }
+			}
 		)
 	}
 }
@@ -639,6 +678,7 @@ private fun LoginScreen(
 private fun AccountsScreen(
 	modifier: Modifier,
 	repository: BuddiRepository,
+	showOfflineStatus: Boolean,
 	expandedTypes: Set<String>,
 	onExpandedTypesChange: (Set<String>) -> Unit,
 	onAccountSelected: (AccountSummary) -> Unit,
@@ -660,7 +700,7 @@ private fun AccountsScreen(
 		modifier = modifier.fillMaxSize(),
 			topBar = {
 			TopAppBar(
-				title = { Text("Accounts") },
+				title = { ToolbarTitle("Accounts", showOfflineStatus) },
 				actions = {
 					IconButton(onClick = onLogout) {
 						Icon(
@@ -854,6 +894,7 @@ private fun AccountsScreen(
 private fun TransactionsScreen(
 	modifier: Modifier,
 	repository: BuddiRepository,
+	showOfflineStatus: Boolean,
 	accountId: Long,
 	accountName: String,
 	accountBalance: String,
@@ -913,6 +954,7 @@ private fun TransactionsScreen(
 	if (showEditor) {
 		TransactionEditorScreen(
 			modifier = modifier,
+			showOfflineStatus = showOfflineStatus,
 			existing = editingTransaction,
 			fromSources = state.fromSources,
 			toSources = state.toSources,
@@ -963,7 +1005,7 @@ private fun TransactionsScreen(
 				modifier = modifier.fillMaxSize(),
 				topBar = {
 					TopAppBar(
-						title = { Text("Transactions") },
+						title = { ToolbarTitle("Transactions", showOfflineStatus) },
 						navigationIcon = {
 							IconButton(onClick = onBack) {
 								Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -1404,6 +1446,7 @@ private fun applySourceSelection(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 private fun TransactionEditorScreen(
 	modifier: Modifier,
+	showOfflineStatus: Boolean,
 	existing: TransactionSummary?,
 	fromSources: List<SourceOption>,
 	toSources: List<SourceOption>,
@@ -1523,7 +1566,7 @@ private fun TransactionEditorScreen(
 		modifier = modifier.fillMaxSize(),
 		topBar = {
 			TopAppBar(
-				title = { Text(if (existing == null) "New Transaction" else "Edit Transaction") },
+				title = { ToolbarTitle(if (existing == null) "New Transaction" else "Edit Transaction", showOfflineStatus) },
 				navigationIcon = {
 					IconButton(onClick = onBack) {
 						Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

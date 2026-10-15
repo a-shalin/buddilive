@@ -23,6 +23,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import retrofit2.Response
+import java.io.IOException
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -30,6 +31,42 @@ class OfflineStartupTest {
 
 	@get:Rule
 	val compose = createComposeRule()
+
+	@Test
+	fun offlineStatusStaysInToolbarOnCachedScreens() = runBlocking {
+		val context = ApplicationProvider.getApplicationContext<Context>()
+		val databaseName = "offline-toolbar-${UUID.randomUUID()}.db"
+		val api = OfflineTestApi()
+		val repository = BuddiRepository(api, offlineStore = AndroidOfflineStore(context, databaseName), autoSyncPendingTransactions = false, backendIdentity = databaseName)
+		repository.login("offline-test", "password", true)
+		repository.synchronize().getOrThrow()
+		context.getSharedPreferences("buddilive_mobile_auth", Context.MODE_PRIVATE).edit()
+			.putBoolean("stay_logged_in", true).commit()
+		val networkMonitor = NetworkMonitor(context)
+		try {
+			compose.setContent {
+				AppTheme { BuddiMobileApp(repository, networkMonitor) }
+			}
+			compose.waitUntil(5_000) { compose.onAllNodesWithText("Assets").fetchSemanticsNodes().isNotEmpty() }
+			api.failReads = true
+			assertTrue(repository.synchronize().isFailure)
+			assertOfflineStatusInToolbar("Accounts")
+			compose.onNodeWithText("Assets").performClick()
+			compose.onNodeWithText("Checking").performClick()
+			assertOfflineStatusInToolbar("Transactions")
+			compose.onNodeWithContentDescription("New").performClick()
+			assertOfflineStatusInToolbar("New Transaction")
+		} finally {
+			repository.setForeground(false)
+			context.getSharedPreferences("buddilive_mobile_auth", Context.MODE_PRIVATE).edit().clear().commit()
+		}
+	}
+
+	private fun assertOfflineStatusInToolbar(title: String) {
+		val titleBounds = compose.onNodeWithText(title).fetchSemanticsNode().boundsInRoot
+		val statusBounds = compose.onNodeWithText("Offline").fetchSemanticsNode().boundsInRoot
+		assertEquals(titleBounds.center.y, statusBounds.center.y, 1f)
+	}
 
 	@Test
 	fun cachedScreensAndLocalCreationWorkWhileRefreshIsSuspended() = runBlocking {
@@ -106,6 +143,8 @@ class OfflineStartupTest {
 
 private class OfflineTestApi : BuddiApi {
 	@Volatile
+	var failReads = false
+	@Volatile
 	var suspendReads = false
 	val readStarted = CompletableDeferred<Unit>()
 	val releaseReads = CompletableDeferred<Unit>()
@@ -113,6 +152,9 @@ private class OfflineTestApi : BuddiApi {
 	private val gson = Gson()
 
 	private suspend fun awaitBackend() {
+		if (failReads) {
+			throw IOException("Offline")
+		}
 		if (suspendReads) {
 			readStarted.complete(Unit)
 			releaseReads.await()
