@@ -1,6 +1,6 @@
 package ca.digitalcave.buddi.live.controller;
 
-import ca.digitalcave.buddi.live.api.dto.SuccessResponseDto;
+import ca.digitalcave.buddi.live.api.dto.TransactionResponseDto;
 import ca.digitalcave.buddi.live.api.dto.request.TransactionRequestDto;
 import ca.digitalcave.buddi.live.service.TransactionsTransactionalService;
 import ca.digitalcave.buddi.live.db.Sources;
@@ -12,7 +12,6 @@ import ca.digitalcave.buddi.live.model.Transaction;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.buddi.live.util.FormatUtil;
-import ca.digitalcave.buddi.live.util.LocaleUtil;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -130,20 +129,10 @@ public class TransactionsController {
 	}
 
 	@PostMapping
-	public SuccessResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final TransactionRequestDto request) {
+	public TransactionResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final TransactionRequestDto request,
+			@RequestParam(defaultValue = "false") final boolean includeSuggestions) {
 		try {
-			final Action action = request.action();
-			Transaction insertedTransaction = null;
-			switch (action) {
-				case INSERT -> insertedTransaction = transactionsTransactionalService.insertTransaction(user, Transaction.fromDto(request));
-				case UPDATE -> transactionsTransactionalService.updateTransaction(user, Transaction.fromDto(request));
-				case DELETE -> transactionsTransactionalService.deleteTransaction(user, request.id());
-				default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LocaleUtil.getTranslation(user).getString("ACTION_PARAMETER_MUST_BE_SPECIFIED"));
-			}
-
-			return insertedTransaction == null
-					? new SuccessResponseDto(true)
-					: new SuccessResponseDto(true, insertedTransaction.getId(), insertedTransaction.getUuid());
+			return transactionsTransactionalService.mutate(user, request, includeSuggestions);
 		}
 		catch (DatabaseException e) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);

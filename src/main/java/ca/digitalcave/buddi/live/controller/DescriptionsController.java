@@ -1,18 +1,24 @@
 package ca.digitalcave.buddi.live.controller;
 
-import ca.digitalcave.buddi.live.db.Transactions;
+import ca.digitalcave.buddi.live.api.dto.request.DescriptionsSyncRequestDto;
 import ca.digitalcave.buddi.live.model.Split;
 import ca.digitalcave.buddi.live.model.Transaction;
 import ca.digitalcave.buddi.live.model.User;
+import ca.digitalcave.buddi.live.service.TransactionSuggestionsService;
 import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,16 +29,14 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 @RestController
 @RequestMapping("/data/transactions/descriptions")
 public class DescriptionsController {
 
 	@Autowired
-	private Transactions transactions;
+	private TransactionSuggestionsService suggestions;
 
 	@Autowired
 	private JsonFactory jsonFactory;
@@ -41,15 +45,7 @@ public class DescriptionsController {
 	public StreamingResponseBody get(@AuthenticationPrincipal final User user,
 			@RequestParam(required = false) final Integer source) {
 		try {
-			final Map<String, Transaction> transactionsByDescription = new TreeMap<>();
-			final List<Transaction> txns = transactions.selectDescriptions(user);
-			for (Transaction transaction : txns) {
-				if (source != null && !containsSource(transaction, source)) continue;
-				final String description = CryptoUtil.decryptWrapper(transaction.getDescription(), user);
-				if (transactionsByDescription.get(description) == null) {
-					transactionsByDescription.put(description, transaction);
-				}
-			}
+			final Map<String, Transaction> transactionsByDescription = suggestions.select(user, source);
 
 			return outputStream -> {
 				try (JsonGenerator generator = jsonFactory.createGenerator(outputStream)) {
@@ -105,6 +101,16 @@ public class DescriptionsController {
 		}
 	}
 
+	@PostMapping(value = "/sync", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<byte[]> sync(@AuthenticationPrincipal final User user,
+			@RequestBody final DescriptionsSyncRequestDto request,
+			@RequestHeader(value = "Accept-Encoding", defaultValue = "") final String encoding) throws IOException, CryptoException {
+		final boolean gzip = java.util.Arrays.stream(encoding.split(","))
+				.map(String::trim).anyMatch(value -> value.equalsIgnoreCase("gzip") || value.matches("(?i)gzip\\s*;\\s*q=(?!0(?:\\.0*)?$)[0-9.]+"));
+		return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.APPLICATION_JSON)
+				.body(suggestions.sync(user, request, gzip));
+	}
+
 	private static boolean isClientAbort(final Throwable exception) {
 		Throwable current = exception;
 		while (current != null) {
@@ -120,17 +126,6 @@ public class DescriptionsController {
 				return true;
 			}
 			current = current.getCause();
-		}
-		return false;
-	}
-
-	private static boolean containsSource(final Transaction transaction, final int source) {
-		final List<Split> splits = transaction.getSplits();
-		if (splits == null) return false;
-		for (Split split : splits) {
-			if (split.getFromSource() == source || split.getToSource() == source) {
-				return true;
-			}
 		}
 		return false;
 	}

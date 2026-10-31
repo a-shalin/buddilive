@@ -51,7 +51,6 @@ class BuddiRepository(
     val sessionVersion: StateFlow<Long> = _sessionVersion.asStateFlow()
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val descriptionsLoadMutex = Mutex()
     private val syncMutex = Mutex()
     private val gson = Gson()
     private val _pendingTransactionsSynced = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -61,8 +60,10 @@ class BuddiRepository(
     val transactionDescriptionTemplates: StateFlow<List<TransactionDescriptionTemplate>> =
         _transactionDescriptionTemplates.asStateFlow()
 
-    @Volatile
-    private var descriptionsLoaded: Boolean = false
+    private var memorySuggestions = SuggestionsCache()
+    private var suggestionsNeedRepair = false
+    private var legacySuggestionsBackend = false
+    private var externalSyncRequested = false
 
     suspend fun login(identifier: String, password: String, stayLoggedIn: Boolean): LoginResult = authenticationMutex.withLock {
         foregroundJob?.cancelAndJoin()
@@ -151,19 +152,32 @@ class BuddiRepository(
         }
         foregroundJob = repositoryScope.launch {
             var retryMillis = 15_000L
+            var externalDeadline = 0L
             do {
                 while (syncRequests.tryReceive().isSuccess) { }
-                val result = synchronize()
-                val delayMillis = if (result.isSuccess) 60_000L else retryMillis
-                retryMillis = if (result.isSuccess) 15_000L else (retryMillis * 2).coerceAtMost(60_000L)
+                val external = synchronized(dataLock) {
+                    (externalSyncRequested || System.nanoTime() >= externalDeadline).also { externalSyncRequested = false }
+                }
+                var succeeded = false
+                try {
+                    val result = synchronize(reconcileSuggestions = external)
+                    succeeded = result.isSuccess
+                } finally {
+                    if (external && !succeeded) synchronized(dataLock) { externalSyncRequested = true }
+                }
+                if (external && succeeded) externalDeadline = System.nanoTime() + 60_000_000_000L
+                val untilExternal = ((externalDeadline - System.nanoTime()) / 1_000_000).coerceAtLeast(1L)
+                val delayMillis = if (succeeded) untilExternal else retryMillis
+                retryMillis = if (succeeded) 15_000L else (retryMillis * 2).coerceAtMost(60_000L)
                 withTimeoutOrNull(delayMillis) { syncRequests.receive() }
             } while (foreground)
         }
     }
 
-    fun requestSync() {
-        if (foreground && !_syncState.value.needsLogin) {
-            syncRequests.trySend(Unit)
+    fun requestSync(externalRefresh: Boolean = true) {
+        synchronized(dataLock) {
+            externalSyncRequested = externalSyncRequested || externalRefresh
+            if (foreground && !_syncState.value.needsLogin) syncRequests.trySend(Unit)
         }
     }
 
@@ -185,10 +199,7 @@ class BuddiRepository(
 
     suspend fun readCachedAccountData(accountId: Long): CachedAccountData = withContext(Dispatchers.IO) {
         synchronized(dataLock) {
-            loadCachedResponse(TRANSACTION_DESCRIPTIONS_CACHE_KEY, TransactionDescriptionsResponseDto::class.java)
-                ?.getOrNull()?.let { response ->
-                    _transactionDescriptionTemplates.update { mergeDescriptionTemplates(response.toTransactionDescriptionTemplates(), it) }
-                }
+            publishSuggestions()
             val pending = pendingTransactionsForSource(accountId)
             val hasPage = offlineStore?.loadCache(transactionsCacheKey(accountId, 0, RECENT_LIMIT)) != null
             CachedAccountData(
@@ -247,7 +258,7 @@ class BuddiRepository(
                         store.saveCache(LEGACY_IMPORTED_KEY, "true")
                     }
                     notifyCacheChanged()
-                    requestSync()
+                    requestSync(externalRefresh = false)
                 }
             }
         }
@@ -325,85 +336,109 @@ class BuddiRepository(
         )
     }
 
-    suspend fun fetchTransactionDescriptionTemplates(): Result<List<TransactionDescriptionTemplate>> {
-        if (descriptionsLoaded) {
-            return Result.success(_transactionDescriptionTemplates.value)
-        }
-        return loadTransactionDescriptionTemplatesIntoStore()
+    suspend fun fetchTransactionDescriptionTemplates(): Result<List<TransactionDescriptionTemplate>> = withContext(Dispatchers.IO) {
+        runCatching { synchronized(dataLock) { publishSuggestions(); _transactionDescriptionTemplates.value } }
     }
 
-    private suspend fun loadTransactionDescriptionTemplatesIntoStore(): Result<List<TransactionDescriptionTemplate>> {
-        if (descriptionsLoaded) {
-            return Result.success(_transactionDescriptionTemplates.value)
-        }
-        return descriptionsLoadMutex.withLock {
-            if (descriptionsLoaded) {
-                return@withLock Result.success(_transactionDescriptionTemplates.value)
-            }
-            val result = fetchTransactionDescriptionResponse()
-                .map { response -> response.toTransactionDescriptionTemplates() }
-            result.onSuccess { templates ->
-                _transactionDescriptionTemplates.update { existing ->
-                    mergeDescriptionTemplates(remote = templates, local = existing)
-                }
-                descriptionsLoaded = true
-            }
-            if (result.isSuccess) {
-                Result.success(_transactionDescriptionTemplates.value)
-            } else {
-                result
-            }
-        }
+    private fun loadSuggestions(): SuggestionsCache {
+        val cached = loadCachedResponse(SUGGESTIONS_CACHE_KEY, SuggestionsCache::class.java)?.getOrNull()
+        if (cached?.version == TransactionSuggestionBuckets.VERSION && runCatching {
+            TransactionSuggestionBuckets.validate(cached.items)
+        }.isSuccess) return cached
+        if (memorySuggestions.items.isNotEmpty() || memorySuggestions.complete) return memorySuggestions
+        val legacy = loadCachedResponse(TRANSACTION_DESCRIPTIONS_CACHE_KEY, TransactionDescriptionsResponseDto::class.java)?.getOrNull()
+        return SuggestionsCache(items = legacy?.toTransactionDescriptionTemplates().orEmpty())
     }
 
-    private fun mergeDescriptionTemplates(
-        remote: List<TransactionDescriptionTemplate>,
-        local: List<TransactionDescriptionTemplate>
-    ): List<TransactionDescriptionTemplate> {
-        if (local.isEmpty()) {
-            return remote
-        }
-        val mergedByDescription = LinkedHashMap<String, TransactionDescriptionTemplate>()
-        for (template in remote) {
-            mergedByDescription[template.description.trim().lowercase()] = template
-        }
-        for (template in local) {
-            mergedByDescription[template.description.trim().lowercase()] = template
-        }
-        return mergedByDescription.values.toList()
+    private fun saveSuggestions(cache: SuggestionsCache) {
+        offlineStore?.saveCache(SUGGESTIONS_CACHE_KEY, gson.toJson(cache))
     }
 
-    private fun addOrUpdateTransactionDescriptionTemplate(input: TransactionEditInput) {
-        val description = input.description.trim()
-        if (description.isBlank()) {
-            return
+    private fun publishSuggestions() {
+        val templates = loadSuggestions().items.sortedBy { it.description }
+            .map { it.copy(description = it.description.trim()) }
+            .associateBy { it.description.lowercase() }.toMutableMap()
+        for (pending in offlineStore?.listPendingTransactions().orEmpty().sortedBy { it.modifiedAt }) {
+            if (!pending.sync.acknowledged && !pending.sync.deleted) {
+                val input = pending.toEditInput()
+                val suggestion = input.toSuggestion().copy(description = input.description.trim())
+                templates[suggestion.description.lowercase()] = suggestion
+            }
         }
-        val amountNumber = input.amount.toBigDecimalOrNull() ?: return
-        val updatedTemplate = TransactionDescriptionTemplate(
-            description = description,
-            splits = listOf(
-                TransactionDescriptionTemplateSplit(
-                    amountNumber = amountNumber,
-                    fromId = input.fromId,
-                    toId = input.toId,
-                    fromType = null,
-                    toType = null
-                )
-            )
+        _transactionDescriptionTemplates.value = templates.values.filter { it.description.isNotBlank() && it.splits.isNotEmpty() }
+            .sortedBy { it.description }
+    }
+
+    private fun TransactionEditInput.toSuggestion(): TransactionDescriptionTemplate = TransactionDescriptionTemplate(
+        description, listOf(TransactionDescriptionTemplateSplit(amount.toBigDecimal(), fromId, toId, null, null))
+    )
+
+    private fun applyMutationSuggestions(response: TransactionResponseDto, request: TransactionMutationRequestDto) {
+        val cache = loadSuggestions()
+        val patch = response.suggestions ?: SuggestionsPatchDto(
+            upserts = if (request.action == "delete" || request.description == null) emptyList() else listOf(
+                TransactionDescriptionTemplate(request.description, request.splits.orEmpty().map {
+                    TransactionDescriptionTemplateSplit(it.amount.toBigDecimal(), it.fromId, it.toId, null, null)
+                })
+            ), deletes = emptyList()
         )
-        _transactionDescriptionTemplates.update { templates ->
-            val existingIndex = templates.indexOfFirst { it.description.equals(description, ignoreCase = true) }
-            if (existingIndex < 0) {
-                return@update templates + updatedTemplate
+        val next = TransactionSuggestionBuckets.patch(cache, patch)
+        saveSuggestions(next)
+        if (offlineStore == null) memorySuggestions = next
+    }
+
+    private suspend fun reconcileSuggestions(store: OfflineStore) {
+        val cache = synchronized(dataLock) {
+            if (store !== offlineStore) throw CancellationException("Account changed")
+            loadSuggestions()
+        }
+        if (!legacySuggestionsBackend) {
+            val request = DescriptionsSyncRequestDto(bucketHashes = if (cache.complete && !suggestionsNeedRepair)
+                TransactionSuggestionBuckets.manifest(cache.items) else null)
+            val response = try {
+                descriptionsApi.syncTransactionDescriptions(request)
+            } catch (exception: HttpException) {
+                synchronized(dataLock) {
+                    if (store !== offlineStore) throw CancellationException("Account changed")
+                    if (exception.code() == 401 || exception.code() == 403) throw UnauthorizedException()
+                    if (exception.code() !in listOf(404, 405, 501)) throw exception
+                    legacySuggestionsBackend = true
+                }
+                null
             }
-            templates.toMutableList().apply {
-                set(existingIndex, updatedTemplate)
+            if (response != null) {
+                val next = try {
+                    TransactionSuggestionBuckets.replace(if (request.bucketHashes == null) cache.copy(complete = false) else cache, response)
+                } catch (exception: Exception) {
+                    synchronized(dataLock) {
+                        if (store === offlineStore) suggestionsNeedRepair = true
+                    }
+                    throw exception
+                }
+                synchronized(dataLock) {
+                    if (store !== offlineStore) throw CancellationException("Account changed")
+                    store.transaction { saveSuggestions(next) }
+                    suggestionsNeedRepair = false
+                    publishSuggestions()
+                    notifyCacheChanged()
+                }
+                return
             }
+        }
+        val legacy = fetchTransactionDescriptionResponse(forceNetwork = true).getOrThrow()
+        synchronized(dataLock) {
+            if (store !== offlineStore) throw CancellationException("Account changed")
+            val next = SuggestionsCache(items = legacy.toTransactionDescriptionTemplates())
+            store.transaction { saveSuggestions(next) }
+            publishSuggestions()
         }
     }
 
     private fun resetTransactionDescriptionTemplates() {
-        descriptionsLoaded = false
+        memorySuggestions = SuggestionsCache()
+        suggestionsNeedRepair = false
+        legacySuggestionsBackend = false
+        externalSyncRequested = false
         _transactionDescriptionTemplates.value = emptyList()
     }
 
@@ -453,7 +488,8 @@ class BuddiRepository(
                         )
                     )
                     notifyCacheChanged()
-                    addOrUpdateTransactionDescriptionTemplate(input)
+                    publishSuggestions()
+                    requestSync(externalRefresh = false)
                 }
             }
         }
@@ -472,15 +508,15 @@ class BuddiRepository(
                     )
                 )
             )
-        ).onSuccess {
-            addOrUpdateTransactionDescriptionTemplate(input)
-        }
+        )
     }
 
     suspend fun updateTransaction(transactionId: Long, input: TransactionEditInput): Result<Unit> = withContext(Dispatchers.IO) {
         val updated = runCatching {
             synchronized(dataLock) {
                 val pending = findPendingTransaction(transactionId) ?: return@synchronized false
+                val suggestionKeys = pending.sync.suggestionKeys.orEmpty() + pending.description + input.description
+                check(suggestionKeys.size <= 64) { "Too many unacknowledged description changes" }
                 offlineStore?.upsertPendingTransaction(pending.copy(
                     status = PendingTransactionStatus.PENDING,
                     dateIso = input.dateIso,
@@ -492,15 +528,15 @@ class BuddiRepository(
                     memo = input.memo,
                     modifiedAt = System.currentTimeMillis(),
                     lastError = null,
-                    sync = pending.sync.copy(acknowledged = false)
+                    sync = pending.sync.copy(acknowledged = false, suggestionKeys = suggestionKeys)
                 ))
-                addOrUpdateTransactionDescriptionTemplate(input)
+                publishSuggestions()
                 notifyCacheChanged()
                 true
             }
         }.getOrElse { return@withContext Result.failure(it) }
         if (updated) {
-            requestSync()
+            requestSync(externalRefresh = false)
             return@withContext Result.success(Unit)
         }
         val serverId = resolveTransactionId(transactionId)
@@ -509,7 +545,7 @@ class BuddiRepository(
             action = "update", id = serverId, date = input.dateIso,
             description = input.description, number = input.number,
             splits = listOf(SplitMutationRequestDto(input.amount, input.fromId, input.toId, input.memo))
-        )).onSuccess { addOrUpdateTransactionDescriptionTemplate(input) }
+        ))
     }
 
     suspend fun deleteTransaction(transactionId: Long): Result<Unit> = withContext(Dispatchers.IO) {
@@ -524,12 +560,13 @@ class BuddiRepository(
                         sync = pending.sync.copy(deleted = true, acknowledged = false)
                     ))
                 }
+                publishSuggestions()
                 notifyCacheChanged()
                 true
             }
         }.getOrElse { return@withContext Result.failure(it) }
         if (deleted) {
-            requestSync()
+            requestSync(externalRefresh = false)
             return@withContext Result.success(Unit)
         }
         val serverId = resolveTransactionId(transactionId)
@@ -543,24 +580,52 @@ class BuddiRepository(
 
     private suspend fun mutateTransaction(request: TransactionMutationRequestDto): Result<Unit> {
         return syncMutex.withLock {
+            val store = offlineStore
             runApi {
-                val response = api.mutateTransaction(request)
+                val hinted = synchronized(dataLock) {
+                    if (store !== offlineStore) throw CancellationException("Account changed")
+                    val keys = mutableSetOf<String>()
+                    request.id?.let { id ->
+                        loadCachedResponse("suggestion-keys:$id", Array<String>::class.java)?.getOrNull()?.let { keys.addAll(it) }
+                        val accounts = loadCachedResponse(ACCOUNTS_CACHE_KEY, AccountsResponseDto::class.java)?.getOrNull()?.toAccountSummaries().orEmpty()
+                        for (account in accounts) {
+                            loadCachedResponse(transactionsCacheKey(account.id, 0, RECENT_LIMIT), TransactionsResponseDto::class.java)
+                                ?.getOrNull()?.data?.firstOrNull { it.id == id }?.description?.let { keys.add(it) }
+                        }
+                    }
+                    request.description?.let { keys.add(it) }
+                    check(keys.size <= 64) { "Too many unacknowledged description changes" }
+                    request.id?.let { store?.saveCache("suggestion-keys:$it", gson.toJson(keys)) }
+                    request.copy(suggestionKeys = keys.toList())
+                }
+                val response = api.mutateTransaction(hinted)
                 if (!response.success) {
                     return@runApi Result.failure(IllegalStateException("Transaction mutation failed."))
                 }
-                requestSync()
+                synchronized(dataLock) {
+                    if (store !== offlineStore) throw CancellationException("Account changed")
+                    store?.transaction {
+                        applyMutationSuggestions(response, request)
+                        request.id?.let { store.saveCache("suggestion-keys:$it", "[]") }
+                    }
+                    if (store == null) applyMutationSuggestions(response, request)
+                    publishSuggestions()
+                    notifyCacheChanged()
+                }
+                requestSync(externalRefresh = false)
                 Result.success(Unit)
             }
         }
     }
 
-    fun syncPendingTransactionsAsync() = requestSync()
+    fun syncPendingTransactionsAsync() = requestSync(externalRefresh = false)
 
-    suspend fun syncPendingTransactions(): Result<Int> = synchronize()
+    suspend fun syncPendingTransactions(): Result<Int> = synchronize(reconcileSuggestions = false)
 
-    suspend fun synchronize(): Result<Int> = withContext(Dispatchers.IO) {
+    suspend fun synchronize(reconcileSuggestions: Boolean = true): Result<Int> = withContext(Dispatchers.IO) {
         syncMutex.withLock {
-            if (_syncState.value.needsLogin || offlineStore == null) {
+            val store = offlineStore
+            if (_syncState.value.needsLogin || store == null) {
                 return@withLock Result.failure(UnauthorizedException())
             }
             _syncState.update { it.copy(isSyncing = true, error = null) }
@@ -577,25 +642,25 @@ class BuddiRepository(
                 for (account in accounts) {
                     fetchTransactionsResponse(account.id, 0, RECENT_LIMIT, forceNetwork = true).getOrThrow()
                 }
-                val descriptions = fetchTransactionDescriptionResponse(forceNetwork = true).getOrThrow()
-                _transactionDescriptionTemplates.update { mergeDescriptionTemplates(descriptions.toTransactionDescriptionTemplates(), it) }
-                descriptionsLoaded = true
+                if (reconcileSuggestions) reconcileSuggestions(store)
                 synchronized(dataLock) {
-                    offlineStore?.transaction {
-                        for (pending in offlineStore?.listPendingTransactions().orEmpty()) {
+                    if (store !== offlineStore) throw CancellationException("Account changed")
+                    store.transaction {
+                        for (pending in store.listPendingTransactions()) {
                             if (pending.sync.acknowledged) {
                                 pending.sync.serverId?.let { serverId ->
-                                    offlineStore?.saveCache(transactionIdCacheKey(pending.id), serverId.toString())
+                                    store.saveCache(transactionIdCacheKey(pending.id), serverId.toString())
                                 }
-                                offlineStore?.deletePendingTransaction(pending.localUuid)
+                                store.deletePendingTransaction(pending.localUuid)
                             }
                         }
-                        offlineStore?.saveCache(READY_KEY, "true")
+                        if (reconcileSuggestions || _syncState.value.isPrepared) store.saveCache(READY_KEY, "true")
                     }
+                    publishSuggestions()
                     notifyCacheChanged()
                 }
                 if (uploaded > 0) _pendingTransactionsSynced.tryEmit(Unit)
-                _syncState.update { it.copy(isPrepared = true, error = null) }
+                _syncState.update { it.copy(isPrepared = it.isPrepared || reconcileSuggestions, error = null) }
                 Result.success(uploaded)
             } catch (exception: CancellationException) {
                 throw exception
@@ -626,7 +691,8 @@ class BuddiRepository(
                 current.copy(
                     status = PendingTransactionStatus.SYNCING,
                     attemptCount = current.attemptCount + 1,
-                    sync = current.sync.copy(submitted = current.sync.submitted ?: current.toEditInput())
+                    sync = current.sync.copy(submitted = current.sync.submitted ?: current.toEditInput(),
+                        suggestionKeys = current.sync.suggestionKeys.orEmpty() + current.description + listOfNotNull(current.sync.serverInput?.description))
                 ).also {
                     store.upsertPendingTransaction(it)
                     notifyCacheChanged()
@@ -646,11 +712,12 @@ class BuddiRepository(
                 )
             }
             val result = runApi {
-                val response = api.mutateTransaction(request)
+                val response = api.mutateTransaction(request.copy(suggestionKeys = sending.sync.suggestionKeys.orEmpty().toList()))
                 if (!response.success) Result.failure(IllegalArgumentException("Transaction rejected."))
                 else Result.success(response)
             }
             synchronized(dataLock) {
+                if (store !== offlineStore) throw CancellationException("Account changed")
                 val current = store.listPendingTransactions().first { it.localUuid == uuid }
                 result.fold(onSuccess = { response ->
                     val serverInput = if (deleting) null else sending.sync.submitted
@@ -660,14 +727,17 @@ class BuddiRepository(
                     }
                     val acknowledged = if (deleting) current.sync.deleted
                         else !current.sync.deleted && current.toEditInput() == serverInput
-                    store.upsertPendingTransaction(current.copy(
-                        status = PendingTransactionStatus.PENDING, lastError = null,
-                        sync = current.sync.copy(
-                            serverId = serverId, serverInput = serverInput, submitted = null,
-                            acknowledged = acknowledged
-                        )
-                    ))
-                    if (!acknowledged) requestSync()
+                    store.transaction {
+                        applyMutationSuggestions(response, request)
+                        store.upsertPendingTransaction(current.copy(
+                            status = PendingTransactionStatus.PENDING, lastError = null,
+                            sync = current.sync.copy(
+                                serverId = serverId, serverInput = serverInput, submitted = null,
+                                acknowledged = acknowledged
+                            )
+                        ))
+                    }
+                    if (!acknowledged) requestSync(externalRefresh = false)
                     syncedCount++
                 }, onFailure = { error ->
                     val rejected = error is IllegalArgumentException || error is HttpException && error.code() in 400..499
@@ -677,6 +747,7 @@ class BuddiRepository(
                         sync = if (rejected) current.sync.copy(submitted = null) else current.sync
                     ))
                 })
+                publishSuggestions()
                 notifyCacheChanged()
             }
             val error = result.exceptionOrNull()
@@ -1033,6 +1104,7 @@ class OfflineUnavailableException : RuntimeException("Open this account once whi
 
 private const val ACCOUNTS_CACHE_KEY = "accounts"
 private const val USER_PREFERENCES_CACHE_KEY = "user-preferences"
+private const val SUGGESTIONS_CACHE_KEY = "transaction-suggestions:v1"
 private const val TRANSACTION_DESCRIPTIONS_CACHE_KEY = "transaction-descriptions"
 private const val SOURCE_DIRECTION_FROM = "from"
 private const val SOURCE_DIRECTION_TO = "to"

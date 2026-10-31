@@ -43,8 +43,11 @@ interface BuddiApi {
 	@GET("data/transactions/descriptions.json")
 	suspend fun getTransactionDescriptions(): TransactionDescriptionsResponseDto
 
-	@POST("data/transactions")
-	suspend fun mutateTransaction(@Body request: TransactionMutationRequestDto): SuccessResponseDto
+	@POST("data/transactions/descriptions/sync")
+	suspend fun syncTransactionDescriptions(@Body request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto
+
+	@POST("data/transactions?includeSuggestions=true")
+	suspend fun mutateTransaction(@Body request: TransactionMutationRequestDto): TransactionResponseDto
 
 	@GET("data/userpreferences")
 	suspend fun getUserPreferences(): UserPreferencesResponseDto

@@ -1,5 +1,8 @@
 package ca.digitalcave.buddi.live.service;
 
+import ca.digitalcave.buddi.live.api.dto.TransactionResponseDto;
+import ca.digitalcave.buddi.live.api.dto.request.TransactionRequestDto;
+import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
 import ca.digitalcave.buddi.live.db.util.ConstraintsChecker;
@@ -10,8 +13,13 @@ import ca.digitalcave.buddi.live.model.Transaction;
 import ca.digitalcave.buddi.live.model.User;
 import ca.digitalcave.moss.crypto.Crypto;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Service
 public class TransactionsTransactionalService {
@@ -19,11 +27,44 @@ public class TransactionsTransactionalService {
 	private final Sources sources;
 	private final Transactions transactions;
 	private final Crypto crypto;
+	private final TransactionSuggestionsService suggestions;
 
-	public TransactionsTransactionalService(final Sources sources, final Transactions transactions, final Crypto crypto) {
+	public TransactionsTransactionalService(final Sources sources, final Transactions transactions, final Crypto crypto, final TransactionSuggestionsService suggestions) {
 		this.sources = sources;
 		this.transactions = transactions;
 		this.crypto = crypto;
+		this.suggestions = suggestions;
+	}
+
+	@Transactional
+	public TransactionResponseDto mutate(final User user, final TransactionRequestDto request, final boolean includeSuggestions) throws CryptoException {
+		final Set<String> keys = new LinkedHashSet<>();
+		if (includeSuggestions) {
+			if (request.suggestionKeys() != null) {
+				if (request.suggestionKeys().size() > 64 || request.suggestionKeys().stream().anyMatch(key -> key == null || key.length() > 4096)) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid suggestion keys");
+				}
+				keys.addAll(request.suggestionKeys());
+			}
+			if (request.description() != null) keys.add(request.description());
+			if (request.id() != null) {
+				final String previous = transactions.selectDescriptionById(user, request.id());
+				if (previous != null) keys.add(CryptoUtil.decryptWrapper(previous, user));
+			}
+		}
+		Transaction inserted = null;
+		if (request.action() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Action is required");
+		switch (request.action()) {
+			case INSERT -> {
+				inserted = insertTransaction(user, Transaction.fromDto(request));
+				if (includeSuggestions) keys.add(CryptoUtil.decryptWrapper(inserted.getDescription(), user));
+			}
+			case UPDATE -> updateTransaction(user, Transaction.fromDto(request));
+			case DELETE -> deleteTransaction(user, request.id());
+			default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid transaction action");
+		}
+		return new TransactionResponseDto(true, inserted == null ? null : inserted.getId(),
+				inserted == null ? null : inserted.getUuid(), includeSuggestions ? suggestions.patch(user, keys) : null);
 	}
 
 	@Transactional

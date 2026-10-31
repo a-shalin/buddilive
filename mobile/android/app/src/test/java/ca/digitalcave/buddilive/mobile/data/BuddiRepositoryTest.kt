@@ -22,6 +22,264 @@ import java.math.BigDecimal
 class BuddiRepositoryTest {
 
 	@Test
+	fun failedPatchPersistenceRetainsUnacknowledgedOutboxForReplay() = runBlocking {
+		val backing = InMemoryOfflineStore()
+		var failWrite = false
+		val store = object : OfflineStore by backing {
+			override fun saveCache(key: String, value: String) {
+				if (failWrite && key == "transaction-suggestions:v1") throw IOException("Disk unavailable")
+				backing.saveCache(key, value)
+			}
+		}
+		val api = SuggestionsApi()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput()).getOrThrow()
+		failWrite = true
+		assertTrue(repository.syncPendingTransactions().isFailure)
+		assertFalse(store.listPendingTransactions().single().sync.acknowledged)
+		assertEquals("Coffee", repository.fetchTransactionDescriptionTemplates().getOrThrow().single().description)
+		failWrite = false
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(store.listPendingTransactions().isEmpty())
+		assertEquals(1, api.syncRequests.size)
+	}
+
+	@Test
+	fun expiredSessionDuringSuggestionsRefreshPausesSyncAndKeepsCache() = runBlocking {
+		var expired = false
+		val api = object : BuddiApi by FakeBuddiApi() {
+			override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto {
+				if (expired) throw HttpException(Response.error<Any>(401, "Expired".toResponseBody()))
+				return DescriptionsSyncResponseDto(true, 1, "full", listOf(suggestion("Coffee", "10.00")))
+			}
+		}
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		expired = true
+		assertTrue(repository.synchronize().isFailure)
+		assertTrue(repository.syncState.value.needsLogin)
+		assertEquals("Coffee", repository.fetchTransactionDescriptionTemplates().getOrThrow().single().description)
+	}
+
+	@Test
+	fun editCreatedDuringExternalRefreshRemainsOverlaidAfterReplacement() = runBlocking {
+		val server = SuggestionsApi()
+		server.items["Coffee"] = suggestion("Coffee", "10.00")
+		val entered = CompletableDeferred<Unit>()
+		val release = CompletableDeferred<Unit>()
+		var block = false
+		val api = object : BuddiApi by server {
+			override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto {
+				if (block) { entered.complete(Unit); release.await() }
+				return server.syncTransactionDescriptions(request)
+			}
+		}
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		server.items["Coffee"] = suggestion("Coffee", "12.00")
+		block = true
+		val refresh = async { repository.synchronize() }
+		withTimeout(2_000) { entered.await() }
+		repository.createTransaction(testInput()).getOrThrow()
+		release.complete(Unit)
+		refresh.await().getOrThrow()
+		assertEquals(BigDecimal("25.00"), repository.fetchTransactionDescriptionTemplates().getOrThrow().single().splits.single().amountNumber)
+		assertEquals(1, store.listPendingTransactions().size)
+	}
+
+	@Test
+	fun legacyFallbackIsOnlyDownloadedOnExternalRefreshAndRouteIsProbedOnce() = runBlocking {
+		var probes = 0
+		var downloads = 0
+		val api = object : BuddiApi by FakeBuddiApi() {
+			override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto {
+				probes++
+				throw HttpException(Response.error<Any>(404, "Unsupported".toResponseBody()))
+			}
+			override suspend fun getTransactionDescriptions(): TransactionDescriptionsResponseDto {
+				downloads++
+				return descriptionsResponse("Coffee", "10.00")
+			}
+		}
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput()).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertEquals(1, downloads)
+		repository.synchronize().getOrThrow()
+		assertEquals(1, probes)
+		assertEquals(2, downloads)
+		assertEquals(BigDecimal("10.00"), repository.fetchTransactionDescriptionTemplates().getOrThrow().single().splits.single().amountNumber)
+	}
+
+	@Test
+	fun ownerSwitchDiscardsInFlightBucketResponse() = runBlocking {
+		val stores = mutableMapOf<String, OfflineStore>()
+		val root = object : OfflineStore by InMemoryOfflineStore() {
+			override fun forOwner(owner: String): OfflineStore = stores.getOrPut(owner) { InMemoryOfflineStore() }
+		}
+		val entered = CompletableDeferred<Unit>()
+		val release = CompletableDeferred<Unit>()
+		val api = object : BuddiApi by FakeBuddiApi() {
+			override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto {
+				entered.complete(Unit)
+				release.await()
+				return DescriptionsSyncResponseDto(true, 1, "full", listOf(suggestion("First owner", "10.00")))
+			}
+		}
+		val repository = BuddiRepository(api, offlineStore = root, autoSyncPendingTransactions = false)
+		repository.login("first", "password", true)
+		val refresh = async { runCatching { repository.synchronize() } }
+		withTimeout(2_000) { entered.await() }
+		repository.login("second", "password", true)
+		release.complete(Unit)
+		assertTrue(refresh.await().exceptionOrNull() is kotlinx.coroutines.CancellationException)
+		assertTrue(repository.fetchTransactionDescriptionTemplates().getOrThrow().isEmpty())
+		assertFalse(repository.syncState.value.isPrepared)
+	}
+
+	@Test
+	fun bucketRefreshReplacesDeletesAndPersistsWithoutNetworkReads() = runBlocking {
+		val api = SuggestionsApi()
+		val store = InMemoryOfflineStore()
+		api.items["Coffee"] = suggestion("Coffee", "10.00")
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		assertEquals(null, api.syncRequests.single().bucketHashes)
+		repository.synchronize().getOrThrow()
+		assertTrue(api.syncRequests.last().bucketHashes != null)
+		api.items["Coffee"] = suggestion("Coffee", "20.00")
+		repository.synchronize().getOrThrow()
+		assertEquals(BigDecimal("20.00"), repository.fetchTransactionDescriptionTemplates().getOrThrow().single().splits.single().amountNumber)
+		api.items.clear()
+		repository.synchronize().getOrThrow()
+		assertTrue(repository.fetchTransactionDescriptionTemplates().getOrThrow().isEmpty())
+		val calls = api.syncRequests.size
+		val restarted = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		assertTrue(restarted.fetchTransactionDescriptionTemplates().getOrThrow().isEmpty())
+		assertEquals(calls, api.syncRequests.size)
+		assertEquals(0, api.legacyRequests)
+	}
+
+	@Test
+	fun localMutationPatchesSurviveRestartWithoutReconciling() = runBlocking {
+		val api = SuggestionsApi()
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput()).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertEquals(1, api.syncRequests.size)
+		assertEquals("Coffee", BuddiRepository(api, offlineStore = store).fetchTransactionDescriptionTemplates().getOrThrow().single().description)
+		repository.updateTransaction(99, testInput().copy(description = "Tea")).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertEquals("Tea", repository.fetchTransactionDescriptionTemplates().getOrThrow().single().description)
+		repository.deleteTransaction(99).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(repository.fetchTransactionDescriptionTemplates().getOrThrow().isEmpty())
+		assertEquals(1, api.syncRequests.size)
+		assertEquals(0, api.legacyRequests)
+	}
+
+	@Test
+	fun partialMutationCacheStillBootstrapsAndPatchCannotHideAnExternalChangeInItsBucket() = runBlocking {
+		val api = SuggestionsApi()
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.createTransaction(testInput()).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertFalse(repository.syncState.value.isPrepared)
+		repository.synchronize().getOrThrow()
+		assertEquals(null, api.syncRequests.single().bucketHashes)
+		val collision = (0..10000).map { "Other $it" }.first {
+			TransactionSuggestionBuckets.bucketId(it) == TransactionSuggestionBuckets.bucketId("Coffee")
+		}
+		api.items[collision] = suggestion(collision, "12.00")
+		repository.updateTransaction(99, testInput().copy(amount = "30.00")).getOrThrow()
+		assertFalse(repository.fetchTransactionDescriptionTemplates().getOrThrow().any { it.description == collision })
+		repository.synchronize().getOrThrow()
+		assertTrue(repository.fetchTransactionDescriptionTemplates().getOrThrow().any { it.description == collision })
+	}
+
+	@Test
+	fun invalidBucketAndFailedPersistenceKeepOldCacheAndRepairWithFullDownload() = runBlocking {
+		val api = SuggestionsApi()
+		var failWrite = false
+		val store = object : OfflineStore by InMemoryOfflineStore() {
+			override fun saveCache(key: String, value: String) {
+				if (key == "transaction-suggestions:v1" && failWrite) throw IOException("Disk unavailable")
+				backing.saveCache(key, value)
+			}
+			val backing = InMemoryOfflineStore()
+			override fun loadCache(key: String) = backing.loadCache(key)
+		}
+		api.items["Coffee"] = suggestion("Coffee", "10.00")
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		val id = TransactionSuggestionBuckets.bucketId("Coffee")
+		api.nextResponse = DescriptionsSyncResponseDto(true, 1, "buckets", buckets = listOf(SuggestionBucketDto(id, "bad", emptyList())))
+		assertTrue(repository.synchronize().isFailure)
+		assertEquals(BigDecimal("10.00"), repository.fetchTransactionDescriptionTemplates().getOrThrow().single().splits.single().amountNumber)
+		api.items["Coffee"] = suggestion("Coffee", "20.00")
+		failWrite = true
+		assertTrue(repository.synchronize().isFailure)
+		assertEquals(null, api.syncRequests.last().bucketHashes)
+		assertEquals(BigDecimal("10.00"), repository.fetchTransactionDescriptionTemplates().getOrThrow().single().splits.single().amountNumber)
+		failWrite = false
+		repository.synchronize().getOrThrow()
+		assertEquals(BigDecimal("20.00"), repository.fetchTransactionDescriptionTemplates().getOrThrow().single().splits.single().amountNumber)
+	}
+
+	@Test
+	fun pendingRenameKeysSurviveLostResponseReplay() = runBlocking {
+		val api = LedgerApi()
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.createTransaction(testInput()).getOrThrow()
+		api.afterMutation = { throw IOException("Response lost") }
+		assertTrue(repository.syncPendingTransactions().isFailure)
+		val id = repository.fetchPendingTransactions(1).single().id
+		repository.updateTransaction(id, testInput().copy(description = "Tea")).getOrThrow()
+		api.afterMutation = { }
+		repository.syncPendingTransactions().getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(api.requests.last().suggestionKeys.orEmpty().containsAll(listOf("Coffee", "Tea")))
+	}
+
+	@Test
+	fun localUploadDoesNotDownloadSuggestions() = runBlocking {
+		var downloads = 0
+		val api = object : BuddiApi by FakeBuddiApi() {
+			override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto {
+				downloads++
+				return DescriptionsSyncResponseDto(true, 1, "full", descriptionsResponse("Coffee", "10.00").toTransactionDescriptionTemplates())
+			}
+		}
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		val before = downloads
+		repository.createTransaction(testInput()).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertEquals(before, downloads)
+	}
+
+	@Test
+	fun externalRefreshReplacesOldSuggestions() = runBlocking {
+		var descriptions = descriptionsResponse("Coffee", "10.00")
+		val api = object : BuddiApi by FakeBuddiApi() {
+			override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto) =
+				DescriptionsSyncResponseDto(true, 1, "full", descriptions.toTransactionDescriptionTemplates())
+		}
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		descriptions = descriptionsResponse("Coffee", "20.00")
+		repository.synchronize().getOrThrow()
+		assertEquals(BigDecimal("20.00"), repository.transactionDescriptionTemplates.value.single().splits.single().amountNumber)
+	}
+
+	@Test
 	fun changingBackendDoesNotRestoreAnotherBackendsSession() = runBlocking {
 		val users = mutableMapOf<String, OfflineStore>()
 		val root = object : OfflineStore by InMemoryOfflineStore() {
@@ -271,7 +529,8 @@ class BuddiRepositoryTest {
 	fun createTransactionUpdatesExistingDescriptionTemplateAmount() = runBlocking {
 		val description = "Coffee"
 		val api = FakeBuddiApi(descriptionsResponse = descriptionsResponse(description, "10.00"))
-		val repository = BuddiRepository(api = api, descriptionsApi = api)
+		val repository = BuddiRepository(api = api, descriptionsApi = api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
 
 		val initial = repository.fetchTransactionDescriptionTemplates().getOrThrow()
 		assertEquals(BigDecimal("10.00"), initial.single().splits.single().amountNumber)
@@ -296,7 +555,7 @@ class BuddiRepositoryTest {
 	}
 
 	@Test
-	fun fetchTransactionDescriptionTemplatesKeepsNewerLocalTemplateWhenRemoteLoadFinishesLater() = runBlocking {
+	fun readingSuggestionsKeepsPendingLocalTemplateAndDoesNotDownload() = runBlocking {
 		val description = "Coffee"
 		val repository = BuddiRepository(
 			api = FakeBuddiApi(),
@@ -675,7 +934,7 @@ private class FakeBuddiApi(
 		data = emptyList()
 	),
 	private val accountsResponse: AccountsResponseDto? = accountsResponse(),
-	private val mutateResponse: SuccessResponseDto = SuccessResponseDto(success = true, id = 99),
+	private val mutateResponse: TransactionResponseDto = TransactionResponseDto(success = true, id = 99),
 	private val mutateException: IOException? = null,
 	private val transactionsResponse: TransactionsResponseDto = TransactionsResponseDto(
 		success = true,
@@ -721,7 +980,10 @@ private class FakeBuddiApi(
 		return descriptionsResponse
 	}
 
-	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): SuccessResponseDto {
+	override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto =
+		DescriptionsSyncResponseDto(true, 1, "full", descriptionsResponse.toTransactionDescriptionTemplates())
+
+	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): TransactionResponseDto {
 		mutateException?.let { throw it }
 		mutationRequests.add(request)
 		return mutateResponse
@@ -798,7 +1060,7 @@ private class LedgerApi : BuddiApi by FakeBuddiApi() {
 		return TransactionsResponseDto(true, transactions.values.toList().drop(start).take(limit), transactions.size)
 	}
 
-	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): SuccessResponseDto {
+	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): TransactionResponseDto {
 		requests.add(request)
 		val id = request.id ?: transactions.values.firstOrNull { it.uuid == request.uuid }?.id ?: nextId++
 		if (request.action == "delete") {
@@ -810,6 +1072,49 @@ private class LedgerApi : BuddiApi by FakeBuddiApi() {
 					split.fromId, "Checking", split.toId, "Savings", split.memo)))
 		}
 		afterMutation()
-		return SuccessResponseDto(true, id, transactions[id]?.uuid)
+		return TransactionResponseDto(true, id, transactions[id]?.uuid)
+	}
+}
+
+private fun suggestion(name: String, amount: String): TransactionDescriptionTemplate =
+	TransactionDescriptionTemplate(name, listOf(TransactionDescriptionTemplateSplit(amount.toBigDecimal(), 1, 2, "D", "E")))
+
+private class SuggestionsApi : BuddiApi by FakeBuddiApi() {
+	val items = linkedMapOf<String, TransactionDescriptionTemplate>()
+	val syncRequests = mutableListOf<DescriptionsSyncRequestDto>()
+	var legacyRequests = 0
+	var nextResponse: DescriptionsSyncResponseDto? = null
+	private var description: String? = null
+
+	override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto {
+		syncRequests.add(request)
+		nextResponse?.let { nextResponse = null; return it }
+		if (request.bucketHashes == null) return DescriptionsSyncResponseDto(true, 1, "full", items.values.toList())
+		val previous = java.util.Base64.getDecoder().decode(request.bucketHashes)
+		val buckets = items.values.groupBy { TransactionSuggestionBuckets.bucketId(it.description) }
+		val changed = (0 until 256).mapNotNull { id ->
+			val records = buckets[id].orEmpty()
+			val hash = TransactionSuggestionBuckets.hash(id, records)
+			if (hash.contentEquals(previous.copyOfRange(id * 32, (id + 1) * 32))) null
+			else SuggestionBucketDto(id, java.util.Base64.getEncoder().encodeToString(hash), records)
+		}
+		return if (changed.isEmpty()) DescriptionsSyncResponseDto(true, 1, "unchanged")
+		else DescriptionsSyncResponseDto(true, 1, "buckets", buckets = changed)
+	}
+
+	override suspend fun getTransactionDescriptions(): TransactionDescriptionsResponseDto {
+		legacyRequests++
+		error("Unexpected legacy download")
+	}
+
+	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): TransactionResponseDto {
+		val keys = listOfNotNull(description, request.description).toSet()
+		description?.let { items.remove(it) }
+		if (request.action != "delete") {
+			description = requireNotNull(request.description)
+			items[description!!] = suggestion(description!!, request.splits!!.single().amount)
+		} else description = null
+		return TransactionResponseDto(true, 99, request.uuid,
+			SuggestionsPatchDto(keys.mapNotNull { items[it] }, keys.filter { it !in items }))
 	}
 }

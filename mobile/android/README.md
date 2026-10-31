@@ -23,10 +23,18 @@ Caches and pending transactions are isolated by backend and login. Existing cach
 on upgrade. If older pending transactions have no recorded owner, sign in to their original
 account and use **Restore saved transactions** to confirm ownership before uploading them.
 
+Description suggestions use 256 stable SHA-256 buckets. External refreshes send one compact
+hash manifest (about 11 KiB) and receive only changed buckets, or the complete compact dataset
+when it is smaller. The server computes the current projection on demand and retains no
+historical summaries. Local saves make no separate suggestions request: transaction responses
+carry authoritative patches for affected descriptions, including renames and deletions.
+Confirmed suggestions and pending local edits remain available offline. Older backends use the
+legacy suggestions download only on external refreshes; deploy the backend before the app.
+
 Focused offline verification:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests '*BuddiRepositoryTest'
+./gradlew :app:testDebugUnitTest --tests '*BuddiRepositoryTest' --tests '*TransactionSuggestionBucketsTest'
 ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=ca.digitalcave.buddilive.mobile.OfflineStartupTest
 ```
 

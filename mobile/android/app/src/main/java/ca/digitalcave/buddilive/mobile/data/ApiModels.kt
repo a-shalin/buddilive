@@ -109,7 +109,8 @@ data class TransactionMutationRequestDto(
 	val description: String? = null,
 	val number: String? = null,
 	val date: String? = null,
-	val splits: List<SplitMutationRequestDto>? = null
+	val splits: List<SplitMutationRequestDto>? = null,
+	val suggestionKeys: List<String>? = null
 )
 
 data class SplitMutationRequestDto(
@@ -211,7 +212,8 @@ data class PendingSyncState(
 	val serverInput: TransactionEditInput? = null,
 	val balanceInput: TransactionEditInput? = null,
 	val deleted: Boolean = false,
-	val acknowledged: Boolean = false
+	val acknowledged: Boolean = false,
+	val suggestionKeys: Set<String>? = null
 )
 
 data class SyncState(

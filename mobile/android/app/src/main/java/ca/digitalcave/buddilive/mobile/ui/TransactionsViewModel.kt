@@ -115,7 +115,7 @@ class TransactionsViewModel(
 					scrollToTopRequestKey = it.scrollToTopRequestKey + if (scrollToTop) 1 else 0
 				) }
 				onDone(true)
-				repository.requestSync()
+				repository.requestSync(externalRefresh = false)
 			} else {
 				val error = result.exceptionOrNull()
 				_state.update { it.copy(

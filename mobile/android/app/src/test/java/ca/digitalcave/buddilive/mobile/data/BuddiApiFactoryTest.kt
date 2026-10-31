@@ -3,12 +3,47 @@ package ca.digitalcave.buddilive.mobile.data
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
+import com.google.gson.JsonParser
 import org.junit.Test
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
 class BuddiApiFactoryTest {
+
+	@Test
+	fun suggestionsSyncAndOptedInMutationUseCompactJson() = runBlocking {
+		val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+		server.createContext("/data/transactions/descriptions/sync") { exchange ->
+			assertEquals("POST", exchange.requestMethod)
+			val request = JsonParser.parseReader(exchange.requestBody.reader()).asJsonObject
+			assertEquals(1, request.get("version").asInt)
+			assertEquals("manifest", request.get("bucketHashes").asString)
+			val body = """{"success":true,"version":1,"mode":"unchanged"}""".toByteArray()
+			exchange.responseHeaders.add("Content-Type", "application/json")
+			exchange.sendResponseHeaders(200, body.size.toLong())
+			exchange.responseBody.use { it.write(body) }
+		}
+		server.createContext("/data/transactions") { exchange ->
+			assertEquals("includeSuggestions=true", exchange.requestURI.rawQuery)
+			val request = JsonParser.parseReader(exchange.requestBody.reader()).asJsonObject
+			assertEquals("Coffee", request.getAsJsonArray("suggestionKeys")[0].asString)
+			val body = """{"success":true,"id":1,"suggestions":{"upserts":[{"description":"Coffee","splits":[{"amountNumber":0.1234567890123456789,"fromId":1,"toId":2,"fromType":"D","toType":"E"}]}],"deletes":[]}}""".toByteArray()
+			exchange.responseHeaders.add("Content-Type", "application/json")
+			exchange.sendResponseHeaders(200, body.size.toLong())
+			exchange.responseBody.use { it.write(body) }
+		}
+		server.start()
+		try {
+			val api = BuddiApiFactory.createForTest("http://127.0.0.1:${server.address.port}/")
+			assertEquals("unchanged", api.syncTransactionDescriptions(DescriptionsSyncRequestDto(bucketHashes = "manifest")).mode)
+			val response = api.mutateTransaction(TransactionMutationRequestDto("delete", id = 1, suggestionKeys = listOf("Coffee")))
+			assertEquals("0.1234567890123456789".toBigDecimal(), response.suggestions!!.upserts.single().splits.single().amountNumber)
+		} finally {
+			server.stop(0)
+		}
+	}
 
 	@Test
 	fun apiClientAllowsSlowTransactionRequests() = runBlocking {

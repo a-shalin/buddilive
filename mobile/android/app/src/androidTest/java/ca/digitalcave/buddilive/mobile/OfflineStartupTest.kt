@@ -181,9 +181,14 @@ private class OfflineTestApi : BuddiApi {
 		return TransactionDescriptionsResponseDto(true, emptyList())
 	}
 
-	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): SuccessResponseDto {
+	override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto {
+		awaitBackend()
+		return DescriptionsSyncResponseDto(true, 1, "full", emptyList())
+	}
+
+	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): TransactionResponseDto {
 		mutationCount++
-		return SuccessResponseDto(true, 2, request.uuid)
+		return TransactionResponseDto(true, 2, request.uuid)
 	}
 
 	override suspend fun getUserPreferences(): UserPreferencesResponseDto {

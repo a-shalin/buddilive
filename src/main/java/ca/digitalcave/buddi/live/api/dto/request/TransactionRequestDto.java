@@ -15,5 +15,6 @@ public record TransactionRequestDto(
 		String number,
 		String date,
 		Boolean deleted,
-		List<SplitRequestDto> splits) {
+		List<SplitRequestDto> splits,
+		List<String> suggestionKeys) {
 }

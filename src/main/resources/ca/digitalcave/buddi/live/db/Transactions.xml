@@ -79,6 +79,12 @@
 		order by s.id desc
 	</select>
 
+	<select id="selectDescriptionById" resultType="string">
+		select t.description
+		from transactions as t
+		where t.user_id = #{user.id} and t.id = #{id}
+	</select>
+
 	<select id="selectDescriptions" resultMap="transaction" resultOrdered="true">
 		SELECT 
 			t.id t_id, t.description, s.id s_id, s.amount, s.from_source, s.to_source, fs.type from_type, ts.type to_type
