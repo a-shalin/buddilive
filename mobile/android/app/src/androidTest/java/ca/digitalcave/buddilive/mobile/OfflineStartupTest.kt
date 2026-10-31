@@ -186,6 +186,14 @@ private class OfflineTestApi : BuddiApi {
 		return DescriptionsSyncResponseDto(true, 1, "full", emptyList())
 	}
 
+	override suspend fun syncTransactions(request: TransactionsSyncRequestDto): TransactionsSyncResponseDto {
+		val page = getTransactions(1, 0, 100, null)
+		return TransactionsSyncResponseDto(true, 1, request.accounts.map { scope ->
+			val items = page.data.map { TransactionRecordDto(it.id, it.uuid, it.dateIso, it.description, it.number, emptyList()) }
+			TransactionAccountSyncResponseDto(scope.sourceId, page.total, java.util.Base64.getEncoder().encodeToString(ByteArray(32)), "full", items)
+		})
+	}
+
 	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): TransactionResponseDto {
 		mutationCount++
 		return TransactionResponseDto(true, 2, request.uuid)

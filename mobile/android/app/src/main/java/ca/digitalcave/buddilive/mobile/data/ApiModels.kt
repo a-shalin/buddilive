@@ -59,7 +59,8 @@ data class SourceItemDto(
 data class TransactionsResponseDto(
 	val success: Boolean,
 	val data: List<TransactionDto>,
-	val total: Int
+	val total: Int,
+	val partial: Boolean = false
 )
 
 data class TransactionDto(
@@ -228,7 +229,8 @@ data class CachedAccountData(
 	val account: AccountSummary?,
 	val fromSources: List<SourceOption>,
 	val toSources: List<SourceOption>,
-	val preferences: UserDatePreferences
+	val preferences: UserDatePreferences,
+	val transactionsRevision: String? = null
 )
 
 data class TransactionSummary(

@@ -54,6 +54,8 @@ class TransactionsViewModel(
 
 	private var extraTransactions = emptyList<TransactionSummary>()
 	private var cachedFirstPage: List<TransactionSummary>? = null
+	private var cachedTransactionsRevision: String? = null
+	private var cachedTotal: Int? = null
 
 	init {
 		viewModelScope.launch {
@@ -130,9 +132,11 @@ class TransactionsViewModel(
 	private suspend fun showLocalData() {
 		val data = repository.readCachedAccountData(accountId)
 		val page = data.page
-		if (cachedFirstPage != page?.items) {
+		if (cachedFirstPage != page?.items || cachedTotal != page?.total || cachedTransactionsRevision != data.transactionsRevision) {
 			extraTransactions = emptyList()
 			cachedFirstPage = page?.items
+			cachedTotal = page?.total
+			cachedTransactionsRevision = data.transactionsRevision
 		}
 		val preferences = data.preferences
 		_state.update { current -> current.copy(

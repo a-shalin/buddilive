@@ -79,6 +79,21 @@
 		order by s.id desc
 	</select>
 
+	<select id="selectTransactionById" resultMap="transaction" resultOrdered="true">
+		select
+			t.id as t_id, t.uuid, t.user_id as t_user_id, t.description, t.number, t.transaction_date, t.deleted,
+			t.created as t_created, t.modified as t_modified,
+			s.id as s_id, s.transaction_id, s.amount, s.user_id as s_user_id, s.from_source, s.to_source, s.memo,
+			s.created as s_created, s.modified as s_modified, s.from_balance, s.to_balance,
+			fs.name as from_source_name, ts.name as to_source_name, fs.type as from_type, ts.type as to_type
+		from transactions as t
+		left join splits as s on s.transaction_id = t.id
+		inner join sources as fs on fs.id = s.from_source
+		inner join sources as ts on ts.id = s.to_source
+		where t.user_id = #{user.id} and t.id = #{id}
+		order by s.id desc
+	</select>
+
 	<select id="selectDescriptionById" resultType="string">
 		select t.description
 		from transactions as t

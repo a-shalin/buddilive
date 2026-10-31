@@ -16,6 +16,8 @@ import java.util.List;
 public interface Transactions {
 	int selectTransactionCount(@Param("user") User user, @Param("uuid") String uuid);
 
+	Transaction selectTransactionById(@Param("user") final User user, @Param("id") final Long id);
+
 	String selectDescriptionById(@Param("user") final User user, @Param("id") final Long id);
 
 	Transaction selectTransactionByUuid(@Param("user") User user, @Param("uuid") String uuid);

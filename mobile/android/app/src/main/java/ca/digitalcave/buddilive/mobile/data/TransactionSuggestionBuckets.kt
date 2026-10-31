@@ -29,7 +29,9 @@ data class TransactionResponseDto(
     val success: Boolean,
     val id: Long? = null,
     val uuid: String? = null,
-    val suggestions: SuggestionsPatchDto? = null
+    val suggestions: SuggestionsPatchDto? = null,
+    val transaction: TransactionRecordDto? = null,
+    val previousSourceIds: List<Int>? = null
 )
 
 internal object TransactionSuggestionBuckets {

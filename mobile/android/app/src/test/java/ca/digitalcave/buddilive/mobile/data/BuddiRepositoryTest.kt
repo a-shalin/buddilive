@@ -22,6 +22,357 @@ import java.math.BigDecimal
 class BuddiRepositoryTest {
 
 	@Test
+	fun acknowledgedCacheSurvivesRestartBeforeReconciliation() = runBlocking {
+		val api = LedgerApi()
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput()).getOrThrow()
+		api.afterMutation = { api.accountsError = IOException("Refresh unavailable") }
+		assertTrue(repository.syncPendingTransactions().isFailure)
+		assertTrue(store.listPendingTransactions().single().sync.acknowledged)
+		val restarted = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		assertEquals(api.transactions.keys.single(), JsonParser.parseString(store.loadCache("transactions:1:0:100")).asJsonObject.getAsJsonArray("data").single().asJsonObject.get("id").asLong)
+		assertEquals("Coffee", restarted.readCachedAccountData(1).page!!.items.single().description)
+		api.accountsError = null
+		restarted.syncPendingTransactions().getOrThrow()
+		assertEquals(1, api.requests.size)
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" })
+		assertTrue(store.listPendingTransactions().isEmpty())
+	}
+
+	@Test
+	fun backdatedLocalInsertKeepsTheRecentWindowAndHashes() = runBlocking {
+		val api = LedgerApi()
+		(1L..100L).forEach { api.transactions[it] = ledgerTransaction(it) }
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput().copy(dateIso = "2020-01-01")).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" })
+		assertEquals((100L downTo 1L).toList(), repository.readCachedAccountData(1).page!!.items.map { it.id })
+		assertEquals(101, repository.readCachedAccountData(1).page!!.total)
+	}
+
+	@Test
+	fun acknowledgedEditsAndDeletesDoNotDownloadKnownTransactions() = runBlocking {
+		val api = LedgerApi()
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput()).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		val id = api.transactions.keys.single()
+		repository.updateTransaction(id, testInput().copy(amount = "30.00")).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" })
+		assertEquals(BigDecimal("30.00"), repository.readCachedAccountData(1).page!!.items.single().split!!.amountNumber)
+		repository.deleteTransaction(id).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" })
+		assertTrue(repository.readCachedAccountData(1).page!!.items.isEmpty())
+		assertEquals(0, repository.readCachedAccountData(1).page!!.total)
+	}
+
+	@Test
+	fun localAcknowledgementCannotHideAnExternalEditInTheSameBucket() = runBlocking {
+		val api = LedgerApi()
+		(1L..100L).forEach { api.transactions[it] = ledgerTransaction(it) }
+		val remoteId = (2L..100L).first { TransactionBuckets.bucketId(it) == TransactionBuckets.bucketId(101) }
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		api.afterMutation = { api.transactions[remoteId] = ledgerTransaction(remoteId).copy(description = "External edit") }
+		repository.createTransaction(testInput().copy(dateIso = "2026-11-01")).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.buckets?.single()?.id == TransactionBuckets.bucketId(101) })
+		assertEquals("External edit", repository.readCachedAccountData(1).page!!.items.single { it.id == remoteId }.description)
+	}
+
+	@Test
+	fun lostInsertResponseReplaysWithoutDownloadingOrDoubleCounting() = runBlocking {
+		val api = LedgerApi()
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput()).getOrThrow()
+		api.afterMutation = { throw IOException("Response lost") }
+		assertTrue(repository.syncPendingTransactions().isFailure)
+		api.afterMutation = { }
+		repository.syncPendingTransactions().getOrThrow()
+		assertEquals(api.requests.first().uuid, api.requests.last().uuid)
+		assertEquals(1, api.transactions.size)
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" })
+		assertEquals(1, repository.readCachedAccountData(1).page!!.total)
+		assertTrue(store.listPendingTransactions().isEmpty())
+	}
+
+	@Test
+	fun transactionPatchAndOutboxAcknowledgementRollBackTogetherOnWriteFailure() = runBlocking {
+		val backing = InMemoryOfflineStore()
+		var failWrite = false
+		val store = object : OfflineStore by backing {
+			override fun saveCache(key: String, value: String) {
+				if (failWrite && key == "transactions:2:0:100") throw IOException("Disk unavailable")
+				backing.saveCache(key, value)
+			}
+		}
+		val api = LedgerApi()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		val before = store.loadCache("transactions:1:0:100")
+		repository.createTransaction(testInput()).getOrThrow()
+		failWrite = true
+		assertTrue(repository.syncPendingTransactions().isFailure)
+		assertEquals(before, store.loadCache("transactions:1:0:100"))
+		assertFalse(store.listPendingTransactions().single().sync.acknowledged)
+		failWrite = false
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" })
+		assertEquals(1, repository.readCachedAccountData(1).page!!.total)
+	}
+
+	@Test
+	fun legacyMutationAcknowledgementsStillReconcileNormally() = runBlocking {
+		val server = LedgerApi()
+		val api = object : BuddiApi by server {
+			override suspend fun mutateTransaction(request: TransactionMutationRequestDto) =
+				server.mutateTransaction(request).copy(transaction = null, previousSourceIds = null)
+		}
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput()).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(server.transactionSyncResponses.last().accounts.all { it.mode != "unchanged" })
+		assertEquals("Coffee", repository.readCachedAccountData(1).page!!.items.single().description)
+	}
+
+	@Test
+	fun localInsertAcknowledgementMakesTransactionHashesMatch() = runBlocking {
+		val api = LedgerApi()
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput()).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" && it.items == null && it.buckets == null })
+		assertEquals(0, api.legacyTransactionRequests)
+		assertTrue(store.listPendingTransactions().isEmpty())
+		val restarted = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		assertEquals(api.transactions.keys.single(), restarted.readCachedAccountData(1).page!!.items.single().id)
+	}
+
+	@Test
+	fun localInsertAtFullWindowDoesNotDownloadAnyTransactions() = runBlocking {
+		val api = LedgerApi()
+		(1L..100L).forEach { api.transactions[it] = ledgerTransaction(it) }
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.createTransaction(testInput().copy(dateIso = "2026-11-01")).getOrThrow()
+		repository.syncPendingTransactions().getOrThrow()
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" })
+		val page = repository.readCachedAccountData(1).page!!
+		assertEquals(101, page.total)
+		assertEquals((101L downTo 2L).toList(), page.items.map { it.id })
+	}
+
+	@Test
+	fun ownerSwitchDiscardsOldTransactionSyncAuthenticationFailure() = runBlocking {
+		val stores = mutableMapOf<String, OfflineStore>()
+		val root = object : OfflineStore by InMemoryOfflineStore() {
+			override fun forOwner(owner: String): OfflineStore = stores.getOrPut(owner) { InMemoryOfflineStore() }
+		}
+		val entered = CompletableDeferred<Unit>()
+		val release = CompletableDeferred<Unit>()
+		val api = object : BuddiApi by LedgerApi() {
+			override suspend fun syncTransactions(request: TransactionsSyncRequestDto): TransactionsSyncResponseDto {
+				entered.complete(Unit)
+				release.await()
+				throw HttpException(Response.error<Any>(401, "Old session expired".toResponseBody()))
+			}
+		}
+		val repository = BuddiRepository(api, offlineStore = root, autoSyncPendingTransactions = false)
+		repository.login("first", "password", true)
+		val refresh = async { runCatching { repository.synchronize() } }
+		withTimeout(2_000) { entered.await() }
+		repository.login("second", "password", true)
+		release.complete(Unit)
+		assertTrue(refresh.await().exceptionOrNull() is kotlinx.coroutines.CancellationException)
+		assertFalse(repository.syncState.value.needsLogin)
+		assertFalse(repository.syncState.value.isPrepared)
+		assertEquals(null, repository.readCachedAccountData(1).page)
+	}
+
+	@Test
+	fun transactionBucketsBatchAccountsAndDownloadOnlyChangedBuckets() = runBlocking {
+		val api = LedgerApi()
+		(1L..100L).forEach { api.transactions[it] = ledgerTransaction(it) }
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		assertEquals(listOf(1L, 2L), api.transactionSyncRequests.single().accounts.map { it.sourceId })
+		repository.synchronize().getOrThrow()
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" })
+		assertTrue(api.transactionSyncRequests.last().accounts.all { it.bucketHashes?.length == 684 })
+		api.transactions[1] = ledgerTransaction(1).copy(description = "Updated")
+		repository.synchronize().getOrThrow()
+		assertTrue(api.transactionSyncResponses.last().accounts.all { it.buckets?.single()?.id == TransactionBuckets.bucketId(1) })
+		assertEquals("Updated", repository.readCachedAccountData(1).page!!.items.single { it.id == 1L }.description)
+		assertEquals(0, api.legacyTransactionRequests)
+	}
+
+	@Test
+	fun recentWindowHandlesInsertDeleteAndDateChanges() = runBlocking {
+		val api = LedgerApi()
+		(1L..101L).forEach { api.transactions[it] = ledgerTransaction(it) }
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		assertEquals((101L downTo 2L).toList(), repository.readCachedAccountData(1).page!!.items.map { it.id })
+		api.transactions[102] = ledgerTransaction(102)
+		repository.synchronize().getOrThrow()
+		assertEquals((102L downTo 3L).toList(), repository.readCachedAccountData(1).page!!.items.map { it.id })
+		api.transactions.remove(102)
+		repository.synchronize().getOrThrow()
+		assertEquals((101L downTo 2L).toList(), repository.readCachedAccountData(1).page!!.items.map { it.id })
+		api.transactions[101] = ledgerTransaction(101).copy(dateIso = "2020-01-01")
+		repository.synchronize().getOrThrow()
+		assertEquals((100L downTo 1L).toList(), repository.readCachedAccountData(1).page!!.items.map { it.id })
+	}
+
+	@Test
+	fun olderEditsInvalidateHistoryWithoutDownloadingRecentTransactions() = runBlocking {
+		val api = LedgerApi()
+		(1L..101L).forEach { api.transactions[it] = ledgerTransaction(it) }
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		store.saveCache("transactions:1:100:100", "history")
+		val firstPage = store.loadCache("transactions:1:0:100")
+		repository.synchronize().getOrThrow()
+		assertEquals("history", store.loadCache("transactions:1:100:100"))
+		api.transactions[1] = ledgerTransaction(1).copy(description = "Older edit")
+		repository.synchronize().getOrThrow()
+		assertEquals("unchanged", api.transactionSyncResponses.last().accounts.first().mode)
+		assertEquals(null, store.loadCache("transactions:1:100:100"))
+		assertEquals(firstPage, store.loadCache("transactions:1:0:100"))
+	}
+
+	@Test
+	fun corruptAccountBucketRejectsTheWholeBatchAndRequestsRepair() = runBlocking {
+		val server = LedgerApi()
+		(1L..100L).forEach { server.transactions[it] = ledgerTransaction(it) }
+		var corrupt = false
+		val api = object : BuddiApi by server {
+			override suspend fun syncTransactions(request: TransactionsSyncRequestDto): TransactionsSyncResponseDto {
+				val response = server.syncTransactions(request)
+				return if (!corrupt) response else response.copy(accounts = response.accounts.mapIndexed { index, account ->
+					if (index == 0) account else account.copy(buckets = account.buckets!!.map { it.copy(hash = "bad") })
+				})
+			}
+		}
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		val before = (1L..2L).map { store.loadCache("transactions:$it:0:100") }
+		server.transactions[1] = ledgerTransaction(1).copy(description = "New value")
+		corrupt = true
+		assertTrue(repository.synchronize().isFailure)
+		assertEquals(before, (1L..2L).map { store.loadCache("transactions:$it:0:100") })
+		corrupt = false
+		repository.synchronize().getOrThrow()
+		assertTrue(server.transactionSyncRequests.last().accounts.all { it.bucketHashes == null })
+		assertEquals("New value", repository.readCachedAccountData(1).page!!.items.single { it.id == 1L }.description)
+	}
+
+	@Test
+	fun transactionLabelsRefreshWithoutDownloadingRecords() = runBlocking {
+		val server = LedgerApi()
+		server.transactions[1] = ledgerTransaction(1)
+		var label = "Original name"
+		val api = object : BuddiApi by server {
+			override suspend fun getSources(direction: String) = SourcesResponseDto(true, emptyList())
+			override suspend fun syncTransactions(request: TransactionsSyncRequestDto) =
+				server.syncTransactions(request).copy(sourceNames = mapOf(1 to label, 2 to "Destination"))
+		}
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		assertEquals(label, repository.readCachedAccountData(1).page!!.items.single().split!!.fromName)
+		label = "Renamed source"
+		repository.synchronize().getOrThrow()
+		assertTrue(server.transactionSyncResponses.last().accounts.all { it.mode == "unchanged" })
+		assertEquals(label, repository.readCachedAccountData(1).page!!.items.single().split!!.fromName)
+	}
+
+	@Test
+	fun newPendingTransactionSurvivesAnInFlightTransactionRefresh() = runBlocking {
+		val server = LedgerApi()
+		val entered = CompletableDeferred<Unit>()
+		val release = CompletableDeferred<Unit>()
+		var block = false
+		val api = object : BuddiApi by server {
+			override suspend fun syncTransactions(request: TransactionsSyncRequestDto): TransactionsSyncResponseDto {
+				val response = server.syncTransactions(request)
+				if (block) { entered.complete(Unit); release.await() }
+				return response
+			}
+		}
+		val store = InMemoryOfflineStore()
+		val repository = BuddiRepository(api, offlineStore = store, autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		block = true
+		val refresh = async { repository.synchronize() }
+		withTimeout(2_000) { entered.await() }
+		repository.createTransaction(testInput()).getOrThrow()
+		release.complete(Unit)
+		refresh.await().getOrThrow()
+		assertEquals("Coffee", repository.readCachedAccountData(1).page!!.items.single().description)
+		assertEquals(1, store.listPendingTransactions().size)
+	}
+
+	@Test
+	fun unsupportedTransactionRouteIsProbedOnlyOncePerSession() = runBlocking {
+		val server = LedgerApi()
+		var probes = 0
+		val api = object : BuddiApi by server {
+			override suspend fun syncTransactions(request: TransactionsSyncRequestDto): TransactionsSyncResponseDto {
+				probes++
+				throw HttpException(Response.error<Any>(404, "Unsupported".toResponseBody()))
+			}
+		}
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		repository.synchronize().getOrThrow()
+		assertEquals(1, probes)
+		assertEquals(4, server.legacyTransactionRequests)
+	}
+
+	@Test
+	fun expiredTransactionSyncKeepsCacheAndPausesForLogin() = runBlocking {
+		val server = LedgerApi()
+		server.transactions[1] = ledgerTransaction(1)
+		var expired = false
+		val api = object : BuddiApi by server {
+			override suspend fun syncTransactions(request: TransactionsSyncRequestDto): TransactionsSyncResponseDto {
+				if (expired) throw HttpException(Response.error<Any>(401, "Expired".toResponseBody()))
+				return server.syncTransactions(request)
+			}
+		}
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		expired = true
+		assertTrue(repository.synchronize().isFailure)
+		assertTrue(repository.syncState.value.needsLogin)
+		assertEquals(1L, repository.readCachedAccountData(1).page!!.items.single().id)
+	}
+
+	@Test
+	fun unchangedRecentTransactionsDoNotUseLegacyDownloads() = runBlocking {
+		val api = LedgerApi()
+		val repository = BuddiRepository(api, offlineStore = InMemoryOfflineStore(), autoSyncPendingTransactions = false)
+		repository.synchronize().getOrThrow()
+		api.legacyTransactionRequests = 0
+		repository.synchronize().getOrThrow()
+		assertEquals(0, api.legacyTransactionRequests)
+	}
+
+	@Test
 	fun failedPatchPersistenceRetainsUnacknowledgedOutboxForReplay() = runBlocking {
 		val backing = InMemoryOfflineStore()
 		var failWrite = false
@@ -983,6 +1334,11 @@ private class FakeBuddiApi(
 	override suspend fun syncTransactionDescriptions(request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto =
 		DescriptionsSyncResponseDto(true, 1, "full", descriptionsResponse.toTransactionDescriptionTemplates())
 
+	override suspend fun syncTransactions(request: TransactionsSyncRequestDto): TransactionsSyncResponseDto {
+		transactionsException?.let { throw it }
+		return TransactionsSyncResponseDto(true, 1, request.accounts.map { transactionAccountResponse(it, transactionsResponse) })
+	}
+
 	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): TransactionResponseDto {
 		mutateException?.let { throw it }
 		mutationRequests.add(request)
@@ -1002,6 +1358,20 @@ private class FakeBuddiApi(
 private class InMemoryOfflineStore : OfflineStore {
 	private val cache = mutableMapOf<String, String>()
 	private val pendingTransactions = linkedMapOf<String, PendingTransaction>()
+
+	override fun <T> transaction(block: () -> T): T {
+		val oldCache = cache.toMap()
+		val oldPending = pendingTransactions.toMap()
+		return try {
+			block()
+		} catch (error: Throwable) {
+			cache.clear()
+			cache.putAll(oldCache)
+			pendingTransactions.clear()
+			pendingTransactions.putAll(oldPending)
+			throw error
+		}
+	}
 
 	override fun saveCache(key: String, value: String) {
 		cache[key] = value
@@ -1034,10 +1404,10 @@ private class LedgerApi : BuddiApi by FakeBuddiApi() {
 	val requests = mutableListOf<TransactionMutationRequestDto>()
 	val transactions = linkedMapOf<Long, TransactionDto>()
 	val transactionSources = mutableListOf<Long>()
+	var legacyTransactionRequests = 0
 	var accountRequests = 0
 	var accountsError: Exception? = null
 	var afterMutation: suspend () -> Unit = { }
-	private var nextId = 1L
 
 	override suspend fun getAccounts(): AccountsResponseDto {
 		accountRequests++
@@ -1055,24 +1425,50 @@ private class LedgerApi : BuddiApi by FakeBuddiApi() {
 	))
 
 	override suspend fun getTransactions(sourceId: Long, start: Int, limit: Int, search: String?): TransactionsResponseDto {
+		legacyTransactionRequests++
 		transactionSources.add(sourceId)
 		assertEquals(100, limit)
-		return TransactionsResponseDto(true, transactions.values.toList().drop(start).take(limit), transactions.size)
+		val page = page(sourceId)
+		return page.copy(data = page.data.drop(start).take(limit))
+	}
+
+	val transactionSyncRequests = mutableListOf<TransactionsSyncRequestDto>()
+	val transactionSyncResponses = mutableListOf<TransactionsSyncResponseDto>()
+
+	override suspend fun syncTransactions(request: TransactionsSyncRequestDto): TransactionsSyncResponseDto {
+		transactionSyncRequests.add(request)
+		return TransactionsSyncResponseDto(true, 1, request.accounts.map { scope ->
+			transactionSources.add(scope.sourceId)
+			transactionAccountResponse(scope, page(scope.sourceId))
+		}).also { transactionSyncResponses.add(it) }
 	}
 
 	override suspend fun mutateTransaction(request: TransactionMutationRequestDto): TransactionResponseDto {
 		requests.add(request)
-		val id = request.id ?: transactions.values.firstOrNull { it.uuid == request.uuid }?.id ?: nextId++
+		val id = request.id ?: transactions.values.firstOrNull { it.uuid == request.uuid }?.id ?: ((transactions.keys.maxOrNull() ?: 0L) + 1)
+		val previous = transactions[id]
+		val splitId = (transactions.values.flatMap { it.splits }.mapNotNull { it.id }.maxOrNull() ?: 0L) + 1
 		if (request.action == "delete") {
 			transactions.remove(id)
 		} else if (request.action != "insert" || !transactions.containsKey(id)) {
 			val split = request.splits!!.single()
 			transactions[id] = TransactionDto(id, request.uuid ?: transactions[id]?.uuid, request.date!!, request.date,
-				request.description!!, request.number, listOf(SplitDto(null, split.amount, split.amount.toBigDecimal(),
+				request.description!!, request.number, listOf(SplitDto(splitId, split.amount, split.amount.toBigDecimal(),
 					split.fromId, "Checking", split.toId, "Savings", split.memo)))
 		}
+		val response = TransactionResponseDto(true, id, transactions[id]?.uuid, transaction = transactions[id]?.toRecord(),
+			previousSourceIds = if (request.action == "insert") emptyList() else previous?.splits.orEmpty().flatMap { listOf(it.fromId, it.toId) }.distinct())
 		afterMutation()
-		return TransactionResponseDto(true, id, transactions[id]?.uuid)
+		return response
+	}
+
+	private fun page(sourceId: Long): TransactionsResponseDto {
+		val items = transactions.values.mapNotNull { transaction ->
+			val splits = transaction.splits.filter { it.fromId.toLong() == sourceId || it.toId.toLong() == sourceId }
+			if (splits.isEmpty()) null else transaction.copy(splits = splits)
+		}.sortedWith(compareByDescending<TransactionDto> { it.dateIso }
+			.thenByDescending { item -> item.splits.mapNotNull { it.id }.maxOrNull() ?: 0L }.thenByDescending { it.id })
+		return TransactionsResponseDto(true, items, items.size)
 	}
 }
 
@@ -1118,3 +1514,23 @@ private class SuggestionsApi : BuddiApi by FakeBuddiApi() {
 			SuggestionsPatchDto(keys.mapNotNull { items[it] }, keys.filter { it !in items }))
 	}
 }
+
+private fun transactionAccountResponse(scope: TransactionAccountSyncRequestDto, page: TransactionsResponseDto): TransactionAccountSyncResponseDto {
+	val records = page.data.map { it.toRecord() }.sortedWith(compareByDescending<TransactionRecordDto> { it.dateIso }
+		.thenByDescending { item -> item.splits.mapNotNull { it.id }.maxOrNull() ?: 0L }.thenByDescending { it.id })
+	val revision = java.util.Base64.getEncoder().encodeToString(TransactionBuckets.hash(scope.sourceId, -1, records))
+	if (scope.bucketHashes == null) return TransactionAccountSyncResponseDto(scope.sourceId, page.total, revision, "full", records.take(100))
+	val hashes = java.util.Base64.getDecoder().decode(scope.bucketHashes)
+	val partition = records.take(100).groupBy { TransactionBuckets.bucketId(it.id) }
+	val changed = (0 until 16).mapNotNull { id ->
+		val items = partition[id].orEmpty()
+		val hash = TransactionBuckets.hash(scope.sourceId, id, items)
+		if (hash.contentEquals(hashes.copyOfRange(id * 32, (id + 1) * 32))) null
+		else TransactionBucketDto(id, java.util.Base64.getEncoder().encodeToString(hash), items)
+	}
+	return if (changed.isEmpty()) TransactionAccountSyncResponseDto(scope.sourceId, page.total, revision, "unchanged")
+	else TransactionAccountSyncResponseDto(scope.sourceId, page.total, revision, "buckets", buckets = changed)
+}
+
+private fun ledgerTransaction(id: Long): TransactionDto = TransactionDto(id, "uuid-$id", "2026-10-31", "2026-10-31", "Transaction $id", null,
+	listOf(SplitDto(id, "1.00", "1.00".toBigDecimal(), 1, "Checking", 2, "Savings", null)))

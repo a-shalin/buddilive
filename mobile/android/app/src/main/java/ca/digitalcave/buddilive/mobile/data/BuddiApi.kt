@@ -46,7 +46,10 @@ interface BuddiApi {
 	@POST("data/transactions/descriptions/sync")
 	suspend fun syncTransactionDescriptions(@Body request: DescriptionsSyncRequestDto): DescriptionsSyncResponseDto
 
-	@POST("data/transactions?includeSuggestions=true")
+	@POST("data/transactions/sync")
+	suspend fun syncTransactions(@Body request: TransactionsSyncRequestDto): TransactionsSyncResponseDto
+
+	@POST("data/transactions?includeSuggestions=true&includeTransaction=true")
 	suspend fun mutateTransaction(@Body request: TransactionMutationRequestDto): TransactionResponseDto
 
 	@GET("data/userpreferences")

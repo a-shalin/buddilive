@@ -26,10 +26,16 @@ public class TransactionSmokeIT extends BrowserBaseIT {
 
 		browserLogin(EMAIL, PASSWORD);
 
+		waitForComponent("transactionlist");
+		executeJs(
+			"window.__initialTransactionsLoaded = false;" +
+			"Ext.ComponentQuery.query('transactionlist')[0].getStore().on('load', function() {" +
+			"  window.__initialTransactionsLoaded = true;" +
+			"}, null, {single: true});");
 		selectAccount("Chequing");
 
 		waitForComponent("transactioneditor");
-		waitForStoreLoad("transactionlist");
+		wait.until(d -> (Boolean) executeJs("return window.__initialTransactionsLoaded === true;"));
 
 		// Fill in the transaction editor
 		executeJs(

@@ -31,10 +31,23 @@ carry authoritative patches for affected descriptions, including renames and del
 Confirmed suggestions and pending local edits remain available offline. Older backends use the
 legacy suggestions download only on external refreshes; deploy the backend before the app.
 
+Recent transactions use 16 stable ID-based hash buckets per account, covering the latest
+100 rows. One request compares every account; unchanged accounts return no transaction records.
+The hash manifest is 512 bytes per account before Base64 encoding. Changed buckets replace
+complete batches, including rows entering or leaving the recent window. Large differences use
+a full recent-page response when it is smaller. A current account fingerprint invalidates older
+cached pages when history changes; older transactions continue to load on demand. Amounts and
+source names render from local metadata, so formatting or name changes do not re-download rows.
+Mutation acknowledgments include the stored transaction and assigned split IDs. The app patches
+its confirmed cache atomically with the upload acknowledgment before comparing hashes, so its
+own changes do not download the same transactions again. A deletion can expose an uncached
+older row; reconciliation then downloads its bucket. Legacy servers reconcile normally.
+The server retains no synchronization snapshots or historical hashes.
+
 Focused offline verification:
 
 ```bash
-./gradlew :app:testDebugUnitTest --tests '*BuddiRepositoryTest' --tests '*TransactionSuggestionBucketsTest'
+./gradlew :app:testDebugUnitTest --tests '*BuddiRepositoryTest' --tests '*TransactionSuggestionBucketsTest' --tests '*TransactionBucketsTest'
 ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=ca.digitalcave.buddilive.mobile.OfflineStartupTest
 ```
 

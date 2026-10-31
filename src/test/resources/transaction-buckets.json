@@ -1,0 +1,100 @@
+{
+  "sourceId": 1,
+  "items": [
+    {
+      "id": 1,
+      "uuid": "uuid-1",
+      "dateIso": "2026-10-31",
+      "description": "Coffee",
+      "number": "",
+      "splits": [
+        {
+          "id": 101,
+          "amountNumber": "1E+3",
+          "fromId": 1,
+          "toId": 2,
+          "memo": null
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "uuid": null,
+      "dateIso": "2026-10-31",
+      "description": " Кофе ☕ ",
+      "number": null,
+      "splits": [
+        {
+          "id": null,
+          "amountNumber": "12.3400",
+          "fromId": 1,
+          "toId": 2,
+          "memo": ""
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "uuid": "uuid-19",
+      "dateIso": "2026-10-31",
+      "description": "Café",
+      "number": "",
+      "splits": [
+        {
+          "id": 119,
+          "amountNumber": "1E+3",
+          "fromId": 1,
+          "toId": 2,
+          "memo": ""
+        },
+        {
+          "id": 8,
+          "amountNumber": "-4.250",
+          "fromId": 3,
+          "toId": 1,
+          "memo": "Пример"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "uuid": "uuid-41",
+      "dateIso": "2026-10-31",
+      "description": "𐀀",
+      "number": "",
+      "splits": [
+        {
+          "id": 141,
+          "amountNumber": "12.3400",
+          "fromId": 1,
+          "toId": 2,
+          "memo": ""
+        }
+      ]
+    },
+    {
+      "id": 9007199254740993,
+      "uuid": "uuid-9007199254740993",
+      "dateIso": "2026-10-31",
+      "description": "",
+      "number": "",
+      "splits": [
+        {
+          "id": 9007199254741093,
+          "amountNumber": "-0.000",
+          "fromId": 1,
+          "toId": 2,
+          "memo": ""
+        }
+      ]
+    }
+  ],
+  "bucketIds": [
+    11,
+    4,
+    4,
+    13,
+    1
+  ],
+  "manifest": "1mw7JUYpj8ssGpWobPDJUpvsPnm8OPPGkImUt4cV/l5mv8mtbOBFVzVc5YuNewt7qK9cEnWyOVoqy4+LklKo3j69CpnZTPdfTk8ziiwTmZ2jDWKXNUTZL6bt+VyAg4LnXf7JnG6r7XBOiLeeCWx81Jwf5PzUdEKMViDg067voNzpT9i2ssoFd2H2kWxpjcL+0vsV5BzS/dE7j9zXkf+mw1PjIoJfe2bhITZTOseV6Vig9XgEr2ZFJ/OIPQc/4F9mNDeJxugsDHHR80RAJLz2x7nEwuaEEx7GifNnNV2cJvOGCdbPbB5TlVnloY9VaayVRhjW32B3jOs5KKiGcQauML/Uv/Jj6eWf30uNOlUvqTSx0BEsYcQDo/wvnsG1c+MbX/IAp9vwhnGQGJJVHxILGGmPDL7nz7bTt+JuYbJJVw/aYpbg5GmmmPEhNLMaHycQLGDFK0xL9g3252at8ONsF7LJQDxnpylExLWF1BZrz+nIex8Fx99lW1cxWUdUSSh6cAHpof8niYBMBw0z8NWZYwMrHbYtawzgw4bRda4Rrn3pDakdUCwOeGz+7AW/AewRqwgHT9iaFHPMZIIfHHCYIqBHSt0MHXT0yzMH+fsd9INTlgiIfUKS6NZ5bV4PO5G/BU4g7+lOcIJV4R5ZALuKkRp7ZjLVqaolz8Bsi358rLw="
+}

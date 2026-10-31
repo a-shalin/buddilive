@@ -2,6 +2,7 @@ package ca.digitalcave.buddi.live.service;
 
 import ca.digitalcave.buddi.live.api.dto.TransactionResponseDto;
 import ca.digitalcave.buddi.live.api.dto.request.TransactionRequestDto;
+import ca.digitalcave.buddi.live.controller.Action;
 import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
@@ -19,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Service
 public class TransactionsTransactionalService {
@@ -28,16 +31,20 @@ public class TransactionsTransactionalService {
 	private final Transactions transactions;
 	private final Crypto crypto;
 	private final TransactionSuggestionsService suggestions;
+	private final TransactionsSyncService transactionSync;
 
-	public TransactionsTransactionalService(final Sources sources, final Transactions transactions, final Crypto crypto, final TransactionSuggestionsService suggestions) {
+	public TransactionsTransactionalService(final Sources sources, final Transactions transactions, final Crypto crypto, final TransactionSuggestionsService suggestions, final TransactionsSyncService transactionSync) {
 		this.sources = sources;
 		this.transactions = transactions;
 		this.crypto = crypto;
 		this.suggestions = suggestions;
+		this.transactionSync = transactionSync;
 	}
 
 	@Transactional
-	public TransactionResponseDto mutate(final User user, final TransactionRequestDto request, final boolean includeSuggestions) throws CryptoException {
+	public TransactionResponseDto mutate(final User user, final TransactionRequestDto request, final boolean includeSuggestions, final boolean includeTransaction) throws CryptoException {
+		final Transaction previousTransaction = includeTransaction && request.action() != Action.INSERT && request.id() != null
+				? transactions.selectTransactionById(user, request.id()) : null;
 		final Set<String> keys = new LinkedHashSet<>();
 		if (includeSuggestions) {
 			if (request.suggestionKeys() != null) {
@@ -63,8 +70,13 @@ public class TransactionsTransactionalService {
 			case DELETE -> deleteTransaction(user, request.id());
 			default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid transaction action");
 		}
+		final Transaction current = includeTransaction && request.action() != Action.DELETE
+				? transactions.selectTransactionById(user, inserted == null ? request.id() : inserted.getId()) : null;
+		final List<Integer> previousSourceIds = !includeTransaction ? null : previousTransaction == null ? List.of()
+				: previousTransaction.getSplits().stream().flatMap(split -> Stream.of(split.getFromSource(), split.getToSource())).distinct().sorted().toList();
 		return new TransactionResponseDto(true, inserted == null ? null : inserted.getId(),
-				inserted == null ? null : inserted.getUuid(), includeSuggestions ? suggestions.patch(user, keys) : null);
+				inserted == null ? null : inserted.getUuid(), includeSuggestions ? suggestions.patch(user, keys) : null,
+				current == null ? null : transactionSync.record(user, current, current.getSplits()), previousSourceIds);
 	}
 
 	@Transactional

@@ -2,7 +2,7 @@ package ca.digitalcave.buddi.live.controller;
 
 import ca.digitalcave.buddi.live.api.dto.TransactionResponseDto;
 import ca.digitalcave.buddi.live.api.dto.request.TransactionRequestDto;
-import ca.digitalcave.buddi.live.service.TransactionsTransactionalService;
+import ca.digitalcave.buddi.live.api.dto.request.TransactionsSyncRequestDto;
 import ca.digitalcave.buddi.live.db.Sources;
 import ca.digitalcave.buddi.live.db.Transactions;
 import ca.digitalcave.buddi.live.db.util.DatabaseException;
@@ -10,6 +10,8 @@ import ca.digitalcave.buddi.live.model.Source;
 import ca.digitalcave.buddi.live.model.Split;
 import ca.digitalcave.buddi.live.model.Transaction;
 import ca.digitalcave.buddi.live.model.User;
+import ca.digitalcave.buddi.live.service.TransactionsSyncService;
+import ca.digitalcave.buddi.live.service.TransactionsTransactionalService;
 import ca.digitalcave.buddi.live.util.CryptoUtil;
 import ca.digitalcave.buddi.live.util.FormatUtil;
 import ca.digitalcave.moss.crypto.Crypto.CryptoException;
@@ -19,13 +21,16 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.ibatis.session.ResultContext;
 import org.apache.ibatis.session.ResultHandler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 
 @RestController
@@ -43,6 +48,9 @@ public class TransactionsController {
 
 	@Autowired
 	private JsonFactory jsonFactory;
+
+	@Autowired
+	private TransactionsSyncService transactionsSyncService;
 
 	@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 	public StreamingResponseBody get(@AuthenticationPrincipal final User user,
@@ -128,11 +136,22 @@ public class TransactionsController {
 		};
 	}
 
+	@PostMapping(value = "/sync", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<byte[]> sync(@AuthenticationPrincipal final User user,
+			@RequestBody final TransactionsSyncRequestDto request,
+			@RequestHeader(value = "Accept-Encoding", defaultValue = "") final String encoding) throws IOException, CryptoException {
+		final boolean gzip = java.util.Arrays.stream(encoding.split(","))
+				.map(String::trim).anyMatch(value -> value.equalsIgnoreCase("gzip") || value.matches("(?i)gzip\\s*;\\s*q=(?!0(?:\\.0*)?$)[0-9.]+"));
+		return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.APPLICATION_JSON)
+				.body(transactionsSyncService.sync(user, request, gzip));
+	}
+
 	@PostMapping
 	public TransactionResponseDto post(@AuthenticationPrincipal final User user, @RequestBody final TransactionRequestDto request,
-			@RequestParam(defaultValue = "false") final boolean includeSuggestions) {
+			@RequestParam(defaultValue = "false") final boolean includeSuggestions,
+			@RequestParam(defaultValue = "false") final boolean includeTransaction) {
 		try {
-			return transactionsTransactionalService.mutate(user, request, includeSuggestions);
+			return transactionsTransactionalService.mutate(user, request, includeSuggestions, includeTransaction);
 		}
 		catch (DatabaseException e) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);

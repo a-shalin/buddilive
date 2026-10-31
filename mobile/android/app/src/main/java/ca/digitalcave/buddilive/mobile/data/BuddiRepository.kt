@@ -63,6 +63,8 @@ class BuddiRepository(
     private var memorySuggestions = SuggestionsCache()
     private var suggestionsNeedRepair = false
     private var legacySuggestionsBackend = false
+    private var legacyTransactionsBackend = false
+    private val transactionRepairs = mutableSetOf<Long>()
     private var externalSyncRequested = false
 
     suspend fun login(identifier: String, password: String, stayLoggedIn: Boolean): LoginResult = authenticationMutex.withLock {
@@ -209,7 +211,8 @@ class BuddiRepository(
                     ?.getOrNull()?.toSourceOptions().orEmpty(),
                 toSources = loadCachedResponse(sourcesCacheKey(SOURCE_DIRECTION_TO), SourcesResponseDto::class.java)
                     ?.getOrNull()?.toSourceOptions().orEmpty(),
-                preferences = loadCachedUserDatePreferences()
+                preferences = loadCachedUserDatePreferences(),
+                transactionsRevision = offlineStore?.loadCache(transactionsRevisionKey(accountId))
             )
         }
     }
@@ -303,7 +306,7 @@ class BuddiRepository(
         val responseResult = fetchTransactionsResponse(sourceId = sourceId, start = serverStart, limit = limit)
         return responseResult.fold(
             onSuccess = { response ->
-                val serverPage = response.toTransactionsPage()
+                val serverPage = renderTransactionsPage(response)
                 if (serverStart > 0) {
                     Result.success(serverPage.copy(total = serverPage.total + pendingTransactions.size))
                 }
@@ -387,6 +390,32 @@ class BuddiRepository(
         if (offlineStore == null) memorySuggestions = next
     }
 
+    private fun applyMutationTransaction(response: TransactionResponseDto, request: TransactionMutationRequestDto) {
+        val previousSourceIds = response.previousSourceIds ?: return
+        require(previousSourceIds.all { it > 0 } && previousSourceIds.distinct().size == previousSourceIds.size)
+        val current = response.transaction
+        require((request.action == "delete") == (current == null))
+        val id = current?.id ?: requireNotNull(request.id)
+        require(id > 0 && (request.id == null || request.id == id) && (response.id == null || response.id == id))
+        if (current != null) {
+            require(current.splits.isNotEmpty() && current.splits.all { it.id != null && it.id > 0 })
+            require(request.action != "insert" || request.uuid == null || request.uuid == current.uuid)
+        }
+        val accounts = loadCachedResponse(ACCOUNTS_CACHE_KEY, AccountsResponseDto::class.java)?.getOrNull()?.toAccountSummaries().orEmpty()
+        for (account in accounts) {
+            val cache = loadCachedResponse(transactionsCacheKey(account.id, 0, RECENT_LIMIT), TransactionsResponseDto::class.java)?.getOrNull() ?: continue
+            if (runCatching { TransactionBuckets.manifest(account.id, cache) }.isFailure) {
+                transactionRepairs.add(account.id)
+                continue
+            }
+            val patched = TransactionBuckets.patch(account.id, cache, id, current, previousSourceIds)
+            if (patched === cache) continue
+            offlineStore?.deleteCachePrefix("transactions:${account.id}:")
+            offlineStore?.saveCache(transactionsCacheKey(account.id, 0, RECENT_LIMIT), gson.toJson(patched))
+            offlineStore?.saveCache(transactionsRevisionKey(account.id), "")
+        }
+    }
+
     private suspend fun reconcileSuggestions(store: OfflineStore) {
         val cache = synchronized(dataLock) {
             if (store !== offlineStore) throw CancellationException("Account changed")
@@ -438,6 +467,8 @@ class BuddiRepository(
         memorySuggestions = SuggestionsCache()
         suggestionsNeedRepair = false
         legacySuggestionsBackend = false
+        legacyTransactionsBackend = false
+        transactionRepairs.clear()
         externalSyncRequested = false
         _transactionDescriptionTemplates.value = emptyList()
     }
@@ -606,6 +637,7 @@ class BuddiRepository(
                     if (store !== offlineStore) throw CancellationException("Account changed")
                     store?.transaction {
                         applyMutationSuggestions(response, request)
+                        applyMutationTransaction(response, request)
                         request.id?.let { store.saveCache("suggestion-keys:$it", "[]") }
                     }
                     if (store == null) applyMutationSuggestions(response, request)
@@ -639,9 +671,7 @@ class BuddiRepository(
                 val accounts = fetchAccountsResponse(forceNetwork = true).getOrThrow().toAccountSummaries()
                 fetchSourcesResponse(SOURCE_DIRECTION_FROM, forceNetwork = true).getOrThrow()
                 fetchSourcesResponse(SOURCE_DIRECTION_TO, forceNetwork = true).getOrThrow()
-                for (account in accounts) {
-                    fetchTransactionsResponse(account.id, 0, RECENT_LIMIT, forceNetwork = true).getOrThrow()
-                }
+                reconcileTransactions(accounts.map { it.id }, store)
                 if (reconcileSuggestions) reconcileSuggestions(store)
                 synchronized(dataLock) {
                     if (store !== offlineStore) throw CancellationException("Account changed")
@@ -665,6 +695,7 @@ class BuddiRepository(
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
+                synchronized(dataLock) { if (store !== offlineStore) throw CancellationException("Account changed") }
                 _syncState.update { it.copy(
                     needsLogin = exception is UnauthorizedException,
                     error = if (exception is UnauthorizedException) "Sign in to sync" else "Unable to sync. Changes are saved on this device."
@@ -729,6 +760,7 @@ class BuddiRepository(
                         else !current.sync.deleted && current.toEditInput() == serverInput
                     store.transaction {
                         applyMutationSuggestions(response, request)
+                        applyMutationTransaction(response, request)
                         store.upsertPendingTransaction(current.copy(
                             status = PendingTransactionStatus.PENDING, lastError = null,
                             sync = current.sync.copy(
@@ -760,6 +792,69 @@ class BuddiRepository(
 
     private fun PendingTransaction.toEditInput(): TransactionEditInput =
         TransactionEditInput(dateIso, description, number, amount, fromId, toId, memo)
+
+    private suspend fun reconcileTransactions(accountIds: List<Long>, store: OfflineStore) {
+        if (accountIds.isEmpty()) return
+        if (!legacyTransactionsBackend) {
+            val cached = synchronized(dataLock) {
+                if (store !== offlineStore) throw CancellationException("Account changed")
+                accountIds.associateWith { id ->
+                    loadCachedResponse(transactionsCacheKey(id, 0, RECENT_LIMIT), TransactionsResponseDto::class.java)?.getOrNull()
+                }
+            }
+            val scopes = synchronized(dataLock) { accountIds.map { id ->
+                val manifest = if (id in transactionRepairs) null else cached[id]?.let {
+                    runCatching { TransactionBuckets.manifest(id, it) }.getOrNull()
+                }
+                TransactionAccountSyncRequestDto(id, manifest)
+            } }
+            val response = try {
+                api.syncTransactions(TransactionsSyncRequestDto(accounts = scopes))
+            } catch (exception: HttpException) {
+                synchronized(dataLock) {
+                    if (store !== offlineStore) throw CancellationException("Account changed")
+                    if (exception.code() == 401 || exception.code() == 403) throw UnauthorizedException()
+                    if (exception.code() !in listOf(404, 405, 501)) throw exception
+                    legacyTransactionsBackend = true
+                }
+                null
+            }
+            if (response != null) {
+                val replacements = try {
+                    require(response.success && response.version == TransactionBuckets.VERSION)
+                    require(response.sourceNames.keys.all { it > 0 })
+                    response.sourceNames.values.forEach { it.toByteArray(Charsets.UTF_8) }
+                    require(response.accounts.map { it.sourceId }.toSet() == accountIds.toSet() && response.accounts.size == accountIds.size)
+                    response.accounts.associate { account ->
+                        val previous = if (scopes.first { it.sourceId == account.sourceId }.bucketHashes == null) null else cached[account.sourceId]
+                        account.sourceId to TransactionBuckets.replace(previous, account)
+                    }
+                } catch (exception: Exception) {
+                    synchronized(dataLock) { if (store === offlineStore) transactionRepairs.addAll(accountIds) }
+                    throw exception
+                }
+                synchronized(dataLock) {
+                    if (store !== offlineStore) throw CancellationException("Account changed")
+                    store.transaction {
+                        val names = loadCachedResponse(TRANSACTION_SOURCE_NAMES_KEY, com.google.gson.JsonObject::class.java)?.getOrNull()
+                            ?: com.google.gson.JsonObject()
+                        response.sourceNames.forEach { (id, name) -> names.addProperty(id.toString(), name) }
+                        store.saveCache(TRANSACTION_SOURCE_NAMES_KEY, gson.toJson(names))
+                        for (account in response.accounts) {
+                            val id = account.sourceId
+                            if (store.loadCache(transactionsRevisionKey(id)) != account.revision) store.deleteCachePrefix("transactions:$id:")
+                            store.saveCache(transactionsCacheKey(id, 0, RECENT_LIMIT), gson.toJson(replacements.getValue(id)))
+                            store.saveCache(transactionsRevisionKey(id), account.revision)
+                        }
+                    }
+                    transactionRepairs.removeAll(accountIds.toSet())
+                    notifyCacheChanged()
+                }
+                return
+            }
+        }
+        for (id in accountIds) fetchTransactionsResponse(id, 0, RECENT_LIMIT, forceNetwork = true).getOrThrow()
+    }
 
     private suspend fun fetchAccountsResponse(forceNetwork: Boolean = false): Result<AccountsResponseDto> {
         return fetchCachedResponse(
@@ -893,6 +988,23 @@ class BuddiRepository(
             .sortedByDescending { transaction -> transaction.dateIso }
     }
 
+    private fun renderTransactionsPage(response: TransactionsResponseDto): TransactionsPage {
+        val preferences = loadCachedUserDatePreferences()
+        val selectors = listOf(SOURCE_DIRECTION_FROM, SOURCE_DIRECTION_TO).flatMap { direction ->
+            loadCachedResponse(sourcesCacheKey(direction), SourcesResponseDto::class.java)?.getOrNull()?.toSourceOptions().orEmpty()
+        }.mapNotNull { option -> option.id?.let { it to option.label.trim() } }.toMap()
+        val names = loadCachedResponse(TRANSACTION_SOURCE_NAMES_KEY, com.google.gson.JsonObject::class.java)?.getOrNull()
+        fun resolveName(id: Int, fallback: String): String = selectors[id] ?: fallback.takeIf { it.isNotBlank() }
+            ?: names?.get(id.toString())?.asString ?: "#$id"
+        return response.toTransactionsPage().let { page -> page.copy(items = page.items.map { transaction ->
+            transaction.copy(split = transaction.split?.let { split -> split.copy(
+                amountLabel = formatCurrencyAmount(split.amountNumber, preferences),
+                fromName = resolveName(split.fromId, split.fromName),
+                toName = resolveName(split.toId, split.toName)
+            ) })
+        }) }
+    }
+
     private fun localTransactionsPage(
         sourceId: Long,
         limit: Int,
@@ -902,7 +1014,7 @@ class BuddiRepository(
             .map { pendingTransaction -> pendingTransaction.toTransactionSummary() }
         val cachedPage = loadCachedResponse(transactionsCacheKey(sourceId, 0, limit), TransactionsResponseDto::class.java)
             ?.getOrNull()
-            ?.toTransactionsPage()
+            ?.let { renderTransactionsPage(it) }
         val allPending = offlineStore?.listPendingTransactions().orEmpty()
         val hiddenUuids = allPending.mapTo(mutableSetOf()) { it.localUuid }
         val cachedItems = cachedPage?.items.orEmpty().filter { it.uuid !in hiddenUuids }
@@ -1020,7 +1132,7 @@ class BuddiRepository(
     private val PendingTransaction.id: Long
         get() = pendingTransactionId(localUuid)
 
-    private fun sourceName(sourceId: Int): String {
+    private fun sourceName(sourceId: Int, fallback: String = ""): String {
         for (direction in listOf(SOURCE_DIRECTION_FROM, SOURCE_DIRECTION_TO)) {
             val cachedValue = offlineStore?.loadCache(sourcesCacheKey(direction)) ?: continue
             val response = runCatching {
@@ -1031,7 +1143,9 @@ class BuddiRepository(
                 return source.label.trim()
             }
         }
-        return "#$sourceId"
+        if (fallback.isNotBlank()) return fallback
+        val names = loadCachedResponse(TRANSACTION_SOURCE_NAMES_KEY, com.google.gson.JsonObject::class.java)?.getOrNull()
+        return names?.get(sourceId.toString())?.asString ?: "#$sourceId"
     }
 
     private fun loadCachedUserDatePreferences(): UserDatePreferences {
@@ -1083,6 +1197,8 @@ private fun transactionsCacheKey(sourceId: Long, start: Int, limit: Int): String
     return "transactions:$sourceId:$start:$limit"
 }
 
+private fun transactionsRevisionKey(sourceId: Long): String = "transactions-revision:$sourceId"
+
 private fun transactionIdCacheKey(localId: Long): String = "transaction-id:$localId"
 
 private fun sourcesCacheKey(direction: String): String {
@@ -1104,6 +1220,7 @@ class OfflineUnavailableException : RuntimeException("Open this account once whi
 
 private const val ACCOUNTS_CACHE_KEY = "accounts"
 private const val USER_PREFERENCES_CACHE_KEY = "user-preferences"
+private const val TRANSACTION_SOURCE_NAMES_KEY = "transaction-source-names"
 private const val SUGGESTIONS_CACHE_KEY = "transaction-suggestions:v1"
 private const val TRANSACTION_DESCRIPTIONS_CACHE_KEY = "transaction-descriptions"
 private const val SOURCE_DIRECTION_FROM = "from"
